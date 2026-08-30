@@ -15,7 +15,7 @@ const execFileAsync = promisify(execFile);
 export const normalizeStep = createStep(
   "normalize",
   async (ctx: SagaContext) => {
-    const dpi = ctx.options?.dpi ?? 150;
+    const dpi = ctx.options?.dpi ?? 72;
     const maxPages = ctx.options?.maxPages ?? 20;
 
     // Salva il PDF in un file temporaneo

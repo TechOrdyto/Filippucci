@@ -32,6 +32,11 @@ export const runOcrStep = createStep(
       result.pageNumber = page.pageNumber;
       results.push(result);
       console.log(`   📄 Pagina ${page.pageNumber}: ${result.textBlocks.length} blocchi testo`);
+
+      // Delay tra le pagine per rispettare il rate limit TPM di gpt-4o-mini
+      if (pages.length > 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
 
     ctx.ocrResults = results;

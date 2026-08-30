@@ -45,10 +45,10 @@ Analizza QUESTA pagina di catalogo ed estrai i dati del prodotto in formato JSON
     "name": "nome prodotto (es. Emile, Augusto, Cleo)",
     "designer": "designer (es. Vincent Van Duysen)",
     "category": "categoria (es. Seating System, Sofa, Armchair, Table)",
-    "description": "descrizione breve",
-    "materials": ["materiali"],
-    "finishes": ["finiture"],
-    "dimensions": { "width": cm, "depth": cm, "height": cm } (se presenti),
+    "description": "descrizione breve in italiano",
+    "materials": ["materiali in italiano (es. tessuto, pelle, legno, acciaio)"],
+    "finishes": ["finiture (es. Web W6281, Kendal KI642)"],
+    "dimensions": { "width": cm, "depth": cm, "height": cm } (se presenti, cerca pattern come L 220 P 90 H 85),
     "image_bbox": {
       "x": percentuale dal bordo sinistro (0-100),
       "y": percentuale dal bordo superiore (0-100),
@@ -57,7 +57,10 @@ Analizza QUESTA pagina di catalogo ed estrai i dati del prodotto in formato JSON
     }
   }
 }
-IMPORTANTE: image_bbox deve indicare la regione dell'IMMAGINE del prodotto (la foto del divano/poltrona), NON il testo. Osserva dove sta la foto nella pagina e indica il suo rettangolo in percentuale.
+IMPORTANTE:
+- image_bbox deve indicare la regione dell'IMMAGINE del prodotto (la foto del divano/poltrona), NON il testo. Osserva dove sta la foto nella pagina e indica il suo rettangolo in percentuale.
+- materials in ITALIANO (tessuto, pelle, legno, ecc.)
+- Se le dimensioni non sono leggibili, usa null
 Se la pagina non contiene un prodotto, rispondi con {"product": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`
       : `Sei un OCR esperto di documenti tecnici. Estrai TUTTO il testo visibile nell'immagine, riga per riga, in ordine di lettura (dall'alto al basso, da sinistra a destra). Includi numeri, misure, quote dimensionali, etichette, nomi di stanze. Non omettere nulla.`;
