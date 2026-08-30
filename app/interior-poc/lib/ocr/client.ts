@@ -90,11 +90,13 @@ Rispondi SOLO con JSON valido, nessun altro testo.`
   }
 }
 IMPORTANTE:
-- Leggi TUTTE le quote dimensionali scritte (es. 3.62, 2.61, 7.22) e includile in quotes
-- Le dimensioni totali sono le quote più grandi (es. 15.10)
+- Leggi TUTTE le quote dimensionali scritte sulla piantina (es. 3.62, 2.61, 1.65, 7.22, 4.38, 4.82, 4.80, 1.10) e includile in quotes
+- Le dimensioni totali sono le quote più grandi (es. 15.10 × 15.10)
+- Elenca TUTTE le stanze visibili: Bagno, WC, Cucina/Soggiorno, Camere, Anti, Guardaroba, Ingresso, Balcone, ecc.
 - bounds delle stanze in METRI, con origine in alto a sinistra
-- Le stanze NON devono sovrapporsi
-- Identifica porte e finestre disegnate
+- Le stanze NON devono sovrapporsi: la somma delle larghezze su ogni riga = larghezza totale, la somma delle altezze su ogni colonna = altezza totale
+- Identifica porte e finestre disegnate (porte tra stanze, finestre sui muri esterni)
+- Se una stanza non ha area scritta, calcolala da width × height
 Se non riesci a leggere la piantina, rispondi con {"floorplan": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`;
 
@@ -105,7 +107,9 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      // gpt-4o per il floorplan (più potente per piantine complesse),
+      // gpt-4o-mini per il catalogo (più economico)
+      model: options.documentType === "floorplan" ? "gpt-4o" : "gpt-4o-mini",
       temperature: 0.1,
       max_tokens: 8192,
       messages: [
