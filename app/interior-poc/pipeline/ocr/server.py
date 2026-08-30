@@ -27,6 +27,7 @@ class OcrResponse(BaseModel):
 def get_engine(lang: str):
     global ocr_engine
     if ocr_engine is None:
+        # PaddleOCR 2.x: API stabile, senza doc_preprocessor
         ocr_engine = PaddleOCR(
             use_angle_cls=True,
             lang=lang,
@@ -46,7 +47,7 @@ def ocr(req: OcrRequest):
         image = Image.open(io.BytesIO(image_bytes))
         image_np = np.array(image)
 
-        # Esegui OCR
+        # Esegui OCR (PaddleOCR 2.x: ocr.ocr con cls)
         engine = get_engine(req.lang)
         result = engine.ocr(image_np, cls=True)
 

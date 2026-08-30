@@ -30,10 +30,11 @@ export async function extractTextFromPdf(
   data: ArrayBuffer | Uint8Array
 ): Promise<PdfExtractionResult> {
   // Salva il PDF in un file temporaneo
-  const binaryData =
-    typeof Buffer !== "undefined" && Buffer.isBuffer(data)
-      ? new Uint8Array(data)
-      : data;
+  // Normalizza in Uint8Array per writeFileSync
+  const binaryData: Uint8Array =
+    data instanceof Uint8Array
+      ? data
+      : new Uint8Array(data);
 
   const tmpFile = join(tmpdir(), `ordyto-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`);
   writeFileSync(tmpFile, binaryData);
@@ -84,10 +85,11 @@ export async function extractImagesFromPdf(
   data: ArrayBuffer | Uint8Array,
   options: { maxPages?: number; scale?: number } = {}
 ): Promise<Array<{ pageNumber: number; dataUrl: string }>> {
-  const binaryData =
-    typeof Buffer !== "undefined" && Buffer.isBuffer(data)
-      ? new Uint8Array(data)
-      : data;
+  // Normalizza in Uint8Array per writeFileSync
+  const binaryData: Uint8Array =
+    data instanceof Uint8Array
+      ? data
+      : new Uint8Array(data);
 
   const tmpFile = join(tmpdir(), `ordyto-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`);
   writeFileSync(tmpFile, binaryData);

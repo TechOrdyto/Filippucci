@@ -287,9 +287,11 @@ async function editImageWithReferences(
 
   // Aggiungi le immagini dei prodotti come riferimento
   for (const img of productImages) {
+    // Buffer → Uint8Array per compatibilità Blob
+    const uint8 = new Uint8Array(img.buffer);
     form.append(
       "image[]",
-      new Blob([img.buffer], { type: img.mime }),
+      new Blob([uint8], { type: img.mime }),
       img.name
     );
   }

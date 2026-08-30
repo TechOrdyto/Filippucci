@@ -7,8 +7,8 @@ import { saveNormalizedPage, deleteFile } from "../store";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readFileSync, existsSync } from "node:fs";
-import { join, tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 const execFileAsync = promisify(execFile);
 

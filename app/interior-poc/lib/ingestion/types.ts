@@ -19,6 +19,11 @@ export interface SagaContext {
   fileName: string;
   fileData: Buffer;
   fileHash: string;
+  options?: {
+    lang?: string;
+    dpi?: number;
+    maxPages?: number;
+  };
   // Popolati durante la saga
   normalizedPages?: NormalizedPage[];
   ocrResults?: OcrPageResult[];
