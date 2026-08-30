@@ -49,7 +49,7 @@ export const persistCatalogStep = createStep(
 
       // Merge intelligente: aggiorna i prodotti esistenti con dati migliori,
       // aggiunge i nuovi prodotti
-      const existingByName = new Map(
+      const existingByName = new Map<string, any>(
         existing.products.map((p: any) => [p.name.toLowerCase(), p])
       );
 

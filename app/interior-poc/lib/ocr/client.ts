@@ -63,7 +63,40 @@ IMPORTANTE:
 - Se le dimensioni non sono leggibili, usa null
 Se la pagina non contiene un prodotto, rispondi con {"product": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`
-      : `Sei un OCR esperto di documenti tecnici. Estrai TUTTO il testo visibile nell'immagine, riga per riga, in ordine di lettura (dall'alto al basso, da sinistra a destra). Includi numeri, misure, quote dimensionali, etichette, nomi di stanze. Non omettere nulla.`;
+      : `Sei un architetto esperto. Analizza QUESTA piantina architettonica ed estrai i dati in formato JSON:
+{
+  "floorplan": {
+    "dimensions": { "width": metri, "height": metri },
+    "ceilingHeight": metri,
+    "quotes": [
+      { "value": metri, "axis": "x" | "y", "position": "north" | "south" | "east" | "west" }
+    ],
+    "rooms": [
+      {
+        "name": "nome stanza (es. Bagno, Camera, Cucina/Soggiorno)",
+        "area": mq (se presente),
+        "bounds": { "x": metri, "y": metri, "width": metri, "height": metri }
+      }
+    ],
+    "openings": [
+      {
+        "type": "window" | "door" | "french-door",
+        "position": { "x": metri, "y": metri },
+        "width": metri,
+        "height": metri,
+        "wall": "north" | "south" | "east" | "west"
+      }
+    ]
+  }
+}
+IMPORTANTE:
+- Leggi TUTTE le quote dimensionali scritte (es. 3.62, 2.61, 7.22) e includile in quotes
+- Le dimensioni totali sono le quote più grandi (es. 15.10)
+- bounds delle stanze in METRI, con origine in alto a sinistra
+- Le stanze NON devono sovrapporsi
+- Identifica porte e finestre disegnate
+Se non riesci a leggere la piantina, rispondi con {"floorplan": null}.
+Rispondi SOLO con JSON valido, nessun altro testo.`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -96,8 +129,8 @@ Rispondi SOLO con JSON valido, nessun altro testo.`
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content ?? "";
 
-  // Per il catalogo, il contenuto è già JSON strutturato
-  if (options.documentType === "catalog") {
+  // Per catalogo e floorplan, il contenuto è già JSON strutturato
+  if (options.documentType === "catalog" || options.documentType === "floorplan") {
     const textBlocks: OcrTextBlock[] = [
       {
         text: content,
@@ -114,7 +147,7 @@ Rispondi SOLO con JSON valido, nessun altro testo.`
     };
   }
 
-  // Per il floorplan, dividi il testo in righe
+  // Fallback: dividi il testo in righe
   const lines = content.split("\n").filter((l: string) => l.trim().length > 0);
   const textBlocks: OcrTextBlock[] = lines.map((line: string, i: number) => ({
     text: line.trim(),

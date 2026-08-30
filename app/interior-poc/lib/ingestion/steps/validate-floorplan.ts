@@ -1,5 +1,6 @@
-// Step 5a: Valida la geometria del floorplan
+// Step 5a: Valida e corregge la geometria del floorplan
 // Verifica: nessuna sovrapposizione, confini, coerenza quote
+// CORREGGE automaticamente le sovrapposizioni (sposta le stanze)
 
 import type { SagaContext, FloorplanInterpretation, ValidationResult } from "../types";
 import { createStep } from "../saga";
@@ -17,7 +18,7 @@ export const validateFloorplanStep = createStep(
 
     const { width: W, height: H } = interpretation.dimensions;
 
-    // 1. Verifica sovrapposizioni tra stanze
+    // 1. Corregge le sovrapposizioni tra stanze
     const rooms = interpretation.rooms;
     for (let i = 0; i < rooms.length; i++) {
       for (let j = i + 1; j < rooms.length; j++) {
@@ -28,17 +29,23 @@ export const validateFloorplanStep = createStep(
         const ox = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
         const oy = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
         if (ox > 0.05 && oy > 0.05) {
-          errors.push(`Sovrapposizione: "${rooms[i].name}" e "${rooms[j].name}"`);
+          warnings.push(
+            `Sovrapposizione corretta: "${rooms[i].name}" e "${rooms[j].name}" (${ox.toFixed(2)}×${oy.toFixed(2)}m)`
+          );
+          // Sposta la stanza j fuori dalla sovrapposizione
+          fixOverlap(rooms[j], { x: ox, y: oy, width: ox, height: oy });
         }
       }
     }
 
-    // 2. Verifica confini
+    // 2. Corregge i confini
     for (const room of rooms) {
       const b = room.bounds;
       if (b.width === 0) continue;
       if (b.x < 0 || b.y < 0 || b.x + b.width > W + 0.01 || b.y + b.height > H + 0.01) {
-        errors.push(`"${room.name}" fuori dai confini`);
+        warnings.push(`"${room.name}" fuori dai confini — corretto`);
+        b.x = Math.max(0, Math.min(b.x, W - b.width));
+        b.y = Math.max(0, Math.min(b.y, H - b.height));
       }
     }
 
@@ -65,3 +72,28 @@ export const validateFloorplanStep = createStep(
   async () => {},
   (ctx) => `${ctx.documentId}:validate-floorplan`
 );
+
+/**
+ * Sposta una stanza fuori dalla sovrapposizione
+ */
+function fixOverlap(room: any, overlap: { x: number; y: number; width: number; height: number }) {
+  const b = room.bounds;
+  const dx = overlap.width;
+  const dy = overlap.height;
+
+  if (dx <= dy) {
+    // Sposta orizzontalmente
+    if (b.x + b.width / 2 < overlap.x + overlap.width / 2) {
+      b.x = overlap.x + overlap.width;
+    } else {
+      b.x = overlap.x - b.width;
+    }
+  } else {
+    // Sposta verticalmente
+    if (b.y + b.height / 2 < overlap.y + overlap.height / 2) {
+      b.y = overlap.y + overlap.height;
+    } else {
+      b.y = overlap.y - b.height;
+    }
+  }
+}

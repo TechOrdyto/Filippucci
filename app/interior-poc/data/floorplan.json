@@ -3,94 +3,208 @@
   "name": "Piano Rialzato",
   "unit": "m",
   "dimensions": {
-    "width": 16.31,
-    "height": 15.1
+    "width": 15.1,
+    "height": 10.3
   },
-  "ceilingHeight": 2.75,
+  "ceilingHeight": 2.7,
   "rooms": [
     {
       "id": "room-1",
-      "name": "CAMERA",
-      "area": 0,
+      "name": "Bagno",
+      "area": 4.35,
       "bounds": {
         "x": 0,
         "y": 0,
-        "width": 0,
-        "height": 0
+        "width": 2.61,
+        "height": 1.7
       },
-      "openings": []
+      "openings": [
+        {
+          "type": "door",
+          "position": {
+            "x": 2.61,
+            "y": 1.7
+          },
+          "width": 0.8,
+          "height": 2,
+          "wall": "north",
+          "exposure": "north"
+        },
+        {
+          "type": "window",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 1.5,
+          "height": 1,
+          "wall": "west",
+          "exposure": "west"
+        },
+        {
+          "type": "window",
+          "position": {
+            "x": 2.61,
+            "y": 0
+          },
+          "width": 1.5,
+          "height": 1,
+          "wall": "south",
+          "exposure": "south"
+        }
+      ]
     },
     {
       "id": "room-2",
-      "name": "CAMERA",
-      "area": 0,
+      "name": "Camera",
+      "area": 10.72,
       "bounds": {
-        "x": 0,
+        "x": 2.61,
         "y": 0,
-        "width": 0,
-        "height": 0
+        "width": 3.39,
+        "height": 4.35
       },
-      "openings": []
+      "openings": [
+        {
+          "type": "door",
+          "position": {
+            "x": 2.61,
+            "y": 1.7
+          },
+          "width": 0.8,
+          "height": 2,
+          "wall": "north",
+          "exposure": "north"
+        },
+        {
+          "type": "window",
+          "position": {
+            "x": 2.61,
+            "y": 0
+          },
+          "width": 1.5,
+          "height": 1,
+          "wall": "south",
+          "exposure": "south"
+        }
+      ]
     },
     {
       "id": "room-3",
-      "name": "BALCONE",
-      "area": 0,
+      "name": "Cucina/Soggiorno",
+      "area": 20,
       "bounds": {
         "x": 0,
         "y": 0,
-        "width": 0,
-        "height": 0
+        "width": 7.22,
+        "height": 4.8
       },
-      "openings": []
+      "openings": [
+        {
+          "type": "door",
+          "position": {
+            "x": 2.61,
+            "y": 1.7
+          },
+          "width": 0.8,
+          "height": 2,
+          "wall": "north",
+          "exposure": "north"
+        },
+        {
+          "type": "window",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 1.5,
+          "height": 1,
+          "wall": "west",
+          "exposure": "west"
+        },
+        {
+          "type": "window",
+          "position": {
+            "x": 2.61,
+            "y": 0
+          },
+          "width": 1.5,
+          "height": 1,
+          "wall": "south",
+          "exposure": "south"
+        },
+        {
+          "type": "french-door",
+          "position": {
+            "x": 7.22,
+            "y": 4.8
+          },
+          "width": 1.5,
+          "height": 2,
+          "wall": "south",
+          "exposure": "south"
+        }
+      ]
     },
     {
       "id": "room-4",
-      "name": "BAGNO",
-      "area": 0,
+      "name": "Guardaroba",
+      "area": 3,
       "bounds": {
-        "x": 0,
+        "x": 7.22,
         "y": 0,
-        "width": 0,
-        "height": 0
+        "width": 1.5,
+        "height": 2
       },
-      "openings": []
+      "openings": [
+        {
+          "type": "french-door",
+          "position": {
+            "x": 7.22,
+            "y": 4.8
+          },
+          "width": 1.5,
+          "height": 2,
+          "wall": "south",
+          "exposure": "south"
+        }
+      ]
     },
     {
       "id": "room-5",
-      "name": "W.C.",
-      "area": 0,
+      "name": "Camera",
+      "area": 14.75,
       "bounds": {
-        "x": 0,
+        "x": 8.72,
         "y": 0,
-        "width": 0,
-        "height": 0
+        "width": 3.39,
+        "height": 4.35
       },
       "openings": []
     },
     {
       "id": "room-6",
-      "name": "CUCINA",
-      "area": 0,
+      "name": "Balcone",
+      "area": 5.09,
       "bounds": {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0
+        "x": 7.22,
+        "y": 4.8,
+        "width": 3.39,
+        "height": 1.5
       },
-      "openings": []
-    },
-    {
-      "id": "room-7",
-      "name": "CAMERA",
-      "area": 0,
-      "bounds": {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0
-      },
-      "openings": []
+      "openings": [
+        {
+          "type": "french-door",
+          "position": {
+            "x": 7.22,
+            "y": 4.8
+          },
+          "width": 1.5,
+          "height": 2,
+          "wall": "south",
+          "exposure": "south"
+        }
+      ]
     }
   ]
 }
