@@ -39,3 +39,5 @@ __pycache__/
 # Immagini generate
 public/products/cropped/
 public/floorplan-original.png
+.vercel
+.env*

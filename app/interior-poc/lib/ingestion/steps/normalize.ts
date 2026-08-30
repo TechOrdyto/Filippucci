@@ -87,8 +87,10 @@ export const normalizeStep = createStep(
       } catch {}
     }
   },
-  async (ctx: SagaContext, result: NormalizedPage[]) => {
+  async (ctx: SagaContext, result: NormalizedPage[] | null) => {
     // Compensazione: rimuovi le pagine normalizzate
+    // (result può essere null se lo step è stato saltato per idempotenza)
+    if (!result) return;
     for (const page of result) {
       deleteFile(page.imagePath);
     }

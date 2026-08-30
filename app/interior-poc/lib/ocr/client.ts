@@ -1,85 +1,28 @@
 // Client OCR per la pipeline di ingestione
 // Funziona su Vercel (serverless):
-// 1. PRIMARIO: tesseract.js (locale, gratis, gira in Node.js)
-// 2. FALLBACK: AI vision gpt-4o-mini (se tesseract fallisce o precisione insufficiente)
+// Usa AI vision (gpt-4o-mini) — funziona ovunque, alta precisione per quote tecniche
+// (tesseract.js non funziona in Next.js: worker incompatibile con il bundler)
 
 import type { OcrPageResult, OcrTextBlock } from "../ingestion/types";
 
 /**
- * Esegue OCR su un'immagine
- * Usa tesseract.js come primario, AI vision come fallback
+ * Esegue OCR su un'immagine usando AI vision (gpt-4o-mini)
  */
 export async function ocrImage(
   imageBuffer: Buffer,
   options: { lang?: string } = {}
 ): Promise<OcrPageResult> {
-  const { lang = "ita" } = options;
-
-  // 1. Prova tesseract.js
-  try {
-    const result = await ocrWithTesseract(imageBuffer, lang);
-    if (result.textBlocks.length > 0) {
-      return result;
-    }
-    console.warn("⚠️ tesseract.js non ha trovato testo, fallback a AI vision");
-  } catch (err) {
-    console.warn("⚠️ tesseract.js fallito, fallback a AI vision:", err);
-  }
-
-  // 2. Fallback a AI vision
   return ocrWithAiVision(imageBuffer);
 }
 
 /**
- * OCR con tesseract.js (locale, gratis, funziona su Vercel)
- */
-async function ocrWithTesseract(
-  imageBuffer: Buffer,
-  lang: string
-): Promise<OcrPageResult> {
-  const { createWorker } = await import("tesseract.js");
-
-  const worker = await createWorker(lang);
-  try {
-    // tesseract.js accetta Buffer direttamente
-    const result = await worker.recognize(imageBuffer);
-
-    const textBlocks: OcrTextBlock[] = (result.data.blocks ?? []).map((block: any) => {
-      const bbox = block.bbox;
-      return {
-        text: block.text ?? "",
-        confidence: block.confidence ?? 0,
-        bbox: {
-          x0: bbox?.x0 ?? 0,
-          y0: bbox?.y0 ?? 0,
-          x1: bbox?.x1 ?? 0,
-          y1: bbox?.y1 ?? 0,
-        },
-        center: {
-          x: bbox ? (bbox.x0 + bbox.x1) / 2 : 0,
-          y: bbox ? (bbox.y0 + bbox.y1) / 2 : 0,
-        },
-      };
-    });
-
-    return {
-      pageNumber: 1,
-      textBlocks,
-      imageSize: { width: 0, height: 0 }, // tesseract.js non fornisce dimensioni
-      fullText: result.data.text ?? "",
-    };
-  } finally {
-    await worker.terminate();
-  }
-}
-
-/**
- * OCR con AI vision (gpt-4o-mini) — fallback per precisione
+ * OCR con AI vision (gpt-4o-mini)
+ * Estrae testo con posizione per ricostruire la geometria
  */
 async function ocrWithAiVision(imageBuffer: Buffer): Promise<OcrPageResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY non configurata per fallback AI vision");
+    throw new Error("OPENAI_API_KEY non configurata per OCR AI vision");
   }
 
   const imageDataUrl = `data:image/png;base64,${imageBuffer.toString("base64")}`;
@@ -93,12 +36,12 @@ async function ocrWithAiVision(imageBuffer: Buffer): Promise<OcrPageResult> {
     body: JSON.stringify({
       model: "gpt-4o-mini",
       temperature: 0.1,
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [
         {
           role: "system",
           content:
-            "Sei un OCR esperto. Estrai TUTTO il testo visibile nell'immagine, riga per riga, con la posizione approssimativa (alto/basso/sinistra/destra). Includi numeri, misure, etichette.",
+            "Sei un OCR esperto di documenti tecnici. Estrai TUTTO il testo visibile nell'immagine, riga per riga, in ordine di lettura (dall'alto al basso, da sinistra a destra). Includi numeri, misure, quote dimensionali, etichette, nomi di stanze. Non omettere nulla.",
         },
         {
           role: "user",
@@ -137,7 +80,7 @@ async function ocrWithAiVision(imageBuffer: Buffer): Promise<OcrPageResult> {
 
 /**
  * Verifica che il servizio OCR sia disponibile
- * (per compatibilità con la saga — sempre true con tesseract.js)
+ * (per compatibilità con la saga — sempre true con AI vision)
  */
 export async function checkOcrServer(): Promise<boolean> {
   return true;
