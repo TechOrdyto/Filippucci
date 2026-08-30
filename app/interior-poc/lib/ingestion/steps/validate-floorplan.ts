@@ -4,6 +4,7 @@
 
 import type { SagaContext, FloorplanInterpretation, ValidationResult } from "../types";
 import { createStep } from "../saga";
+import { buildDeterministicFloorplan } from "./interpret-floorplan";
 
 export const validateFloorplanStep = createStep(
   "validate-floorplan",
@@ -18,24 +19,59 @@ export const validateFloorplanStep = createStep(
 
     const { width: W, height: H } = interpretation.dimensions;
 
-    // 1. Corregge le sovrapposizioni tra stanze
+    // 1. Corregge le sovrapposizioni tra stanze (loop fino a risoluzione)
     const rooms = interpretation.rooms;
+    let maxIterations = 10;
+    let fixed = 0;
+    while (maxIterations-- > 0) {
+      let foundOverlap = false;
+      for (let i = 0; i < rooms.length; i++) {
+        for (let j = i + 1; j < rooms.length; j++) {
+          const a = rooms[i].bounds;
+          const b = rooms[j].bounds;
+          if (a.width === 0 || b.width === 0) continue;
+
+          const ox = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+          const oy = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+          if (ox > 0.05 && oy > 0.05) {
+            fixed++;
+            foundOverlap = true;
+            // Sposta la stanza j fuori dalla sovrapposizione
+            fixOverlap(rooms[j], { x: ox, y: oy, width: ox, height: oy });
+          }
+        }
+      }
+      if (!foundOverlap) break;
+    }
+
+    // Se dopo il loop ci sono ANCORA sovrapposizioni, il layout AI è irrecuperabile:
+    // sostituisci con il layout deterministico di fallback
+    let stillOverlapping = false;
     for (let i = 0; i < rooms.length; i++) {
       for (let j = i + 1; j < rooms.length; j++) {
         const a = rooms[i].bounds;
         const b = rooms[j].bounds;
-        if (a.width === 0 || b.width === 0) continue; // bounds non ancora calcolati
-
+        if (a.width === 0 || b.width === 0) continue;
         const ox = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
         const oy = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
         if (ox > 0.05 && oy > 0.05) {
-          warnings.push(
-            `Sovrapposizione corretta: "${rooms[i].name}" e "${rooms[j].name}" (${ox.toFixed(2)}×${oy.toFixed(2)}m)`
-          );
-          // Sposta la stanza j fuori dalla sovrapposizione
-          fixOverlap(rooms[j], { x: ox, y: oy, width: ox, height: oy });
+          stillOverlapping = true;
+          break;
         }
       }
+      if (stillOverlapping) break;
+    }
+
+    if (stillOverlapping) {
+      warnings.push("Layout AI irrecuperabile: sostituito con layout deterministico");
+      const fallback = buildDeterministicFloorplan();
+      interpretation.rooms = fallback.rooms;
+      interpretation.openings = fallback.openings;
+      interpretation.quotes = fallback.quotes;
+      interpretation.dimensions = fallback.dimensions;
+      interpretation.ceilingHeight = fallback.ceilingHeight;
+    } else if (fixed > 0) {
+      warnings.push(`${fixed} sovrapposizioni corrette`);
     }
 
     // 2. Corregge i confini

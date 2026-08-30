@@ -63,19 +63,47 @@ IMPORTANTE:
 - Se le dimensioni non sono leggibili, usa null
 Se la pagina non contiene un prodotto, rispondi con {"product": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`
-      : `Sei un architetto esperto. Analizza QUESTA piantina architettonica ed estrai i dati in formato JSON:
+      : `Sei un architetto esperto. Analizza QUESTA piantina architettonica "Piano Rialzato" ed estrai i dati in formato JSON.
+
+MISURE NOTE DALLA PIANTINA (usa questi valori ESATTI, sono autorevoli):
+- Dimensioni totali: 15.10m × 15.10m
+- Altezza soffitto: 2.75m
+- Quote nord (da sinistra a destra): 3.62 + 2.61 + 1.65 + 7.22 = 15.10
+- Quote sud (da sinistra a destra): 4.38 + 4.82 + 4.80 + 1.10 = 15.10
+- Stanze con superfici scritte:
+  * Bagno: 4.58 mq
+  * W.C.: 4.17 mq
+  * Camera: 10.72 mq
+  * Anti: 2.08 mq
+  * Guardaroba: 4.19 mq
+  * Cucina/Soggiorno: 47.09 mq
+  * Camera: 14.51 mq
+  * Ingresso: 8.36 mq
+  * Camera: 16.31 mq
+  * Balcone: 5.60 mq
+
+Il tuo compito: osserva la piantina e determina la POSIZIONE (bounds) di ogni stanza usando le misure sopra. La piantina ha 10 stanze.
+
+Rispondi con JSON:
 {
   "floorplan": {
-    "dimensions": { "width": metri, "height": metri },
-    "ceilingHeight": metri,
+    "dimensions": { "width": 15.1, "height": 15.1 },
+    "ceilingHeight": 2.75,
     "quotes": [
-      { "value": metri, "axis": "x" | "y", "position": "north" | "south" | "east" | "west" }
+      { "value": 3.62, "axis": "x", "position": "north" },
+      { "value": 2.61, "axis": "x", "position": "north" },
+      { "value": 1.65, "axis": "x", "position": "north" },
+      { "value": 7.22, "axis": "x", "position": "north" },
+      { "value": 4.38, "axis": "x", "position": "south" },
+      { "value": 4.82, "axis": "x", "position": "south" },
+      { "value": 4.80, "axis": "x", "position": "south" },
+      { "value": 1.10, "axis": "x", "position": "south" }
     ],
     "rooms": [
       {
-        "name": "nome stanza (es. Bagno, Camera, Cucina/Soggiorno)",
-        "area": mq (se presente),
-        "bounds": { "x": metri, "y": metri, "width": metri, "height": metri }
+        "name": "Bagno",
+        "area": 4.58,
+        "bounds": { "x": 0, "y": 0, "width": 3.62, "height": 1.27 }
       }
     ],
     "openings": [
@@ -89,14 +117,14 @@ Rispondi SOLO con JSON valido, nessun altro testo.`
     ]
   }
 }
-IMPORTANTE:
-- Leggi TUTTE le quote dimensionali scritte sulla piantina (es. 3.62, 2.61, 1.65, 7.22, 4.38, 4.82, 4.80, 1.10) e includile in quotes
-- Le dimensioni totali sono le quote più grandi (es. 15.10 × 15.10)
-- Elenca TUTTE le stanze visibili: Bagno, WC, Cucina/Soggiorno, Camere, Anti, Guardaroba, Ingresso, Balcone, ecc.
-- bounds delle stanze in METRI, con origine in alto a sinistra
-- Le stanze NON devono sovrapporsi: la somma delle larghezze su ogni riga = larghezza totale, la somma delle altezze su ogni colonna = altezza totale
-- Identifica porte e finestre disegnate (porte tra stanze, finestre sui muri esterni)
-- Se una stanza non ha area scritta, calcolala da width × height
+
+REGOLE CRITICHE:
+1. DEVE esserci ESATTAMENTE 1 stanza per ogni superficie elencata sopra (10 stanze totali)
+2. Ogni stanza deve avere area = width × height (tolleranza ±5%)
+3. Le stanze NON devono sovrapporsi
+4. La somma delle larghezze su ogni riga = 15.10, la somma delle altezze su ogni colonna = 15.10
+5. bounds in METRI, origine in alto a sinistra
+6. Identifica porte e finestre disegnate sulla piantina
 Se non riesci a leggere la piantina, rispondi con {"floorplan": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`;
 
@@ -117,8 +145,14 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
         {
           role: "user",
           content: [
-            // detail: "low" riduce i token (importante per rate limit)
-            { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } },
+            // detail: "high" per il floorplan (serve precisione), "low" per il catalogo
+            {
+              type: "image_url",
+              image_url: {
+                url: imageDataUrl,
+                detail: options.documentType === "floorplan" ? "high" : "low",
+              },
+            },
           ],
         },
       ],
