@@ -1,0 +1,31 @@
+{
+  "id": "filippucci-molteni",
+  "name": "Filippucci — Molteni Italian Design",
+  "version": "1.0",
+  "style": {
+    "primary": "italian-minimal",
+    "secondary": ["contemporary", "architectural"],
+    "avoid": ["maximalist", "vintage", "rustic", "industrial-heavy"]
+  },
+  "colorPalette": {
+    "preferred": ["neutri caldi", "grigio chiaro", "avorio", "beige", "sand"],
+    "accentAllowed": ["bronzo", "ottone", "nero opaco"],
+    "avoid": ["colori vivaci", "primari saturi", "verde lime"]
+  },
+  "materials": {
+    "preferred": ["legno naturale", "tessuti naturali", "metallo spazzolato", "vetro"],
+    "avoid": ["plastica", "laminato economico", "colori lucidi"]
+  },
+  "layoutPrinciples": {
+    "minPassageWidth": 80,
+    "preferOpenSpace": true,
+    "avoidClutter": true,
+    "minSpaceAroundFurniture": 30
+  },
+  "atmosphere": {
+    "brightness": "bright",
+    "warmth": "neutral",
+    "formality": "formal"
+  },
+  "aiInstructions": "Il brand Molteni è sinonimo di design italiano di alta qualità. Prediligi linee pulite e proporzioni eleganti. Mantieni spazi ariosi, evita sovraffollamento. Utilizza materiali naturali e finiture sobrie. La luce naturale è una componente fondamentale del design. Rispetta la simmetria quando appropriato, ma non escludere asimmetrie moderne."
+}
