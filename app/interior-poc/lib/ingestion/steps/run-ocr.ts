@@ -24,9 +24,11 @@ export const runOcrStep = createStep(
     const results: OcrPageResult[] = [];
     for (const page of pages) {
       const imageBuffer = readFileSync(page.imagePath);
-      // tesseract.js usa "ita" per italiano (non "it")
-      const lang = ctx.options?.lang === "it" ? "ita" : (ctx.options?.lang ?? "ita");
-      const result = await ocrImage(imageBuffer, { lang });
+      // Passa il tipo di documento per prompt OCR specializzato
+      const result = await ocrImage(imageBuffer, {
+        lang: ctx.options?.lang ?? "it",
+        documentType: ctx.type,
+      });
       result.pageNumber = page.pageNumber;
       results.push(result);
       console.log(`   📄 Pagina ${page.pageNumber}: ${result.textBlocks.length} blocchi testo`);

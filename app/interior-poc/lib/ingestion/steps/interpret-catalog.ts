@@ -48,56 +48,48 @@ export const interpretCatalogStep = createStep(
 );
 
 function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][number] | null {
-  const blocks = page.textBlocks;
+  // L'AI vision restituisce JSON strutturato nel fullText
+  const content = page.fullText;
 
-  // 1. Trova il nome prodotto (header in maiuscolo seguito da —)
-  const nameBlock = blocks.find((b) => PRODUCT_NAME_PATTERN.test(b.text));
-  if (!nameBlock) return null;
+  // Estrai il JSON dalla risposta
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
 
-  const nameMatch = nameBlock.text.match(PRODUCT_NAME_PATTERN);
-  const name = nameMatch ? nameMatch[1].trim() : nameBlock.text.trim();
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    const product = parsed.product;
+    if (!product || !product.name) return null;
 
-  // 2. Trova il designer (riga sotto il nome)
-  const nameIndex = blocks.indexOf(nameBlock);
-  const designerBlock = blocks[nameIndex + 1];
-  const designer = designerBlock && DESIGNER_PATTERN.test(designerBlock.text)
-    ? designerBlock.text.trim()
-    : undefined;
+    // Usa il bbox immagine fornito dall'AI vision (se presente)
+    const bbox = product.image_bbox;
+    const imageRegion = bbox && bbox.x !== undefined && bbox.y !== undefined
+      ? {
+          bbox: {
+            x: bbox.x,
+            y: bbox.y,
+            width: bbox.width ?? 90,
+            height: bbox.height ?? 50,
+          },
+          verified: true,
+        }
+      : undefined;
 
-  // 3. Trova la categoria
-  const categoryBlock = blocks.find((b) => CATEGORY_PATTERN.test(b.text));
-  const category = categoryBlock
-    ? categoryBlock.text.match(CATEGORY_PATTERN)?.[1]
-    : undefined;
-
-  // 4. Trova le dimensioni
-  const dimBlock = blocks.find((b) => DIMENSIONS_PATTERN.test(b.text));
-  const dimensions = dimBlock ? extractDimensions(dimBlock.text) : undefined;
-
-  // 5. Trova i materiali
-  const materials = [...new Set(
-    blocks
-      .flatMap((b) => b.text.match(MATERIAL_PATTERN) ?? [])
-      .map((m) => m.toLowerCase())
-  )];
-
-  // 6. Identifica la regione immagine (ritaglio deterministico)
-  const imageRegion = findProductImageRegion(blocks, page.imageSize, name);
-
-  return {
-    id: `MOL-${(category ?? "PROD").slice(0, 3).toUpperCase()}-${page.pageNumber}`,
-    name,
-    designer,
-    category,
-    subcategory: category,
-    dimensions,
-    materials: materials.length > 0 ? materials : undefined,
-    pageNumber: page.pageNumber,
-    imageRegion: {
-      bbox: imageRegion.region,
-      verified: imageRegion.verified,
-    },
-  };
+    return {
+      id: `MOL-${(product.category ?? "PROD").slice(0, 3).toUpperCase()}-${page.pageNumber}`,
+      name: product.name,
+      designer: product.designer,
+      category: product.category,
+      subcategory: product.category,
+      description: product.description,
+      dimensions: product.dimensions,
+      materials: product.materials,
+      finishes: product.finishes,
+      pageNumber: page.pageNumber,
+      imageRegion,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function extractDimensions(text: string): { width: number; depth: number; height: number } {
