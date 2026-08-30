@@ -1,0 +1,56 @@
+import { NextResponse } from "next/server";
+import { buildSaga } from "../../lib/ingestion/builder";
+import type { IngestRequest, SagaContext } from "../../lib/ingestion/types";
+
+export const runtime = "nodejs";
+export const maxDuration = 300; // 5 minuti per OCR
+
+export async function POST(request: Request) {
+  try {
+    const body: IngestRequest = await request.json();
+
+    if (!body.fileData) {
+      return NextResponse.json({ error: "File mancante" }, { status: 400 });
+    }
+    if (!body.type || !["floorplan", "catalog"].includes(body.type)) {
+      return NextResponse.json({ error: "Tipo non valido" }, { status: 400 });
+    }
+
+    // Decodifica base64
+    const buffer = Buffer.from(body.fileData, "base64");
+
+    // Costruisci il contesto della saga
+    const ctx: SagaContext = {
+      documentId: "", // verrà impostato dallo step save-document
+      type: body.type,
+      fileName: body.fileName,
+      fileData: buffer,
+      fileHash: "",
+      options: body.options,
+    };
+
+    // Esegui la saga
+    const saga = buildSaga(body.type);
+    const result = await saga.run(ctx);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error ?? "Saga fallita" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      documentId: result.documentId,
+      executedSteps: result.executedSteps,
+      output: result.output,
+    });
+  } catch (err) {
+    console.error("Ingest error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Errore sconosciuto" },
+      { status: 500 }
+    );
+  }
+}

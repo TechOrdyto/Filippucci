@@ -1,0 +1,11 @@
+# Dipendenze per il servizio OCR PaddleOCR
+# Installazione: pip install -r requirements.txt
+
+paddlepaddle>=2.6.0
+paddleocr>=2.7.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.6.0
+Pillow>=10.0.0
+numpy>=1.24.0
+python-multipart>=0.0.9
