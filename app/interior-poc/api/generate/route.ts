@@ -15,6 +15,13 @@ interface GenerateRequest {
   prompt: string;
   productIds: string[];
   floorplanId: string;
+  roomId?: string | null;
+  camera?: {
+    x: number;
+    y: number;
+    rotation: number;
+    fov: number;
+  } | null;
 }
 
 export async function POST(request: Request) {
@@ -30,6 +37,11 @@ export async function POST(request: Request) {
       .map((id) => findProductById(id))
       .filter(Boolean);
 
+    // 1a. Trova la stanza selezionata (se presente)
+    const selectedRoom = body.roomId
+      ? floorplan.rooms.find((r: any) => r.id === body.roomId)
+      : null;
+
     // 1b. Pulisci il prompt: rimuovi le mention @ (es. "@Augusto di fianco")
     // Il modello NON deve disegnare il testo "@Augusto"
     const cleanUserPrompt = cleanPrompt(body.prompt, products as any[]);
@@ -40,6 +52,8 @@ export async function POST(request: Request) {
       products: products as any[],
       floorplan,
       rules,
+      selectedRoom: selectedRoom ?? null,
+      camera: body.camera ?? null,
     });
 
     // 3. Genera l'immagine
@@ -91,23 +105,68 @@ function buildGenerationPrompt({
   products,
   floorplan,
   rules,
+  selectedRoom,
+  camera,
 }: {
   prompt: string;
   products: any[];
   floorplan: any;
   rules: any;
+  selectedRoom: any | null;
+  camera: { x: number; y: number; rotation: number; fov: number } | null;
 }): string {
   const sections: string[] = [];
 
-  // Sezione 1: Geometria
-  sections.push(`ROOM GEOMETRY:
-- Room: ${floorplan.name}
-- Dimensions: ${floorplan.dimensions.width}m × ${floorplan.dimensions.height}m
+  // Sezione 1: Appartamento (contesto generale)
+  sections.push(`APARTMENT CONTEXT:
+- Property: ${floorplan.name}
+- Total dimensions: ${floorplan.dimensions.width}m × ${floorplan.dimensions.height}m
 - Ceiling height: ${floorplan.ceilingHeight}m
-- Natural light openings: ${floorplan.rooms
-    .flatMap((r: any) => r.openings)
-    .map((o: any) => `${o.type} ${o.width}m on ${o.wall} wall`)
-    .join(", ")}`);
+- Total rooms: ${floorplan.rooms.length}
+- Rooms: ${floorplan.rooms.map((r: any) => `${r.name} (${r.area}m²)`).join(", ")}`);
+
+  // Sezione 1b: Stanza selezionata (geometria dettagliata)
+  if (selectedRoom) {
+    const polygon = selectedRoom.polygon
+      ? selectedRoom.polygon.map(([x, y]: [number, number]) => `(${x}, ${y})`).join(" → ")
+      : `rectangle ${selectedRoom.bounds.width}m × ${selectedRoom.bounds.height}m`;
+
+    const roomOpenings = selectedRoom.openings
+      .map(
+        (o: any) =>
+          `${o.type} ${o.width}m on ${o.wall} wall (${o.exposure} exposure)`
+      )
+      .join("; ");
+
+    // Stanze confinanti (calcolo approssimativo per adiacenza)
+    const adjacent = floorplan.rooms
+      .filter((r: any) => r.id !== selectedRoom.id)
+      .map((r: any) => r.name);
+
+    sections.push(`SELECTED ROOM — THIS IS THE ROOM TO RENDER:
+- Room: ${selectedRoom.name}
+- Area: ${selectedRoom.area} m²
+- Shape: ${polygon}
+- Openings in this room: ${roomOpenings || "none"}
+- Adjacent rooms: ${adjacent.slice(0, 5).join(", ")}
+
+CRITICAL: The render MUST show ONLY this room (${selectedRoom.name}), viewed from the camera position described below. The room shape, proportions and openings MUST match the geometry above.`);
+  }
+
+  // Sezione 1c: Posizione camera
+  if (camera) {
+    const dirs = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
+    const dirIdx = Math.round(camera.rotation / 45) % 8;
+    const direction = dirs[dirIdx];
+
+    sections.push(`CAMERA POSITION:
+- Position: x=${camera.x}m, y=${camera.y}m (inside the room)
+- Looking direction: ${direction} (${camera.rotation}°)
+- Field of view: ${camera.fov}°
+- The camera is INSIDE the room, at eye level (~1.5m from floor)
+
+CRITICAL: The image MUST be rendered from THIS camera position, looking in THIS direction. The composition must reflect this point of view.`);
+  }
 
   // Sezione 2: Prodotti vincolanti
   if (products.length > 0) {

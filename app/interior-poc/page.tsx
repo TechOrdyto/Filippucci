@@ -176,6 +176,15 @@ export default function InteriorPocPage() {
           prompt: finalPrompt,
           productIds: explicitProducts.map((p) => (p as any).id),
           floorplanId: floorplan.id,
+          roomId: selectedRoomId,
+          camera: camera
+            ? {
+                x: camera.x,
+                y: camera.y,
+                rotation: camera.rotation,
+                fov: camera.fov,
+              }
+            : null,
         }),
       });
 
