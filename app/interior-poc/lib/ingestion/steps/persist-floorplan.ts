@@ -22,6 +22,7 @@ export const persistFloorplanStep = createStep(
       unit: "m",
       dimensions: interpretation.dimensions,
       ceilingHeight: interpretation.ceilingHeight,
+      walls: interpretation.walls ?? [],
       rooms: interpretation.rooms.map((room, i) => ({
         id: `room-${i + 1}`,
         name: room.name,

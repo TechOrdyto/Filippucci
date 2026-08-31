@@ -30,7 +30,20 @@ export interface FloorplanData {
   unit: "cm" | "m";
   dimensions: { width: number; height: number };
   ceilingHeight: number;
+  walls?: Wall[];
   rooms: FloorplanRoom[];
+}
+
+export interface Wall {
+  id: string;
+  start: [number, number]; // [x, y] in metri
+  end: [number, number]; // [x, y] in metri
+  thickness: number;
+  openings: Array<{
+    type: "door" | "window" | "french-door";
+    center: number;
+    width: number;
+  }>;
 }
 
 export interface FloorplanRoom {

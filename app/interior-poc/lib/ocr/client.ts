@@ -99,6 +99,18 @@ Rispondi con JSON:
       { "value": 4.80, "axis": "x", "position": "south" },
       { "value": 1.10, "axis": "x", "position": "south" }
     ],
+    "walls": [
+      {
+        "id": "wall_1",
+        "start": [0, 0],
+        "end": [3.62, 0],
+        "thickness": 0.15,
+        "openings": [
+          { "type": "door", "center": 1.8, "width": 0.8 },
+          { "type": "window", "center": 2.9, "width": 0.6 }
+        ]
+      }
+    ],
     "rooms": [
       {
         "name": "Bagno",
@@ -124,7 +136,8 @@ REGOLE CRITICHE:
 3. Le stanze NON devono sovrapporsi
 4. La somma delle larghezze su ogni riga = 15.10, la somma delle altezze su ogni colonna = 15.10
 5. bounds in METRI, origine in alto a sinistra
-6. Identifica porte e finestre disegnate sulla piantina
+6. walls: elenca i muri principali con coordinate [x, y] in metri e le aperture su ogni muro
+7. Identifica porte e finestre disegnate sulla piantina
 Se non riesci a leggere la piantina, rispondi con {"floorplan": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`;
 

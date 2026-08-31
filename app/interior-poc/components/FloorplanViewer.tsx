@@ -40,6 +40,51 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
         {/* Sfondo */}
         <rect x="0" y="0" width={viewWidth} height={viewHeight} fill="#fafaf9" />
 
+        {/* Muri (formato FloorplanVLM) */}
+        {(floorplan.walls ?? []).map((wall) => {
+          const x1 = wall.start[0] * scale;
+          const y1 = wall.start[1] * scale;
+          const x2 = wall.end[0] * scale;
+          const y2 = wall.end[1] * scale;
+          const thickness = (wall.thickness ?? 0.15) * scale;
+          const angle = Math.atan2(y2 - y1, x2 - x1);
+          const len = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+
+          return (
+            <g key={wall.id}>
+              {/* Linea del muro */}
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="#374151"
+                strokeWidth={thickness}
+                strokeLinecap="round"
+              />
+              {/* Aperture sul muro */}
+              {wall.openings.map((opening, i) => {
+                const centerDist = opening.center * scale;
+                const cx = x1 + Math.cos(angle) * centerDist;
+                const cy = y1 + Math.sin(angle) * centerDist;
+                const w = opening.width * scale;
+                return (
+                  <rect
+                    key={`${wall.id}-opening-${i}`}
+                    x={cx - w / 2}
+                    y={cy - thickness / 2 - 1}
+                    width={w}
+                    height={thickness + 2}
+                    fill={opening.type === "window" ? "#93c5fd" : "#fbbf24"}
+                    stroke="#1d4ed8"
+                    strokeWidth={1}
+                  />
+                );
+              })}
+            </g>
+          );
+        })}
+
         {/* Stanze */}
         {floorplan.rooms.map((room) => (
           <g key={room.id}>

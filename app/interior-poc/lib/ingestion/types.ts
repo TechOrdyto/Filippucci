@@ -59,9 +59,22 @@ export interface FloorplanInterpretation {
   dimensions: { width: number; height: number };
   ceilingHeight: number;
   quotes: Quote[];
+  walls: Wall[];
   rooms: InterpretedRoom[];
   openings: InterpretedOpening[];
   warnings: string[];
+}
+
+export interface Wall {
+  id: string;
+  start: [number, number]; // [x, y] in metri
+  end: [number, number]; // [x, y] in metri
+  thickness: number;
+  openings: Array<{
+    type: "door" | "window" | "french-door";
+    center: number; // posizione lungo il muro
+    width: number;
+  }>;
 }
 
 export interface Quote {

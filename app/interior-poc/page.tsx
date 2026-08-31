@@ -232,11 +232,12 @@ export default function InteriorPocPage() {
                       </span>
                     </div>
                     <div className="mt-1 text-xs text-gray-600">
-                      {product.dimensions.width}×{product.dimensions.depth}×
-                      {product.dimensions.height} cm
+                      {product.dimensions
+                        ? `${product.dimensions.width}×${product.dimensions.depth}×${product.dimensions.height} cm`
+                        : "Dimensioni non disponibili"}
                     </div>
                     <div className="mt-0.5 text-xs text-gray-500">
-                      {product.materials.join(", ")}
+                      {product.materials?.join(", ") ?? "Materiali non disponibili"}
                     </div>
                   </div>
                 </div>

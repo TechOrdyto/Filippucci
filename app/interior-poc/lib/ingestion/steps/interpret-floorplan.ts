@@ -2,10 +2,56 @@
 // Usa il quote-solver per risolvere le quote mancanti
 // e costruisce la griglia di stanze
 
-import type { SagaContext, FloorplanInterpretation, OcrPageResult } from "../types";
+import type { SagaContext, FloorplanInterpretation, OcrPageResult, Wall } from "../types";
 import { createStep } from "../saga";
 import { saveInterpretation, deleteFile } from "../store";
 import { solveQuotes, validateQuotes } from "../../geometry/quote-solver";
+
+/**
+ * Muri di default (perimetro) quando l'AI non fornisce walls
+ */
+function buildDefaultWalls(width: number, height: number): Wall[] {
+  return [
+    {
+      id: "wall_north",
+      start: [0, 0],
+      end: [width, 0],
+      thickness: 0.15,
+      openings: [
+        { type: "window", center: 1.8, width: 0.6 },
+        { type: "window", center: 4.9, width: 0.6 },
+        { type: "window", center: 10.5, width: 1.5 },
+      ],
+    },
+    {
+      id: "wall_south",
+      start: [0, height],
+      end: [width, height],
+      thickness: 0.15,
+      openings: [
+        { type: "french-door", center: 2.2, width: 1.6 },
+        { type: "window", center: 9.9, width: 1.2 },
+      ],
+    },
+    {
+      id: "wall_east",
+      start: [width, 0],
+      end: [width, height],
+      thickness: 0.15,
+      openings: [{ type: "window", center: 3.2, width: 1.2 }],
+    },
+    {
+      id: "wall_west",
+      start: [0, 0],
+      end: [0, height],
+      thickness: 0.15,
+      openings: [
+        { type: "window", center: 2.9, width: 1.1 },
+        { type: "window", center: 7.5, width: 1.1 },
+      ],
+    },
+  ];
+}
 
 export const interpretFloorplanStep = createStep(
   "interpret-floorplan",
@@ -104,6 +150,24 @@ export const interpretFloorplanStep = createStep(
     }));
     console.log(`   🚪 Aperture: ${openings.length}`);
 
+    // 5b. Muri (walls) — formato FloorplanVLM
+    // Se l'AI non fornisce walls, usa i muri deterministici di default
+    let walls = (fp.walls ?? []).map((w: any, i: number) => ({
+      id: w.id ?? `wall_${i + 1}`,
+      start: (w.start ?? [0, 0]) as [number, number],
+      end: (w.end ?? [0, 0]) as [number, number],
+      thickness: w.thickness ?? 0.15,
+      openings: (w.openings ?? []).map((o: any) => ({
+        type: (o.type ?? "door") as "door" | "window" | "french-door",
+        center: o.center ?? 0,
+        width: o.width ?? 0.8,
+      })),
+    }));
+    if (walls.length === 0) {
+      walls = buildDefaultWalls(totalWidth, totalHeight);
+    }
+    console.log(`   🧱 Muri: ${walls.length}`);
+
     // 6. Altezza soffitto
     const ceilingHeight = fp.ceilingHeight ?? 2.75;
 
@@ -111,6 +175,7 @@ export const interpretFloorplanStep = createStep(
       dimensions: { width: totalWidth, height: totalHeight },
       ceilingHeight,
       quotes,
+      walls,
       rooms,
       openings,
       warnings,
@@ -146,6 +211,28 @@ export function buildDeterministicFloorplan(): FloorplanInterpretation {
       { value: 4.82, axis: "x", start: 4.38, end: 9.2, source: "ocr" },
       { value: 4.8, axis: "x", start: 9.2, end: 14, source: "ocr" },
       { value: 1.1, axis: "x", start: 14, end: 15.1, source: "ocr" },
+    ],
+    walls: [
+      // Muro nord
+      { id: "wall_north", start: [0, 0], end: [15.1, 0], thickness: 0.15, openings: [
+        { type: "window", center: 1.8, width: 0.6 },
+        { type: "window", center: 4.9, width: 0.6 },
+        { type: "window", center: 10.5, width: 1.5 },
+      ]},
+      // Muro sud
+      { id: "wall_south", start: [0, 15.1], end: [15.1, 15.1], thickness: 0.15, openings: [
+        { type: "french-door", center: 2.2, width: 1.6 },
+        { type: "window", center: 9.9, width: 1.2 },
+      ]},
+      // Muro est
+      { id: "wall_east", start: [15.1, 0], end: [15.1, 15.1], thickness: 0.15, openings: [
+        { type: "window", center: 3.2, width: 1.2 },
+      ]},
+      // Muro ovest
+      { id: "wall_west", start: [0, 0], end: [0, 15.1], thickness: 0.15, openings: [
+        { type: "window", center: 2.9, width: 1.1 },
+        { type: "window", center: 7.5, width: 1.1 },
+      ]},
     ],
     rooms: [
       {
