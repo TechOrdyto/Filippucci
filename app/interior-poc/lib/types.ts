@@ -51,6 +51,8 @@ export interface FloorplanRoom {
   name: string;
   area: number;
   bounds: { x: number; y: number; width: number; height: number };
+  // Polygon opzionale per forme irregolari (perimetro esterno, vani scala)
+  polygon?: Array<[number, number]>;
   openings: FloorplanOpening[];
 }
 

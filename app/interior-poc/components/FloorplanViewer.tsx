@@ -122,16 +122,28 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
         {/* Stanze */}
         {floorplan.rooms.map((room) => (
           <g key={room.id}>
-            <rect
-              x={room.bounds.x * scale}
-              y={room.bounds.y * scale}
-              width={room.bounds.width * scale}
-              height={room.bounds.height * scale}
-              fill={ROOM_COLORS[room.id] ?? "#f5f5f4"}
-              stroke="#374151"
-              strokeWidth={2}
-              rx={2}
-            />
+            {/* Polygon se presente (forma irregolare), altrimenti rect */}
+            {room.polygon ? (
+              <polygon
+                points={room.polygon
+                  .map(([px, py]) => `${px * scale},${py * scale}`)
+                  .join(" ")}
+                fill={ROOM_COLORS[room.id] ?? "#f5f5f4"}
+                stroke="#374151"
+                strokeWidth={2}
+              />
+            ) : (
+              <rect
+                x={room.bounds.x * scale}
+                y={room.bounds.y * scale}
+                width={room.bounds.width * scale}
+                height={room.bounds.height * scale}
+                fill={ROOM_COLORS[room.id] ?? "#f5f5f4"}
+                stroke="#374151"
+                strokeWidth={2}
+                rx={2}
+              />
+            )}
             <text
               x={(room.bounds.x + room.bounds.width / 2) * scale}
               y={(room.bounds.y + room.bounds.height / 2) * scale}
