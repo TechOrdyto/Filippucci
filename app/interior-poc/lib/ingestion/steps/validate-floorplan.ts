@@ -28,16 +28,8 @@ export const validateFloorplanStep = createStep(
         warnings.push(`"${room.name}" fuori dai confini (accettato)`);
       }
     }
-      }
-      if (stillOverlapping) break;
-    }
 
-    if (stillOverlapping) {
-      warnings.push("Layout AI irrecuperabile: sostituito con layout deterministico");
-      const fallback = buildDeterministicFloorplan();
-      interpretation.rooms = fallback.rooms;
-      interpretation.openings = fallback.openings;
-      // 2. Verifica quote coerenti
+    // 2. Verifica quote coerenti
     const xSum = interpretation.quotes.filter((q) => q.axis === "x").reduce((s, q) => s + q.value, 0);
     const ySum = interpretation.quotes.filter((q) => q.axis === "y").reduce((s, q) => s + q.value, 0);
 
