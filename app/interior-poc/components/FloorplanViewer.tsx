@@ -40,7 +40,7 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
         {/* Sfondo */}
         <rect x="0" y="0" width={viewWidth} height={viewHeight} fill="#fafaf9" />
 
-        {/* Muri (formato FloorplanVLM) */}
+        {/* Muri (formato FloorplanVLM) — con vere interruzioni per aperture */}
         {(floorplan.walls ?? []).map((wall) => {
           const x1 = wall.start[0] * scale;
           const y1 = wall.start[1] * scale;
@@ -49,36 +49,70 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
           const thickness = (wall.thickness ?? 0.15) * scale;
           const angle = Math.atan2(y2 - y1, x2 - x1);
           const len = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+
+          // Calcola i segmenti di muro tra le aperture
+          const openings = (wall.openings ?? []).map((o) => ({
+            center: o.center * scale,
+            width: o.width * scale,
+            type: o.type,
+          }));
+
+          // Segmenti di muro: [start, end] lungo il muro
+          const segments: Array<[number, number]> = [];
+          let cursor = 0;
+          for (const opening of openings) {
+            const start = opening.center - opening.width / 2;
+            const end = opening.center + opening.width / 2;
+            if (start > cursor) segments.push([cursor, start]);
+            cursor = end;
+          }
+          if (cursor < len) segments.push([cursor, len]);
 
           return (
             <g key={wall.id}>
-              {/* Linea del muro */}
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="#374151"
-                strokeWidth={thickness}
-                strokeLinecap="round"
-              />
-              {/* Aperture sul muro */}
-              {wall.openings.map((opening, i) => {
-                const centerDist = opening.center * scale;
-                const cx = x1 + Math.cos(angle) * centerDist;
-                const cy = y1 + Math.sin(angle) * centerDist;
-                const w = opening.width * scale;
+              {/* Segmenti di muro (interrotti dalle aperture) */}
+              {segments.map(([s, e], i) => (
+                <line
+                  key={`${wall.id}-seg-${i}`}
+                  x1={x1 + cos * s}
+                  y1={y1 + sin * s}
+                  x2={x1 + cos * e}
+                  y2={y1 + sin * e}
+                  stroke="#374151"
+                  strokeWidth={thickness}
+                  strokeLinecap="round"
+                />
+              ))}
+              {/* Aperture (vere interruzioni) */}
+              {openings.map((opening, i) => {
+                const cx = x1 + cos * opening.center;
+                const cy = y1 + sin * opening.center;
+                const w = opening.width;
                 return (
-                  <rect
-                    key={`${wall.id}-opening-${i}`}
-                    x={cx - w / 2}
-                    y={cy - thickness / 2 - 1}
-                    width={w}
-                    height={thickness + 2}
-                    fill={opening.type === "window" ? "#93c5fd" : "#fbbf24"}
-                    stroke="#1d4ed8"
-                    strokeWidth={1}
-                  />
+                  <g key={`${wall.id}-opening-${i}`}>
+                    {/* Soglia dell'apertura */}
+                    <rect
+                      x={cx - w / 2}
+                      y={cy - thickness / 2 - 1}
+                      width={w}
+                      height={thickness + 2}
+                      fill={opening.type === "window" ? "#93c5fd" : "#fbbf24"}
+                      stroke="#1d4ed8"
+                      strokeWidth={1}
+                    />
+                    {/* Battente porta (arco di apertura) */}
+                    {opening.type === "door" && (
+                      <path
+                        d={`M ${cx - w / 2} ${cy} A ${w} ${w} 0 0 1 ${cx + w / 2} ${cy}`}
+                        fill="none"
+                        stroke="#d97706"
+                        strokeWidth={1}
+                        strokeDasharray="3,2"
+                      />
+                    )}
+                  </g>
                 );
               })}
             </g>
