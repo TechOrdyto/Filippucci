@@ -1,10 +1,32 @@
 "use client";
 
 import type { FloorplanData } from "../lib/types";
+import type { CameraPosition, Viewpoint } from "../lib/camera/types";
+import CameraOverlay from "./CameraOverlay";
+
+function isPointInPolygon(x: number, y: number, polygon: Array<[number, number]>): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0];
+    const yi = polygon[i][1];
+    const xj = polygon[j][0];
+    const yj = polygon[j][1];
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
 
 interface FloorplanViewerProps {
   floorplan: FloorplanData;
   scale?: number; // px per metro
+  camera?: CameraPosition | null;
+  selectedRoomId?: string | null;
+  viewpoints?: Viewpoint[];
+  onRoomClick?: (roomId: string, x: number, y: number) => void;
+  onCameraChange?: (camera: CameraPosition) => void;
+  onSelectViewpoint?: (vp: Viewpoint) => void;
 }
 
 const ROOM_COLORS: Record<string, string> = {
@@ -18,10 +40,42 @@ const ROOM_COLORS: Record<string, string> = {
   balcone: "#d1fae5",
 };
 
-export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanViewerProps) {
+export default function FloorplanViewer({
+  floorplan,
+  scale = 40,
+  camera = null,
+  selectedRoomId = null,
+  viewpoints = [],
+  onRoomClick,
+  onCameraChange,
+  onSelectViewpoint,
+}: FloorplanViewerProps) {
   const { width, height } = floorplan.dimensions;
   const viewWidth = width * scale;
   const viewHeight = height * scale;
+
+  const handleRoomClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!onRoomClick) return;
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const x = (px / rect.width) * width;
+    const y = (py / rect.height) * height;
+
+    // Trova la stanza che contiene il punto
+    const room = floorplan.rooms.find((r) => {
+      const polygon = r.polygon ?? [
+        [r.bounds.x, r.bounds.y],
+        [r.bounds.x + r.bounds.width, r.bounds.y],
+        [r.bounds.x + r.bounds.width, r.bounds.y + r.bounds.height],
+        [r.bounds.x, r.bounds.y + r.bounds.height],
+      ];
+      return isPointInPolygon(x, y, polygon);
+    });
+
+    if (room) onRoomClick(room.id, x, y);
+  };
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -36,6 +90,7 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
         className="w-full rounded-md"
         style={{ aspectRatio: `${width}/${height}` }}
+        onClick={handleRoomClick}
       >
         {/* Sfondo */}
         <rect x="0" y="0" width={viewWidth} height={viewHeight} fill="#fafaf9" />
@@ -202,7 +257,7 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
           </g>
         ))}
 
-        {/* Dimensioni totali */}
+                {/* Dimensioni totali */}
         <text
           x={viewWidth / 2}
           y={viewHeight + 20}
@@ -222,7 +277,48 @@ export default function FloorplanViewer({ floorplan, scale = 40 }: FloorplanView
         >
           {height}m
         </text>
+
+        {/* Evidenzia stanza selezionata */}
+        {selectedRoomId &&
+          floorplan.rooms
+            .filter((r) => r.id === selectedRoomId)
+            .map((room) => {
+              const polygon = room.polygon ?? [
+                [room.bounds.x, room.bounds.y],
+                [room.bounds.x + room.bounds.width, room.bounds.y],
+                [room.bounds.x + room.bounds.width, room.bounds.y + room.bounds.height],
+                [room.bounds.x, room.bounds.y + room.bounds.height],
+              ];
+              return (
+                <polygon
+                  key={`selected-${room.id}`}
+                  points={polygon.map(([px, py]) => `${px * scale},${py * scale}`).join(" ")}
+                  fill="rgba(59, 130, 246, 0.2)"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  pointerEvents="none"
+                />
+              );
+            })}
+
+        {/* Camera 2D overlay */}
+        {camera && onCameraChange && (
+          <foreignObject x="0" y="0" width="0" height="0" />
+        )}
       </svg>
+
+      {/* Camera overlay (posizionato sopra l'SVG) */}
+      {camera && onCameraChange && (
+        <div className="relative">
+          <CameraOverlay
+            camera={camera}
+            scale={scale}
+            onCameraChange={onCameraChange}
+            viewpoints={viewpoints}
+            onSelectViewpoint={onSelectViewpoint}
+          />
+        </div>
+      )}
 
       {/* Legenda */}
       <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-600">
