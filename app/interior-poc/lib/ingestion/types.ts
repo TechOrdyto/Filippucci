@@ -1,6 +1,7 @@
-// Tipi condivisi per la pipeline di ingestione
+// Tipi condivisi per la pipeline di ingestione (solo cataloghi).
+// La piantina non passa da qui: si importa esclusivamente da DXF.
 
-export type DocumentType = "floorplan" | "catalog";
+export type DocumentType = "catalog";
 
 export interface IngestRequest {
   type: DocumentType;
@@ -27,7 +28,7 @@ export interface SagaContext {
   // Popolati durante la saga
   normalizedPages?: NormalizedPage[];
   ocrResults?: OcrPageResult[];
-  interpretation?: FloorplanInterpretation | CatalogInterpretation;
+  interpretation?: CatalogInterpretation;
   validation?: ValidationResult;
   persistedPaths?: string[];
 }
@@ -51,55 +52,6 @@ export interface OcrPageResult {
   textBlocks: OcrTextBlock[];
   imageSize: { width: number; height: number };
   fullText: string;
-}
-
-// ─── Interpretazione Floorplan ─────────────────────────────────
-
-export interface FloorplanInterpretation {
-  dimensions: { width: number; height: number };
-  ceilingHeight: number;
-  quotes: Quote[];
-  walls: Wall[];
-  rooms: InterpretedRoom[];
-  openings: InterpretedOpening[];
-  warnings: string[];
-}
-
-export interface Wall {
-  id: string;
-  start: [number, number]; // [x, y] in metri
-  end: [number, number]; // [x, y] in metri
-  thickness: number;
-  openings: Array<{
-    type: "door" | "window" | "french-door";
-    center: number; // posizione lungo il muro
-    width: number;
-  }>;
-}
-
-export interface Quote {
-  value: number;
-  axis: "x" | "y";
-  start: number;
-  end: number;
-  wall?: "north" | "south" | "east" | "west";
-  source: "ocr" | "derived"; // derivata = sottrazione dal totale
-}
-
-export interface InterpretedRoom {
-  name: string;
-  area?: number;
-  bounds: { x: number; y: number; width: number; height: number };
-  textBlockRef?: string;
-}
-
-export interface InterpretedOpening {
-  type: "window" | "door" | "french-door";
-  position: { x: number; y: number };
-  width: number;
-  height: number;
-  wall: "north" | "south" | "east" | "west";
-  exposure: "north" | "south" | "east" | "west";
 }
 
 // ─── Interpretazione Catalogo ──────────────────────────────────
@@ -148,5 +100,5 @@ export interface SagaResult {
   documentId: string;
   executedSteps: string[];
   error?: string;
-  output?: FloorplanInterpretation | CatalogInterpretation;
+  output?: CatalogInterpretation;
 }

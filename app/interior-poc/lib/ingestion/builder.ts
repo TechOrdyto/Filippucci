@@ -1,19 +1,18 @@
-// Builder della saga: assembla gli step in base al tipo di documento
+// Builder della saga: assembla gli step per l'ingestione.
+// NOTA: la piantina NON viene più importata qui — la sua sorgente è SOLO
+// il DXF (importato via scripts/import-dxf.mjs). Questa pipeline gestisce
+// esclusivamente i cataloghi (PDF).
 
 import { IngestionSaga } from "./saga";
 import { saveDocumentStep } from "./steps/save-document";
 import { normalizeStep } from "./steps/normalize";
 import { runOcrStep } from "./steps/run-ocr";
-import { interpretFloorplanStep } from "./steps/interpret-floorplan";
 import { interpretCatalogStep } from "./steps/interpret-catalog";
 import { cropProductImagesStep } from "./steps/crop-product-images";
-import { validateFloorplanStep } from "./steps/validate-floorplan";
 import { validateCatalogStep } from "./steps/validate-catalog";
-import { persistFloorplanStep } from "./steps/persist-floorplan";
 import { persistCatalogStep } from "./steps/persist-catalog";
-import type { DocumentType } from "./types";
 
-export function buildSaga(type: DocumentType): IngestionSaga {
+export function buildSaga(): IngestionSaga {
   const saga = new IngestionSaga();
 
   // Step comuni
@@ -21,17 +20,11 @@ export function buildSaga(type: DocumentType): IngestionSaga {
   saga.addStep(normalizeStep);
   saga.addStep(runOcrStep);
 
-  // Step tipo-specifici
-  if (type === "floorplan") {
-    saga.addStep(interpretFloorplanStep);
-    saga.addStep(validateFloorplanStep);
-    saga.addStep(persistFloorplanStep);
-  } else if (type === "catalog") {
-    saga.addStep(interpretCatalogStep);
-    saga.addStep(cropProductImagesStep);
-    saga.addStep(validateCatalogStep);
-    saga.addStep(persistCatalogStep);
-  }
+  // Step catalogo
+  saga.addStep(interpretCatalogStep);
+  saga.addStep(cropProductImagesStep);
+  saga.addStep(validateCatalogStep);
+  saga.addStep(persistCatalogStep);
 
   return saga;
 }

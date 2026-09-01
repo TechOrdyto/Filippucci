@@ -2,13 +2,12 @@
 
 import { useRef, useState } from "react";
 
-type ExtractType = "catalog" | "floorplan";
+type ExtractType = "catalog";
 
 interface ExtractResult {
   type: ExtractType;
   source: "rule-based" | "ai";
   products?: any[];
-  floorplan?: any;
   warnings: string[];
   pageCount: number;
   metadata?: Record<string, string>;
@@ -75,7 +74,7 @@ export default function ExtractPage() {
   const handleDownload = () => {
     if (!result) return;
 
-    const data = result.type === "catalog" ? result.products : result.floorplan;
+    const data = result.products;
     if (!data) return;
 
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -94,10 +93,10 @@ export default function ExtractPage() {
       <div className="mx-auto max-w-4xl px-4">
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
-            📄 Estrazione Cataloghi e Piantine
+            📄 Estrazione Cataloghi
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Carica un PDF (catalogo Molteni&C o piantina) per estrarre dati strutturati
+            Carica un PDF (catalogo Molteni&C) per estrarre dati strutturati
           </p>
         </header>
 
@@ -114,7 +113,6 @@ export default function ExtractPage() {
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
               >
                 <option value="catalog">Catalogo prodotti</option>
-                <option value="floorplan">Piantina architettonica</option>
               </select>
             </div>
             <div>
@@ -175,9 +173,7 @@ export default function ExtractPage() {
                   Risultato estrazione
                 </h2>
                 <p className="mt-1 text-xs text-gray-500">
-                  {result.type === "catalog"
-                    ? `${result.products?.length ?? 0} prodotti estratti`
-                    : "Piantina estratta"}{" "}
+                  {result.products?.length ?? 0} prodotti estratti
                   · {result.source} · {result.pageCount} pagine
                   {result.provider ? ` · ${result.provider}` : ""}
                 </p>
@@ -231,35 +227,6 @@ export default function ExtractPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            )}
-
-            {/* Anteprima piantina */}
-            {result.type === "floorplan" && result.floorplan && (
-              <div className="rounded-md bg-gray-50 p-4">
-                <div className="mb-2 text-sm font-medium text-gray-900">
-                  {result.floorplan.name}
-                </div>
-                <div className="mb-3 text-xs text-gray-600">
-                  {result.floorplan.dimensions?.width}m ×{" "}
-                  {result.floorplan.dimensions?.height}m · soffitto{" "}
-                  {result.floorplan.ceilingHeight}m
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {result.floorplan.rooms?.map((room: any, i: number) => (
-                    <div
-                      key={i}
-                      className="rounded-md border border-gray-200 bg-white p-3"
-                    >
-                      <div className="text-sm font-medium text-gray-900">
-                        {room.name}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {room.area} mq · {room.bounds?.width}m × {room.bounds?.height}m
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
