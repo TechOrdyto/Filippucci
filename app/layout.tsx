@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ordyto — Interior Design AI PoC",
-  description:
-    "PoC: da planimetria a render fotorealistico con catalogo Molteni&C",
+  title: "Filippucci Interior Studio",
+  description: "Dalla planimetria a una proposta d'interni fotorealistica.",
 };
 
 export default function RootLayout({

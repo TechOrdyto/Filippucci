@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import MentionInput from "./components/MentionInput";
 import FloorplanViewer from "./components/FloorplanViewer";
 import DesignSummary from "./components/DesignSummary";
-import RenderResult from "./components/RenderResult";
+import RenderResult, { type RenderVariant } from "./components/RenderResult";
+import ReferenceImagePicker from "./components/ReferenceImagePicker";
+import ThemeToggle from "./components/ThemeToggle";
 import { catalog, findProductById, parseMentions } from "./lib/catalog";
 import type { DesignProposal, DesignState, ProductMention } from "./lib/types";
 import type { CameraPosition, Viewpoint } from "./lib/camera/types";
@@ -16,6 +18,21 @@ import designerRules from "./data/designer-rules.json";
 
 const floorplan = floorplanData as any;
 const rules = designerRules as any;
+const CAMERA_DIRECTIONS = [
+  "Nord",
+  "Nord-est",
+  "Est",
+  "Sud-est",
+  "Sud",
+  "Sud-ovest",
+  "Ovest",
+  "Nord-ovest",
+] as const;
+
+function getCameraDirection(rotation: number): string {
+  const normalizedRotation = ((rotation % 360) + 360) % 360;
+  return CAMERA_DIRECTIONS[Math.round(normalizedRotation / 45) % CAMERA_DIRECTIONS.length];
+}
 
 function createInitialProposal(): DesignProposal {
   return {
@@ -45,6 +62,9 @@ export default function InteriorPocPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<RenderVariant[]>([]);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const [catalogCategory, setCatalogCategory] = useState("Tutti");
 
   // Camera 2D state
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -108,12 +128,6 @@ export default function InteriorPocPage() {
       fov: vp.fov,
       roomId: vp.roomId,
     });
-  };
-
-  const handleGenerateViewpoints = () => {
-    if (!selectedRoomId) return;
-    const room = floorplan.rooms.find((r: any) => r.id === selectedRoomId);
-    if (room) setViewpoints(generateViewpoints(room, floorplan.walls ?? []));
   };
 
   const handleGenerate = async () => {
@@ -194,7 +208,14 @@ export default function InteriorPocPage() {
       }
 
       const data = await res.json();
+      const generatedImage: RenderVariant = {
+        id: crypto.randomUUID(),
+        imageUrl: data.imageUrl,
+        prompt,
+        createdAt: new Date(),
+      };
       setImageUrl(data.imageUrl);
+      setGeneratedImages((previous) => [generatedImage, ...previous].slice(0, 8));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore sconosciuto");
     } finally {
@@ -215,46 +236,177 @@ export default function InteriorPocPage() {
     });
   };
 
-  return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="mx-auto max-w-6xl px-4">
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Ordyto — Interior Design AI
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            PoC: da planimetria a render fotorealistico con catalogo Molteni&C
-          </p>
-        </header>
+  const selectedRoomName = selectedRoomId
+    ? floorplan.rooms.find((room: any) => room.id === selectedRoomId)?.name
+    : null;
+  const currentStep = imageUrl ? 4 : prompt.trim() ? 3 : camera ? 2 : 1;
+  const catalogCategories = [
+    "Tutti",
+    ...Array.from(new Set(catalog.map((product) => product.category))),
+  ];
+  const filteredCatalog = catalog.filter((product) => {
+    const query = catalogQuery.trim().toLowerCase();
+    const matchesCategory = catalogCategory === "Tutti" || product.category === catalogCategory;
+    const matchesQuery =
+      !query ||
+      [product.name, product.collection, product.category, product.designer]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    return matchesCategory && matchesQuery;
+  });
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Colonna sinistra: input + planimetria */}
-          <div className="space-y-6">
-            {/* Prompt input */}
-            <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold text-gray-900">
-                Descrivi l'ambiente
+  const handleUseProduct = (productName: string) => {
+    const nextPrompt = `${prompt.trim()}${prompt.trim() ? " " : ""}@${productName} `;
+    setPrompt(nextPrompt);
+    setMentions(parseMentions(nextPrompt));
+  };
+
+  const resultMobileOrder = state ? "order-5" : "order-4";
+
+  return (
+    <main className="studio-shell min-h-screen">
+      <header className="studio-header sticky top-0 z-20">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <svg
+              className="brand-logo h-9 w-36 shrink-0 sm:h-10 sm:w-40"
+              viewBox="0 0 289.4 71.8"
+              role="img"
+              aria-label="Filippucci Home Design"
+            >
+              <use href="/logo-filipucci.svg#filippucci-mark" />
+            </svg>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden items-center gap-2 text-xs text-[var(--text-muted)] md:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              Progetto demo · Ordyto.it
+            </span>
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pt-10">
+        <section className="mb-8">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start md:gap-8">
+            <div className="max-w-3xl">
+              <p className="eyebrow mb-3">Preparazione della proposta</p>
+              <h2 className="display-title text-4xl leading-[0.98] text-[var(--text)] sm:text-5xl">
+                Prepara l’immagine da mostrare al cliente.
               </h2>
+              <p className="mt-4 max-w-xl text-base leading-7 text-[var(--text-muted)]">
+                Scegli la stanza, imposta la vista e inserisci le indicazioni di progetto.
+                Il sistema preparerà il render per la presentazione.
+              </p>
+            </div>
+            <div className="shrink-0 text-left md:pt-0 md:text-right">
+              <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-soft)]">Progetto</p>
+              <p className="mt-1 text-sm font-medium text-[var(--text)]">Casa privata · 01</p>
+            </div>
+          </div>
+        </section>
+
+        <nav aria-label="Stato del progetto" className="panel mb-8 overflow-hidden rounded-2xl">
+          <ol className="grid grid-cols-2 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
+            {[
+              [1, "Piantina", "Scegli una stanza"],
+              [2, "Vista", "Scegli da dove guardare"],
+              [3, "Indicazioni", "Inserisci cosa mostrare"],
+              [4, "Risultato", "Guarda l’immagine"],
+            ].map(([step, title, description]) => {
+              const stepNumber = step as number;
+              const isActive = currentStep === stepNumber;
+              const isComplete = currentStep > stepNumber;
+              return (
+                <li
+                  key={stepNumber}
+                  className={`flex items-center gap-3 px-4 py-4 sm:px-5 ${
+                    isActive ? "bg-[var(--accent-soft)]" : ""
+                  }`}
+                >
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                      isActive || isComplete
+                        ? "border-[var(--accent-strong)] bg-[var(--accent-strong)] text-white"
+                        : "border-[var(--border-strong)] text-[var(--text-muted)]"
+                    }`}
+                  >
+                    {isComplete ? "✓" : stepNumber}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold text-[var(--text)]">{title}</span>
+                    <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
+                      {description}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
+        <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
+          <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-6 lg:self-stretch">
+            <div className="order-3">
+            <section className="panel rounded-2xl p-5 sm:p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p className="eyebrow mb-2">03 · Indicazioni</p>
+                  <h3 className="display-title text-2xl text-[var(--text)]">Cosa vuoi mostrare al cliente?</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                    Indica stile, materiali, colori e prodotti da inserire nell’immagine.
+                  </p>
+                </div>
+              </div>
+
               <MentionInput
                 value={prompt}
                 onChange={setPrompt}
                 onMentionsChange={setMentions}
               />
 
-              {/* Prodotti rilevati */}
+              <ReferenceImagePicker />
+
+              <div className="mt-4">
+                <p className="eyebrow mb-2">Suggerimenti</p>
+                <div className="flex flex-wrap gap-2" aria-label="Suggerimenti per il brief">
+                  {[
+                    "Soggiorno luminoso e minimale",
+                    "Toni caldi e legno naturale",
+                    "Immagine elegante e ordinata",
+                    "Colori neutri e materiali naturali",
+                  ].map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => {
+                        setPrompt(example);
+                        setMentions(parseMentions(example));
+                      }}
+                      className="ghost-action rounded-full px-3 py-1.5 text-xs"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {explicitProducts.length > 0 && (
-                <div className="mt-3">
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Prodotti rilevati dal catalogo
+                <div className="mt-5 border-t border-[var(--border)] pt-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="eyebrow">Prodotti da mostrare</span>
+                    <span className="text-xs text-[var(--text-soft)]">Catalogo Molteni&amp;C</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {explicitProducts.map((p) => (
+                    {explicitProducts.map((product) => (
                       <span
-                        key={(p as any).id}
-                        className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800"
+                        key={(product as any).id}
+                        className="soft-badge inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
                       >
-                        ✅ {(p as any).name}
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                        {(product as any).name}
                       </span>
                     ))}
                   </div>
@@ -265,13 +417,18 @@ export default function InteriorPocPage() {
                 type="button"
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || isGenerating}
-                className="mt-4 w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="primary-action mt-6 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
               >
-                {isGenerating ? "Generazione in corso..." : "🎨 Genera Render"}
+                <span aria-hidden="true">{isGenerating ? "···" : "→"}</span>
+                {isGenerating ? "Stiamo preparando l’immagine" : "Prepara immagine"}
               </button>
+              <p className="mt-3 text-center text-xs text-[var(--text-soft)]">
+                L’immagine richiede normalmente 20–40 secondi.
+              </p>
             </section>
+            </div>
 
-            {/* Planimetria */}
+            <div className="order-1">
             <FloorplanViewer
               floorplan={floorplan}
               camera={camera}
@@ -281,133 +438,176 @@ export default function InteriorPocPage() {
               onCameraChange={handleCameraChange}
               onSelectViewpoint={handleSelectViewpoint}
             />
+            </div>
+          </div>
 
-            {/* Pannello Camera */}
+          <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6 lg:self-stretch">
             {camera && (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-900">📷 Camera 2D</h3>
-                  <button
-                    type="button"
-                    onClick={handleGenerateViewpoints}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    🔄 Genera visuali
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="order-2">
+              <section className="panel rounded-2xl p-5 sm:p-6">
+                <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
-                    <span className="text-gray-500">Stanza:</span>{" "}
-                    <span className="font-medium text-gray-900">
-                      {floorplan.rooms.find((r: any) => r.id === camera.roomId)?.name ?? "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Posizione:</span>{" "}
-                    <span className="font-medium text-gray-900">
-                      {camera.x}, {camera.y} m
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Direzione:</span>{" "}
-                    <span className="font-medium text-gray-900">{camera.rotation}°</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">FOV:</span>{" "}
-                    <span className="font-medium text-gray-900">{camera.fov}°</span>
+                    <p className="eyebrow mb-2">02 · Vista</p>
+                    <h3 className="display-title text-2xl text-[var(--text)]">Da dove vuoi guardare?</h3>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {selectedRoomName ?? "Ambiente selezionato"}
+                    </p>
                   </div>
                 </div>
-                {viewpoints.length > 0 && (
-                  <div className="mt-3">
-                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                      Visuali suggerite
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {[
+                    ["Stanza", selectedRoomName ?? "—"],
+                    ["Direzione", getCameraDirection(camera.rotation)],
+                    ["Apertura vista", `${camera.fov}°`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="panel-muted rounded-xl p-3">
+                      <span className="block text-[11px] uppercase tracking-[0.12em] text-[var(--text-soft)]">{label}</span>
+                      <span className="mt-1 block truncate text-sm font-semibold text-[var(--text)]">{value}</span>
                     </div>
-                    <div className="space-y-1">
-                      {viewpoints.map((vp) => (
+                  ))}
+                </div>
+
+                {viewpoints.length > 0 && (
+                  <div className="mt-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="eyebrow">Altri punti di vista</span>
+                      <span className="text-xs text-[var(--text-soft)]">Selezionane una</span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {viewpoints.map((viewpoint, index) => (
                         <button
-                          key={vp.id}
+                          key={viewpoint.id}
                           type="button"
-                          onClick={() => handleSelectViewpoint(vp)}
-                          className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-blue-50"
+                          onClick={() => handleSelectViewpoint(viewpoint)}
+                          aria-label={`Scegli visuale ${index + 1}`}
+                          className="ghost-action rounded-xl px-3 py-3 text-left text-xs font-medium"
                         >
-                          {vp.label}
+                          <span className="mb-1 block text-[var(--accent)]">Visuale {index + 1}</span>
+                          <span className="text-[var(--text)]">Scegli questa visuale</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
+              </section>
               </div>
             )}
-          </div>
-
-          {/* Colonna destra: proposta + render */}
-          <div className="space-y-6">
             {state && (
-              <DesignSummary
-                proposal={state.current}
-                onRemoveSuggested={handleRemoveSuggested}
-              />
+              <div className="order-4">
+                <DesignSummary
+                  proposal={state.current}
+                  onRemoveSuggested={handleRemoveSuggested}
+                />
+              </div>
             )}
-            <RenderResult
-              imageUrl={imageUrl}
-              isLoading={isGenerating}
-              error={error}
-              onRegenerate={handleGenerate}
-            />
+            <aside
+              className={`${resultMobileOrder} lg:sticky lg:top-24 lg:self-stretch`}
+            >
+              <RenderResult
+                imageUrl={imageUrl}
+                generatedImages={generatedImages}
+                isLoading={isGenerating}
+                error={error}
+                onRegenerate={handleGenerate}
+                onSelectImage={setImageUrl}
+              />
+            </aside>
           </div>
         </div>
 
-        {/* Catalogo disponibile */}
-        <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">
-            Catalogo disponibile ({catalog.length} prodotti)
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {catalog.map((product) => (
-              <div
-                key={product.id}
-                className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
+        <section className="mt-12 border-t border-[var(--border)] pt-8">
+          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <p className="eyebrow mb-2">Arredi</p>
+              <h2 className="display-title text-3xl text-[var(--text)]">Scegli un prodotto da aggiungere.</h2>
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">{filteredCatalog.length} di {catalog.length} prodotti</p>
+          </div>
+
+          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <label className="field-shell flex min-h-11 w-full items-center gap-3 rounded-xl px-4 lg:max-w-sm">
+              <span aria-hidden="true" className="text-sm text-[var(--accent)]">⌕</span>
+              <span className="sr-only">Cerca nella collezione</span>
+              <input
+                type="search"
+                value={catalogQuery}
+                onChange={(event) => setCatalogQuery(event.target.value)}
+                placeholder="Cerca un prodotto o una collezione"
+                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-soft)]"
+              />
+            </label>
+            <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtra per categoria">
+              {catalogCategories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setCatalogCategory(category)}
+                  className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                    catalogCategory === category
+                      ? "bg-[var(--accent-strong)] text-white"
+                      : "ghost-action"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredCatalog.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredCatalog.map((product) => (
+              <article key={product.id} className="catalog-card rounded-2xl p-3">
+                <div className="flex gap-4">
                   {product.images?.[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={product.images[0]}
                       alt={product.name}
-                      className="h-16 w-16 shrink-0 rounded-md object-cover"
+                      className="h-24 w-24 shrink-0 rounded-xl object-cover"
                     />
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xl">
-                      {product.category === "Sofas" ? "🛋️" : product.category === "Tables" ? "🪑" : "📦"}
+                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-xs font-semibold uppercase tracking-widest text-[var(--text-soft)]">
+                      {product.category.slice(0, 3)}
                     </div>
                   )}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {product.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {product.category} · {product.designer}
-                        </div>
-                      </div>
-                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
-                        {product.id}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-xs text-gray-600">
+                  <div className="min-w-0 flex-1 py-1">
+                    <p className="eyebrow truncate">{product.category}</p>
+                    <h3 className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{product.name}</h3>
+                    <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{product.designer}</p>
+                    <p className="mt-2 text-xs text-[var(--text-soft)]">
                       {product.dimensions
-                        ? `${product.dimensions.width}×${product.dimensions.depth}×${product.dimensions.height} cm`
-                        : "Dimensioni non disponibili"}
-                    </div>
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      {product.materials?.join(", ") ?? "Materiali non disponibili"}
-                    </div>
+                        ? `${product.dimensions.width} × ${product.dimensions.depth} × ${product.dimensions.height} cm`
+                        : "Dimensioni su richiesta"}
+                    </p>
                   </div>
                 </div>
-              </div>
+                <button
+                  type="button"
+                  onClick={() => handleUseProduct(product.name)}
+                  className="ghost-action mt-3 w-full rounded-xl px-3 py-2 text-xs font-semibold"
+                >
+                  Aggiungi alle indicazioni
+                </button>
+              </article>
             ))}
-          </div>
+            </div>
+          ) : (
+            <div className="panel-muted rounded-2xl border border-dashed border-[var(--border-strong)] p-8 text-center">
+              <p className="text-sm text-[var(--text-muted)]">Nessun elemento corrisponde alla ricerca.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setCatalogQuery("");
+                  setCatalogCategory("Tutti");
+                }}
+                className="mt-3 text-xs font-semibold text-[var(--accent-strong)] underline underline-offset-4"
+              >
+                Azzera filtri
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </main>

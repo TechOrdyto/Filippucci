@@ -19,23 +19,23 @@ function ProductRow({
   onRemove?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
       <div className="flex items-center gap-3">
         {product.images?.[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.images[0]}
             alt={product.name}
-            className="h-12 w-12 rounded-md object-cover"
+            className="h-12 w-12 rounded-lg object-cover"
           />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-sm">
-            {product.category === "Sofas" ? "🛋️" : product.category === "Tables" ? "🪑" : "📦"}
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--surface-strong)] text-[10px] font-semibold uppercase tracking-wider text-[var(--text-soft)]">
+            {product.category.slice(0, 3)}
           </div>
         )}
-        <div>
-          <div className="text-sm font-medium text-gray-900">{product.name}</div>
-          <div className="text-xs text-gray-500">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-[var(--text)]">{product.name}</div>
+          <div className="truncate text-xs text-[var(--text-muted)]">
             {product.dimensions.width}×{product.dimensions.depth}×{product.dimensions.height} cm ·{" "}
             {product.designer}
           </div>
@@ -45,8 +45,8 @@ function ProductRow({
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             label === "Scelto da te"
-              ? "bg-blue-100 text-blue-700"
-              : "bg-amber-100 text-amber-700"
+              ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+              : "bg-[var(--surface-strong)] text-[var(--text-muted)]"
           }`}
         >
           {label}
@@ -55,7 +55,7 @@ function ProductRow({
           <button
             type="button"
             onClick={onRemove}
-            className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+            className="rounded p-1 text-[var(--text-soft)] hover:bg-[var(--surface-strong)] hover:text-[var(--text)]"
             aria-label={`Rimuovi ${product.name}`}
           >
             ✕
@@ -70,12 +70,12 @@ function Meter({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="mb-1 flex justify-between text-xs">
-        <span className="text-gray-600">{label}</span>
-        <span className="font-medium text-gray-900">{value}/10</span>
+        <span className="text-[var(--text-muted)]">{label}</span>
+        <span className="font-medium text-[var(--text)]">{value}/10</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-strong)]">
         <div
-          className="h-full rounded-full bg-blue-500"
+          className="h-full rounded-full bg-[var(--accent)]"
           style={{ width: `${value * 10}%` }}
         />
       </div>
@@ -83,14 +83,42 @@ function Meter({ label, value }: { label: string; value: number }) {
   );
 }
 
+function readableStyle(value: string) {
+  const labels: Record<string, string> = {
+    "italian-minimal": "Minimal italiano",
+    contemporary: "Contemporaneo",
+    architectural: "Architettonico",
+  };
+  return labels[value] ?? value.replaceAll("-", " ");
+}
+
+function readableLighting(value: string) {
+  const labels: Record<string, string> = {
+    natural: "naturale",
+    artificial: "artificiale",
+    mixed: "naturale e artificiale",
+    bright: "luminosa",
+    warm: "calda",
+    neutral: "neutra",
+    soft: "morbida",
+  };
+  return labels[value] ?? value.replaceAll("-", " ");
+}
+
 export default function DesignSummary({ proposal, onRemoveSuggested }: DesignSummaryProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">💡 Proposta di Design</h3>
+    <section className="panel rounded-2xl p-5 sm:p-6">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow mb-2">Riepilogo della proposta</p>
+          <h3 className="display-title text-2xl text-[var(--text)]">Queste sono le scelte inserite.</h3>
+        </div>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-xs text-[var(--accent)]">✦</span>
+      </div>
 
       {/* Prodotti */}
       <div className="mb-4">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <div className="eyebrow mb-2">
           Prodotti
         </div>
         <div className="space-y-2">
@@ -101,28 +129,28 @@ export default function DesignSummary({ proposal, onRemoveSuggested }: DesignSum
             <ProductRow
               key={p.id}
               product={p}
-              label="Suggerito da AI"
+              label="Suggerito"
               removable
               onRemove={() => onRemoveSuggested?.(p.id)}
             />
           ))}
           {proposal.explicitProducts.length === 0 && proposal.suggestedProducts.length === 0 && (
-            <p className="text-sm text-gray-400">Nessun prodotto selezionato</p>
+            <p className="text-sm text-[var(--text-soft)]">Nessun prodotto selezionato</p>
           )}
         </div>
       </div>
 
       {/* Stile */}
       <div className="mb-4">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <div className="eyebrow mb-2">
           Stile
         </div>
-        <p className="text-sm capitalize text-gray-900">{proposal.style}</p>
+        <p className="text-sm capitalize text-[var(--text)]">{readableStyle(proposal.style)}</p>
       </div>
 
       {/* Atmosfera */}
       <div className="mb-4">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <div className="eyebrow mb-2">
           Atmosfera
         </div>
         <div className="space-y-2">
@@ -135,26 +163,26 @@ export default function DesignSummary({ proposal, onRemoveSuggested }: DesignSum
 
       {/* Illuminazione */}
       <div className="mb-4">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <div className="eyebrow mb-2">
           Illuminazione
         </div>
-        <p className="text-sm capitalize text-gray-900">
-          {proposal.lighting.type} · {proposal.lighting.mood}
-          {proposal.lighting.naturalLightEmphasis && " · luce naturale enfatizzata"}
+        <p className="text-sm capitalize text-[var(--text)]">
+          Luce {readableLighting(proposal.lighting.type)} · atmosfera {readableLighting(proposal.lighting.mood)}
+          {proposal.lighting.naturalLightEmphasis && " · molta luce naturale"}
         </p>
       </div>
 
       {/* Decorativi */}
       {proposal.decorativeElements.length > 0 && (
         <div className="mb-4">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+          <div className="eyebrow mb-2">
             Elementi decorativi
           </div>
           <div className="flex flex-wrap gap-2">
             {proposal.decorativeElements.map((el) => (
               <span
                 key={el}
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+                className="rounded-full bg-[var(--surface-strong)] px-2 py-0.5 text-xs text-[var(--text-muted)]"
               >
                 {el}
               </span>
@@ -165,10 +193,10 @@ export default function DesignSummary({ proposal, onRemoveSuggested }: DesignSum
 
       {/* Narrative */}
       {proposal.narrative && (
-        <div className="rounded-md bg-blue-50 p-3">
-          <p className="text-sm italic text-blue-900">{proposal.narrative}</p>
+        <div className="rounded-xl bg-[var(--accent-soft)] p-4">
+          <p className="text-sm italic leading-6 text-[var(--accent-strong)]">{proposal.narrative}</p>
         </div>
       )}
-    </div>
+    </section>
   );
 }

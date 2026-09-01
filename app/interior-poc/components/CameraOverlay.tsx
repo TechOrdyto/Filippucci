@@ -7,6 +7,14 @@ import { directionFromRotation } from "../lib/camera/geometry";
 interface CameraOverlayProps {
   camera: CameraPosition;
   scale: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  viewBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
   onCameraChange: (camera: CameraPosition) => void;
   viewpoints?: Viewpoint[];
   onSelectViewpoint?: (vp: Viewpoint) => void;
@@ -15,23 +23,34 @@ interface CameraOverlayProps {
 export default function CameraOverlay({
   camera,
   scale,
+  canvasWidth,
+  canvasHeight,
+  viewBox,
   onCameraChange,
   viewpoints = [],
   onSelectViewpoint,
 }: CameraOverlayProps) {
   const [dragging, setDragging] = useState<"camera" | "rotation" | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const overlayViewBox = viewBox ?? {
+    x: 0,
+    y: 0,
+    width: canvasWidth * scale,
+    height: canvasHeight * scale,
+  };
+  const zoomFactor = Math.max(1, (canvasWidth * scale) / overlayViewBox.width);
+  const overlayScale = 1 / zoomFactor;
 
   const cx = camera.x * scale;
   const cy = camera.y * scale;
   const dir = directionFromRotation(camera.rotation);
-  const handleLen = 40;
+  const handleLen = 40 * overlayScale;
   const hx = cx + dir.x * handleLen;
   const hy = cy + dir.y * handleLen;
 
   // Cono visuale
   const fovRad = (camera.fov * Math.PI) / 180;
-  const coneLen = 60;
+  const coneLen = 60 * overlayScale;
   const baseAngle = ((camera.rotation - 90) * Math.PI) / 180;
   const leftAngle = baseAngle - fovRad / 2;
   const rightAngle = baseAngle + fovRad / 2;
@@ -55,9 +74,9 @@ export default function CameraOverlay({
     const py = e.clientY - rect.top;
 
     // Converti pixel → metri (usando viewBox)
-    const viewBox = svgRef.current.viewBox.baseVal;
-    const mx = (px / rect.width) * viewBox.width / scale;
-    const my = (py / rect.height) * viewBox.height / scale;
+    const currentViewBox = svgRef.current.viewBox.baseVal;
+    const mx = (currentViewBox.x + (px / rect.width) * currentViewBox.width) / scale;
+    const my = (currentViewBox.y + (py / rect.height) * currentViewBox.height) / scale;
 
     if (dragging === "camera") {
       onCameraChange({
@@ -85,7 +104,7 @@ export default function CameraOverlay({
     <svg
       ref={svgRef}
       className="pointer-events-none absolute inset-0 h-full w-full"
-      viewBox={`0 0 ${camera.x * scale * 2} ${camera.y * scale * 2}`}
+      viewBox={`${overlayViewBox.x} ${overlayViewBox.y} ${overlayViewBox.width} ${overlayViewBox.height}`}
       style={{ overflow: "visible" }}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -93,9 +112,9 @@ export default function CameraOverlay({
       {/* Cono visuale */}
       <polygon
         points={`${cx},${cy} ${leftX},${leftY} ${rightX},${rightY}`}
-        fill="rgba(59, 130, 246, 0.15)"
-        stroke="rgba(59, 130, 246, 0.4)"
-        strokeWidth={1}
+        fill="var(--camera-fill)"
+        stroke="var(--accent)"
+        strokeWidth={overlayScale}
       />
 
       {/* Linea direzione */}
@@ -104,8 +123,8 @@ export default function CameraOverlay({
         y1={cy}
         x2={hx}
         y2={hy}
-        stroke="#2563eb"
-        strokeWidth={2}
+        stroke="var(--accent-strong)"
+        strokeWidth={2 * overlayScale}
         className="pointer-events-auto cursor-grab"
         onPointerDown={(e) => handlePointerDown(e, "rotation")}
       />
@@ -114,10 +133,10 @@ export default function CameraOverlay({
       <circle
         cx={hx}
         cy={hy}
-        r={6}
-        fill="#2563eb"
+        r={6 * overlayScale}
+        fill="var(--accent-strong)"
         stroke="#fff"
-        strokeWidth={2}
+        strokeWidth={2 * overlayScale}
         className="pointer-events-auto cursor-grab"
         onPointerDown={(e) => handlePointerDown(e, "rotation")}
       />
@@ -126,16 +145,16 @@ export default function CameraOverlay({
       <circle
         cx={cx}
         cy={cy}
-        r={8}
-        fill="#1d4ed8"
+        r={8 * overlayScale}
+        fill="var(--accent-strong)"
         stroke="#fff"
-        strokeWidth={2}
+        strokeWidth={2 * overlayScale}
         className="pointer-events-auto cursor-move"
         onPointerDown={(e) => handlePointerDown(e, "camera")}
       />
 
       {/* Viewpoint suggeriti */}
-      {viewpoints.map((vp) => (
+      {viewpoints.map((vp, index) => (
         <g
           key={vp.id}
           className="pointer-events-auto cursor-pointer"
@@ -144,12 +163,12 @@ export default function CameraOverlay({
           <circle
             cx={vp.position.x * scale}
             cy={vp.position.y * scale}
-            r={5}
-            fill="rgba(16, 185, 129, 0.6)"
-            stroke="#10b981"
-            strokeWidth={1.5}
+            r={5 * overlayScale}
+            fill="var(--success)"
+            stroke="var(--surface)"
+            strokeWidth={1.5 * overlayScale}
           />
-          <title>{vp.label}</title>
+          <title>{`Visuale ${index + 1}`}</title>
         </g>
       ))}
     </svg>
