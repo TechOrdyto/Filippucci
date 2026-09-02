@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import MentionInput from "./components/MentionInput";
 import DesignSummary from "./components/DesignSummary";
 import RenderResult, { type RenderVariant } from "./components/RenderResult";
 import ReferenceImagePicker from "./components/ReferenceImagePicker";
 import ThemeToggle from "./components/ThemeToggle";
-import RoomsSidebar from "./components/RoomsSidebar";
 import FloorplanViewer from "./components/FloorplanViewer";
-import Inspector from "./components/Inspector";
 import { catalog, findProductById, parseMentions } from "./lib/catalog";
 import type {
   DesignProposal,
@@ -81,25 +79,6 @@ export default function InteriorPocPage() {
   const [camera, setCamera] = useState<CameraPosition | null>(null);
   const [viewpoints, setViewpoints] = useState<Viewpoint[]>([]);
 
-  // Pannelli responsive (mobile/tablet)
-  const [showRooms, setShowRooms] = useState(false);
-  const [showInspector, setShowInspector] = useState(false);
-
-  // Click esterno all'intera sezione planimetria (viewer + sidebar + inspector)
-  // → deseleziona. L'Inspector è DENTRO il perimetro, quindi i suoi click
-  // (es. "Aggiungi azione") non azzerano la selezione.
-  const moduleRef = useRef<HTMLDivElement>(null);
-  const handleSelectRef = useRef<(s: Selection | null) => void>(() => {});
-  useEffect(() => {
-    const handler = (e: PointerEvent) => {
-      const el = moduleRef.current;
-      if (!el) return;
-      if (!el.contains(e.target as Node)) handleSelectRef.current(null);
-    };
-    document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
-  }, []);
-
   // Nuovo modulo planimetria
   const {
     model,
@@ -110,9 +89,6 @@ export default function InteriorPocPage() {
     selectObject,
     clearSelection,
     switchMode,
-    handleAddAction,
-    handleRemoveAction,
-    renameRoom,
   } = useFloorPlan();
 
   const geometry = useMemo(
@@ -166,13 +142,6 @@ export default function InteriorPocPage() {
       if (obj) focusRoom(obj.roomId);
     }
   };
-  handleSelectRef.current = handleSelect;
-
-  const handleSelectRoom = (roomId: string) => {
-    selectRoom(roomId);
-    focusRoom(roomId);
-  };
-
   const handleSelectViewpoint = (vp: Viewpoint) => {
     setCamera({
       x: vp.position.x,
@@ -483,7 +452,7 @@ export default function InteriorPocPage() {
             </section>
             </div>
 
-            {/* MODULO PLANIMETRIA — tre aree (DXF-first) */}
+            {/* MODULO PLANIMETRIA — solo piantina centrale */}
             <div className="order-1">
               <section className="panel rounded-2xl p-5 sm:p-6">
                 <div className="mb-5 flex items-start justify-between gap-4">
@@ -496,67 +465,16 @@ export default function InteriorPocPage() {
                   </div>
                 </div>
 
-                <div ref={moduleRef} className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)_300px] lg:gap-4">
-                  {/* Toggle pannelli (mobile/tablet) */}
-                  <div className="mb-3 flex gap-2 lg:hidden">
-                    <button
-                      type="button"
-                      onClick={() => setShowRooms((v) => !v)}
-                      className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
-                        showRooms
-                          ? "border-blue-300 bg-blue-50 text-blue-700"
-                          : "border-gray-200 bg-white text-gray-600"
-                      }`}
-                    >
-                      🏠 Stanze
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowInspector((v) => !v)}
-                      className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
-                        showInspector
-                          ? "border-blue-300 bg-blue-50 text-blue-700"
-                          : "border-gray-200 bg-white text-gray-600"
-                      }`}
-                    >
-                      🔍 Inspector
-                    </button>
-                  </div>
-
-                  {/* Stanze */}
-                  <div className={`mb-4 lg:mb-0 ${showRooms ? "block" : "hidden"} lg:block`}>
-                    <RoomsSidebar
-                      model={model}
-                      selection={selection}
-                      onSelectRoom={handleSelectRoom}
-                    />
-                  </div>
-
-                  {/* Planimetria */}
-                  <div className="mb-4 lg:mb-0">
-                    <FloorplanViewer
-                      geometry={geometry}
-                      model={model}
-                      selection={selection}
-                      mode={mode}
-                      activeRoomId={activeRoomId}
-                      onSelect={handleSelect}
-                      onSwitchMode={switchMode}
-                      onDeselectRoom={clearSelection}
-                    />
-                  </div>
-
-                  {/* Inspector */}
-                  <div className={`${showInspector ? "block" : "hidden"} lg:block`}>
-                    <Inspector
-                      model={model}
-                      selection={selection}
-                      onAddAction={handleAddAction}
-                      onRemoveAction={handleRemoveAction}
-                      onRenameRoom={renameRoom}
-                    />
-                  </div>
-                </div>
+                <FloorplanViewer
+                  geometry={geometry}
+                  model={model}
+                  selection={selection}
+                  mode={mode}
+                  activeRoomId={activeRoomId}
+                  onSelect={handleSelect}
+                  onSwitchMode={switchMode}
+                  onDeselectRoom={clearSelection}
+                />
               </section>
             </div>
           </div>
