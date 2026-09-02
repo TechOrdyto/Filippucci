@@ -53,7 +53,8 @@ export const interpretCatalogStep = createStep(
     // Levenshtein per raggruppare nomi simili.
     const byName = new Map<string, CatalogInterpretation["products"][number]>();
     for (const product of rawProducts) {
-      const key = product.name.toLowerCase();
+      // Normalizza il nome per il confronto (rimuovi trattini/spazi finali)
+      const key = normalizeProductName(product.name).toLowerCase();
       // Cerca un gruppo esistente con nome simile
       let existing: CatalogInterpretation["products"][number] | undefined;
       for (const [k, v] of byName) {
@@ -245,18 +246,23 @@ function levenshtein(a: string, b: string): number {
  * Il nome è tipicamente il primo blocco in MAIUSCOLO (es. "BLEVIO").
  */
 function findProductNameFromOcr(ocrTexts: string[]): string | null {
-  // Cerca il primo blocco in maiuscolo con 3+ caratteri, senza spazi
+  // Cerca il primo blocco in maiuscolo con 3+ caratteri
   // (i nomi prodotto Molteni sono singole parole in maiuscolo)
   for (const t of ocrTexts) {
     const clean = t.trim();
     if (
       clean === clean.toUpperCase() &&
       clean.length >= 3 &&
-      !clean.includes(" ") &&
       !/^[0-9]+$/.test(clean) &&
       !/^[A-Z]\s*[<>]+$/.test(clean) // esclude "A E <>" (rumore)
     ) {
-      return clean;
+      // Normalizza: rimuovi trattini, spazi e caratteri speciali finali
+      // (es. "DEVON -" → "DEVON", "BLEVIO " → "BLEVIO")
+      const normalized = clean.replace(/[\s\-–—]+$/, "").trim();
+      // Dopo la normalizzazione deve essere una singola parola senza spazi
+      if (normalized.length >= 3 && !normalized.includes(" ")) {
+        return normalized;
+      }
     }
   }
   return null;
@@ -285,4 +291,14 @@ function findDesignerFromOcr(ocrTexts: string[], productName: string | null): st
     }
   }
   return null;
+}
+
+
+/**
+ * Normalizza il nome prodotto per il confronto:
+ * rimuove trattini, spazi finali e caratteri speciali
+ * (es. "DEVON -" → "DEVON", "Blevio " → "Blevio")
+ */
+function normalizeProductName(name: string): string {
+  return name.replace(/[\s\-–—]+$/, "").trim();
 }
