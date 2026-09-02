@@ -26,8 +26,8 @@ export interface Product {
 
 export interface Wall {
   id: string;
-  start: [number, number]; // [x, y] in metri
-  end: [number, number]; // [x, y] in metri
+  start: [number, number]; // [x, y] nelle unità della piantina
+  end: [number, number]; // [x, y] nelle unità della piantina
   thickness: number;
   openings: Array<{
     type: "door" | "window" | "french-door";
@@ -40,9 +40,9 @@ export interface FloorplanRoom {
   id: string;
   name: string;
   area: number;
-  bounds: { x: number; y: number; width: number; height: number };
+  bounds: { x: number; y: number; width: number; height: number }; // unità piano
   // Polygon opzionale per forme irregolari (perimetro esterno, vani scala)
-  polygon?: Array<[number, number]>;
+  polygon?: Array<[number, number]>; // unità piano
   openings: FloorplanOpening[];
 }
 
@@ -96,9 +96,15 @@ export interface ProductMention {
   confidence: number;
 }
 
+export interface ObjectProductAssignment {
+  objectId: string;
+  productId: string;
+}
+
 export interface DesignProposal {
   explicitProducts: Product[];
   suggestedProducts: Product[];
+  objectAssignments: ObjectProductAssignment[];
   style: string;
   atmosphere: {
     warmth: number;

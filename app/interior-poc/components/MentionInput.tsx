@@ -15,7 +15,7 @@ export default function MentionInput({
   value,
   onChange,
   onMentionsChange,
-  placeholder = "Scrivi le indicazioni per il progetto... per aggiungere un prodotto, usa @",
+  placeholder = "Inserisci note per il render. Per citare un articolo del catalogo, usa @",
 }: MentionInputProps) {
   const categoryLabels: Record<string, string> = {
     Sofas: "Divani",
@@ -70,13 +70,22 @@ export default function MentionInput({
     // Detect @ mention in progress
     const textBeforeCursor = newValue.slice(0, newCursor);
     const atIndex = textBeforeCursor.lastIndexOf("@");
-    if (atIndex !== -1 && atIndex >= 0) {
+    const isMentionBoundary = atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1] ?? "");
+    if (atIndex !== -1 && isMentionBoundary) {
       const mentionText = textBeforeCursor.slice(atIndex + 1);
-      // Only show suggestions if no space after @ (unless multi-word product)
-      if (mentionText.length >= 0) {
+      const normalizedMentionText = mentionText.trim().toLowerCase();
+      const hasProductMatch = catalog.some((product) =>
+        product.name.toLowerCase().startsWith(normalizedMentionText)
+      );
+      // Mantieni aperto l’elenco solo mentre il testo può ancora essere il
+      // nome di un articolo; così una normale @ in una nota o un indirizzo
+      // email non apre un pannello inatteso.
+      if (!normalizedMentionText || hasProductMatch) {
         setQuery(mentionText);
         setIsOpen(true);
         setSelectedIndex(0);
+      } else {
+        setIsOpen(false);
       }
     } else {
       setIsOpen(false);
@@ -148,7 +157,7 @@ export default function MentionInput({
   return (
     <div className="relative">
       <label htmlFor="design-brief" className="sr-only">
-        Descrizione della stanza
+        Note per il render
       </label>
       <textarea
         id="design-brief"
@@ -158,32 +167,32 @@ export default function MentionInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={4}
-        aria-label="Descrizione della stanza"
+        aria-label="Note per il render"
         aria-autocomplete="list"
         aria-expanded={isOpen && suggestions.length > 0}
         className="field-shell min-h-32 w-full resize-y rounded-xl px-4 py-4 text-sm leading-6 text-[var(--text)] placeholder:text-[var(--text-soft)] focus:outline-none"
       />
 
       {isOpen && (
-        <div className="panel absolute left-0 top-0 z-30 mt-2 w-full overflow-hidden rounded-xl lg:left-[calc(100%+0.75rem)] lg:mt-0 lg:w-80" role="dialog" aria-label="Scegli un prodotto">
+        <div className="panel absolute left-0 top-0 z-30 mt-2 w-full overflow-hidden rounded-xl lg:left-[calc(100%+0.75rem)] lg:mt-0 lg:w-80" role="dialog" aria-label="Scegli un articolo">
           <div className="border-b border-[var(--border)] p-4">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="eyebrow">Aggiungi un prodotto</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Cerca nella collezione per nome.</p>
+                <p className="eyebrow">Inserisci un articolo</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Cerca nel catalogo per nome.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="text-xs text-[var(--text-soft)] hover:text-[var(--text)]"
-                aria-label="Chiudi elenco prodotti"
+                aria-label="Chiudi elenco articoli"
               >
                 Chiudi
               </button>
             </div>
             <label className="field-shell flex items-center gap-2 rounded-lg px-3 py-2">
               <span aria-hidden="true" className="text-sm text-[var(--accent)]">⌕</span>
-              <span className="sr-only">Cerca prodotto per nome</span>
+              <span className="sr-only">Cerca articolo per nome</span>
               <input
                 type="search"
                 value={query}
@@ -191,7 +200,7 @@ export default function MentionInput({
                   setQuery(event.target.value);
                   setSelectedIndex(0);
                 }}
-                placeholder="Cerca per nome..."
+                placeholder="Cerca per nome…"
                 autoFocus
                 className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-soft)]"
               />
@@ -258,7 +267,7 @@ export default function MentionInput({
           </div>
           {suggestions.length === 0 && (
             <p className="px-4 py-5 text-center text-xs text-[var(--text-muted)]">
-              Nessun prodotto trovato con questo nome.
+              Nessun articolo trovato con questo nome.
             </p>
           )}
         </div>

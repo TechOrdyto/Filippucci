@@ -14,20 +14,23 @@ export const MIN_SCALE = 0.05;
 export const MAX_SCALE = 8;
 
 /**
- * Crea un viewport che adatta la pianta al contenitore.
- * La pianta (width×height) viene scalata per rientrare in containerW×containerH.
+ * Riporta la pianta alla scala neutra.
+ *
+ * L'SVG usa già il proprio viewBox per adattare la geometria al contenitore:
+ * applicare qui anche la scala CSS significherebbe scalare due volte la
+ * piantina. I parametri restano nella firma per mantenere l'API del viewer
+ * e per lasciare aperta un'evoluzione verso contenitori non proporzionali.
  */
 export function fitViewport(
-  planWidth: number,
-  planHeight: number,
-  containerW: number,
-  containerH: number
+  _planWidth: number,
+  _planHeight: number,
+  _containerW: number,
+  _containerH: number
 ): Viewport {
-  const scale = Math.min(containerW / planWidth, containerH / planHeight);
   return {
-    scale,
-    offsetX: (containerW - planWidth * scale) / 2,
-    offsetY: (containerH - planHeight * scale) / 2,
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
   };
 }
 

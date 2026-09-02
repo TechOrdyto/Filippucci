@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Action, FloorPlan, Selection, SelectionMode } from "./types";
+import type { Action, FloorPlan, Selection } from "./types";
 import { addAction, removeAction } from "./model";
-import floorPlanModelData from "../data/floorplan-model.json";
+import floorPlanModelData from "../data/floorplan-model-casa-enri.json";
 
 /**
  * Normalizza il modello JSON: i punti dei poligoni arrivano come number[][]
@@ -27,37 +27,15 @@ export function useFloorPlan() {
     () => normalizeModel(floorPlanModelData)
   );
   const [selection, setSelection] = useState<Selection | null>(null);
-  // Modalità di selezione: "room" (default) oppure "object"
-  const [mode, setMode] = useState<SelectionMode>("room");
-
-  // Stanza attiva: quella selezionata (o la stanza dell'oggetto selezionato)
-  const activeRoomId = selection
-    ? selection.type === "room"
-      ? selection.id
-      : model.objects.find((o) => o.id === selection.id)?.roomId ?? null
-    : null;
 
   const selectRoom = (roomId: string) => {
     setSelection({ type: "room", id: roomId });
-    // Selezionata una stanza → passa in modalità elementi per i suoi oggetti
-    setMode("object");
   };
   const selectObject = (objectId: string) => {
     setSelection({ type: "object", id: objectId });
   };
   const clearSelection = () => {
     setSelection(null);
-    // Tornando allo stato vuoto → si riparte dalle stanze
-    setMode("room");
-  };
-
-  /** Cambia esplicitamente modalità (toggle UI) */
-  const switchMode = (m: SelectionMode) => {
-    // In modalità oggetto serve una stanza attiva
-    if (m === "object" && !activeRoomId) return;
-    setMode(m);
-    // Cambiando modalità si azzera la selezione del livello precedente
-    if (m === "room") setSelection(null);
   };
 
   const handleAddAction = (objectId: string, type: string, name: string) => {
@@ -80,12 +58,9 @@ export function useFloorPlan() {
   return {
     model,
     selection,
-    mode,
-    activeRoomId,
     selectRoom,
     selectObject,
     clearSelection,
-    switchMode,
     handleAddAction,
     handleRemoveAction,
     renameRoom,
