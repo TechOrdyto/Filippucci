@@ -19,6 +19,7 @@ interface DevonData {
   name: string;
   designer: string;
   year: number;
+  collection: string;
   description: string;
   materials: Record<string, string>;
   finishes: { base: string[]; upholstery: string[] };
@@ -37,6 +38,7 @@ interface ProductDetailProps {
 export default function ProductDetail({ product }: ProductDetailProps) {
   const [devonData, setDevonData] = useState<DevonData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   useEffect(() => {
     const isDevon = product.name.toLowerCase() === "devon";
@@ -48,7 +50,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     setLoading(true);
     fetch(`/interior-poc/api/products/${product.id}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setDevonData(data?.devon ?? null))
+      .then((data) => {
+        setDevonData(data?.devon ?? null);
+        if (data?.devon?.variants?.length > 0) {
+          setSelectedVariant(data.devon.variants[0].code);
+        }
+      })
       .catch(() => setDevonData(null))
       .finally(() => setLoading(false));
   }, [product.id, product.name]);
@@ -63,13 +70,15 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   if (!devonData) return null;
 
+  const selected = devonData.variants.find((v) => v.code === selectedVariant) ?? devonData.variants[0];
+
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-base font-bold text-[var(--text)]">{devonData.name}</h3>
           <p className="text-xs text-[var(--text-muted)]">
-            {devonData.designer} · {devonData.year}
+            {devonData.designer} · {devonData.year} · {devonData.collection}
           </p>
         </div>
       </div>
@@ -78,19 +87,64 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {devonData.description}
       </p>
 
-      {/* Materiali */}
+      {/* Selettore variante */}
       <div className="mb-4">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)]">
-          Materiali
+          Varianti ({devonData.variants.length})
         </h4>
-        <div className="space-y-1 text-xs text-[var(--text-muted)]">
-          {Object.entries(devonData.materials).map(([key, value]) => (
-            <p key={key}>
-              <span className="font-medium text-[var(--text)]">{key}:</span> {value}
-            </p>
+        <div className="flex flex-wrap gap-1.5">
+          {devonData.variants.map((v) => (
+            <button
+              key={v.code}
+              type="button"
+              onClick={() => setSelectedVariant(v.code)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                selectedVariant === v.code
+                  ? "bg-[var(--accent)] text-white"
+                  : "bg-[var(--surface-muted)] text-[var(--text-muted)] hover:bg-[var(--surface-strong)]"
+              }`}
+            >
+              {v.code}
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Dettaglio variante selezionata */}
+      {selected && (
+        <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-[var(--text)]">
+                {selected.code} <span className="ml-1 font-normal text-[var(--text-muted)]">{selected.type}</span>
+              </div>
+              <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-[var(--text-muted)]">
+                <span>Larghezza: <b className="text-[var(--text)]">{selected.dimensions.width} cm</b></span>
+                <span>Profondità: <b className="text-[var(--text)]">{selected.dimensions.depth} cm</b></span>
+                <span>Altezza: <b className="text-[var(--text)]">{selected.dimensions.height} cm</b></span>
+                <span>Peso: <b className="text-[var(--text)]">{selected.weightKg} kg</b></span>
+              </div>
+              {selected.priceRange && (
+                <div className="mt-1 text-xs">
+                  Prezzo:{" "}
+                  <b className="text-[var(--accent-strong)]">
+                    €{selected.priceRange.min.toLocaleString("it-IT")}–
+                    {selected.priceRange.max.toLocaleString("it-IT")}
+                  </b>
+                </div>
+              )}
+            </div>
+            {selected.technicalImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={selected.technicalImage}
+                alt={`Disegno tecnico ${selected.code}`}
+                className="h-32 w-auto shrink-0 rounded-lg border border-[var(--border)] bg-white object-contain"
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Finiture */}
       <div className="mb-4">
@@ -105,46 +159,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             >
               {f}
             </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Varianti */}
-      <div>
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)]">
-          Varianti ({devonData.variants.length})
-        </h4>
-        <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-          {devonData.variants.map((v) => (
-            <div
-              key={v.code}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-bold text-[var(--text)]">{v.code}</span>
-                  <span className="ml-2 text-xs text-[var(--text-muted)]">{v.type}</span>
-                </div>
-                {v.priceRange && (
-                  <span className="text-xs font-medium text-[var(--accent-strong)]">
-                    €{v.priceRange.min.toLocaleString("it-IT")}–
-                    {v.priceRange.max.toLocaleString("it-IT")}
-                  </span>
-                )}
-              </div>
-              <div className="mt-1 text-xs text-[var(--text-muted)]">
-                {v.dimensions.width}×{v.dimensions.depth}×{v.dimensions.height} cm ·{" "}
-                {v.weightKg} kg · {v.colli} collo
-              </div>
-              {v.technicalImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={v.technicalImage}
-                  alt={`Disegno tecnico ${v.code}`}
-                  className="mt-2 max-h-32 w-auto rounded-lg border border-[var(--border)] bg-white object-contain"
-                />
-              )}
-            </div>
           ))}
         </div>
       </div>

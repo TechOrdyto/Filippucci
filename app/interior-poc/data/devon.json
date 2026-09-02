@@ -32,8 +32,8 @@
       "type": "sedia",
       "dimensions": {
         "width": 47,
-        "depth": 82,
-        "height": 61
+        "depth": 55,
+        "height": 82
       },
       "weightKg": 12.65,
       "volumeMc": 0.36,
@@ -62,10 +62,40 @@
       "type": "sedia con braccioli",
       "dimensions": {
         "width": 47,
-        "depth": 82,
-        "height": 61
+        "depth": 55,
+        "height": 82
       },
       "weightKg": 13.15,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1421,
+          "A": 1454,
+          "K": 1469,
+          "W": 1493,
+          "Z": 1521
+        },
+        "pelle": {
+          "P": 1606,
+          "L": 1737,
+          "S": 1813
+        },
+        "tessutoMt": {
+          "U": 1990
+        }
+      },
+      "technicalImage": "/products/devon/DSD2-technical.png"
+    },
+    {
+      "code": "DSB1",
+      "type": "sedia",
+      "dimensions": {
+        "width": 47,
+        "depth": 55,
+        "height": 83
+      },
+      "weightKg": 11.5,
       "volumeMc": 0.36,
       "colli": 1,
       "prices": {
@@ -85,36 +115,6 @@
           "U": 2053
         }
       },
-      "technicalImage": "/products/devon/DSD2-technical.png"
-    },
-    {
-      "code": "DSB1",
-      "type": "sedia",
-      "dimensions": {
-        "width": 47,
-        "depth": 83,
-        "height": 61
-      },
-      "weightKg": 11.5,
-      "volumeMc": 0.36,
-      "colli": 1,
-      "prices": {
-        "tessuto": {
-          "B": 1336,
-          "A": 1349,
-          "K": 1362,
-          "W": 1381,
-          "Z": 1429
-        },
-        "pelle": {
-          "P": 1518,
-          "L": 1559,
-          "S": 1662
-        },
-        "tessutoMt": {
-          "U": 1699
-        }
-      },
       "technicalImage": "/products/devon/DSB1-technical.png"
     },
     {
@@ -122,10 +122,40 @@
       "type": "sedia con braccioli",
       "dimensions": {
         "width": 47,
-        "depth": 83,
-        "height": 61
+        "depth": 55,
+        "height": 83
       },
       "weightKg": 11.0,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1500,
+          "A": 1535,
+          "K": 1549,
+          "W": 1582,
+          "Z": 1611
+        },
+        "pelle": {
+          "P": 1708,
+          "L": 1833,
+          "S": 1908
+        },
+        "tessutoMt": {
+          "U": 2102
+        }
+      },
+      "technicalImage": "/products/devon/DSB2-technical.png"
+    },
+    {
+      "code": "DPL1",
+      "type": "poltroncina",
+      "dimensions": {
+        "width": 64,
+        "depth": 76,
+        "height": 59
+      },
+      "weightKg": 12.5,
       "volumeMc": 0.36,
       "colli": 1,
       "prices": {
@@ -145,36 +175,6 @@
           "U": 2308
         }
       },
-      "technicalImage": "/products/devon/DSB2-technical.png"
-    },
-    {
-      "code": "DPL1",
-      "type": "poltroncina",
-      "dimensions": {
-        "width": 64,
-        "depth": 76,
-        "height": 59
-      },
-      "weightKg": 12.5,
-      "volumeMc": 0.36,
-      "colli": 1,
-      "prices": {
-        "tessuto": {
-          "B": 1628,
-          "A": 1662,
-          "K": 1688,
-          "W": 1714,
-          "Z": 1787
-        },
-        "pelle": {
-          "P": 1909,
-          "L": 1968,
-          "S": 2112
-        },
-        "tessutoMt": {
-          "U": 2169
-        }
-      },
       "technicalImage": "/products/devon/DPL1-technical.png"
     },
     {
@@ -191,18 +191,18 @@
       "prices": {
         "tessuto": {
           "B": 1323,
-          "A": 1350,
-          "K": 1368,
-          "W": 1400,
-          "Z": 1432
+          "A": 1336,
+          "K": 1349,
+          "W": 1362,
+          "Z": 1381
         },
         "pelle": {
-          "P": 1527,
-          "L": 1675,
-          "S": 1753
+          "P": 1429,
+          "L": 1518,
+          "S": 1559
         },
         "tessutoMt": {
-          "U": 1953
+          "U": 1662
         }
       },
       "technicalImage": "/products/devon/DPL2-technical.png"
