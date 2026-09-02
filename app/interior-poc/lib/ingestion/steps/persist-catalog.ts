@@ -24,18 +24,32 @@ export const persistCatalogStep = createStep(
       id: `catalog-${ctx.documentId}`,
       name: "Catalogo importato",
       version: "1.0",
-      products: deduped.map((p) => ({
-        id: p.id,
-        name: p.name,
-        designer: p.designer,
-        category: p.category,
-        subcategory: p.subcategory,
-        dimensions: p.dimensions,
-        materials: p.materials,
-        finishes: p.finishes,
-        images: p.imageRegion ? [`/products/${p.id}.png`] : [],
-        catalogRef: `pagina ${p.pageNumber}`,
-      })),
+      products: deduped.map((p) => {
+        // Costruisci l'array images con TUTTE le immagini ritagliate
+        const regionCount = p.imageRegions?.length ?? 0;
+        const images: string[] = [];
+        if (regionCount > 0) {
+          for (let i = 1; i <= regionCount; i++) {
+            images.push(
+              regionCount > 1
+                ? `/products/${p.id}-${i}.png`
+                : `/products/${p.id}.png`
+            );
+          }
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          designer: p.designer,
+          category: p.category,
+          subcategory: p.subcategory,
+          dimensions: p.dimensions,
+          materials: p.materials,
+          finishes: p.finishes,
+          images,
+          catalogRef: `pagina ${p.pageNumber}`,
+        };
+      }),
     };
 
     // Salva nello store
@@ -128,7 +142,7 @@ function completenessScore(p: CatalogInterpretation["products"][number]): number
   if (p.dimensions) score += 2;
   if (p.materials && p.materials.length > 0) score += 1;
   if (p.finishes && p.finishes.length > 0) score += 1;
-  if (p.imageRegion?.verified) score += 2;
+  if ((p.imageRegions ?? []).some((r) => r.verified)) score += 2;
   if (p.description) score += 1;
   return score;
 }

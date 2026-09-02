@@ -423,22 +423,27 @@ async function loadProductImages(products: any[]): Promise<
 
   const images: { buffer: Buffer; mime: string; name: string }[] = [];
   for (const product of products) {
-    const imagePath = product.images?.[0];
-    if (!imagePath) continue;
+    // Carica TUTTE le immagini del prodotto (non solo la prima)
+    // per dare al modello il massimo contesto visivo (viste multiple)
+    const imagePaths = product.images ?? [];
+    if (imagePaths.length === 0) continue;
 
-    // Il path è relativo a /public (es. /products/sofas/augusto.png)
-    const filePath = join(process.cwd(), "public", imagePath.replace(/^\//, ""));
-    try {
-      const buffer = readFileSync(filePath);
-      const mime = filePath.endsWith(".png") ? "image/png" : "image/jpeg";
-      images.push({
-        buffer,
-        mime,
-        name: `${product.id}.png`,
-      });
-      console.log(`📷 Immagine prodotto caricata: ${product.name}`);
-    } catch (err) {
-      console.warn(`⚠️ Immagine non trovata per ${product.name}: ${filePath}`);
+    for (let i = 0; i < imagePaths.length; i++) {
+      const imagePath = imagePaths[i];
+      // Il path è relativo a /public (es. /products/sofas/augusto.png)
+      const filePath = join(process.cwd(), "public", imagePath.replace(/^\//, ""));
+      try {
+        const buffer = readFileSync(filePath);
+        const mime = filePath.endsWith(".png") ? "image/png" : "image/jpeg";
+        images.push({
+          buffer,
+          mime,
+          name: `${product.id}-${i + 1}.png`,
+        });
+        console.log(`📷 Immagine prodotto caricata: ${product.name} (${i + 1}/${imagePaths.length})`);
+      } catch (err) {
+        console.warn(`⚠️ Immagine non trovata per ${product.name}: ${filePath}`);
+      }
     }
   }
   return images;
