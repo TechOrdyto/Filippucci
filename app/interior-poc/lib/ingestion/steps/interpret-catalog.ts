@@ -160,7 +160,7 @@ async function interpretPage(
     //    (foto grande + miniature). Es. pagina 13 di Blevio ha la foto
     //    grande a destra E una miniatura in basso a sinistra.
     if (imageBuffer) {
-      const contentRegions = await findAllContentRegions(imageBuffer);
+      const contentRegions = await findAllContentRegions(imageBuffer, page.textBlocks);
       for (const region of contentRegions) {
         // Evita duplicati: salta se la regione è già coperta da una esistente
         const isDuplicate = imageRegions.some((r) => {
