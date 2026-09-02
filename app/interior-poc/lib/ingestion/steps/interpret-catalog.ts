@@ -28,7 +28,20 @@ export const interpretCatalogStep = createStep(
     // (le pagine 13-18 di Blevio sono lo stesso articolo con più foto)
     const rawProducts: CatalogInterpretation["products"] = [];
     for (const page of ocrResults) {
-      const product = interpretPage(page);
+      // Leggi il buffer dell'immagine normalizzata per l'analisi del contenuto
+      const normalizedPage = ctx.normalizedPages?.find(
+        (p) => p.pageNumber === page.pageNumber
+      );
+      let imageBuffer: Buffer | undefined;
+      if (normalizedPage) {
+        try {
+          const { readFileSync } = await import("node:fs");
+          imageBuffer = readFileSync(normalizedPage.imagePath);
+        } catch {
+          imageBuffer = undefined;
+        }
+      }
+      const product = await interpretPage(page, imageBuffer);
       if (product) {
         rawProducts.push(product);
       }
@@ -82,7 +95,10 @@ export const interpretCatalogStep = createStep(
   (ctx) => `${ctx.documentId}:interpret-catalog`
 );
 
-function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][number] | null {
+async function interpretPage(
+  page: OcrPageResult,
+  imageBuffer?: Buffer
+): Promise<CatalogInterpretation["products"][number] | null> {
   // L'AI vision restituisce JSON strutturato nel fullText
   const content = page.fullText;
 
@@ -142,7 +158,7 @@ function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][n
     // 2. Fallback deterministico: se l'AI non ha fornito bbox validi,
     //    trova la regione immagine (senza testo) usando i bounding box OCR.
     if (imageRegions.length === 0) {
-      const crop = findProductImageRegion(page.textBlocks, page.imageSize, product?.name);
+      const crop = await findProductImageRegion(page.textBlocks, page.imageSize, product?.name, imageBuffer);
       if (crop.verified) {
         imageRegions.push({
           bbox: crop.region,

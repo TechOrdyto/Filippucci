@@ -23,11 +23,12 @@ export interface CropResult {
  * @param imageSize Dimensioni immagine in pixel
  * @param productName Nome del prodotto (per vincolare la ricerca)
  */
-export function findProductImageRegion(
+export async function findProductImageRegion(
   textBlocks: OcrTextBlock[],
   imageSize: { width: number; height: number },
-  productName?: string
-): CropResult {
+  productName?: string,
+  imageBuffer?: Buffer
+): Promise<CropResult> {
   const { width, height } = imageSize;
 
   // 1. Trova il blocco del nome prodotto (testo più grande in alto)
@@ -56,12 +57,22 @@ export function findProductImageRegion(
   }
 
   // Converti in percentuali
-  const region: CropRegion = {
+  let region: CropRegion = {
     x: 5,
     y: Math.round((finalTop / height) * 100),
     width: 90,
     height: Math.round(((finalBottom - finalTop) / height) * 100),
   };
+
+  // 5. Analisi del contenuto visivo: se l'immagine è disponibile,
+  //    restringi la regione alla zona dove c'è effettivamente la foto.
+  //    (Es. pagina con foto solo a destra: il fallback base prende tutto)
+  if (imageBuffer) {
+    const contentRegion = await findContentRegion(imageBuffer, region);
+    if (contentRegion) {
+      region = contentRegion;
+    }
+  }
 
   // Verifica: la regione deve essere almeno 30% dell'altezza
   const verified = region.height >= 30;
@@ -71,6 +82,91 @@ export function findProductImageRegion(
     verified,
     method: "deterministic",
   };
+}
+
+/**
+ * Analizza la distribuzione del contenuto visivo dell'immagine
+ * per restringere la regione alla zona dove c'è la foto.
+ * Usa la varianza dei pixel: alta varianza = foto/dettagli,
+ * bassa varianza = area chiara/uniforme (testo o sfondo).
+ */
+async function findContentRegion(
+  imageBuffer: Buffer,
+  baseRegion: CropRegion
+): Promise<CropRegion | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const { data, info } = await sharp(imageBuffer)
+      .resize(100, 62) // griglia 100x62 per l'analisi
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const gridW = 100;
+    const gridH = 62;
+
+    // Calcola la varianza per ogni cella della griglia (10x6)
+    const cellW = 10;
+    const cellH = 10;
+    const variance: number[][] = [];
+    for (let row = 0; row < 6; row++) {
+      variance[row] = [];
+      for (let col = 0; col < 10; col++) {
+        let sum = 0, sumSq = 0, count = 0;
+        for (let y = row * cellH; y < (row + 1) * cellH; y++) {
+          for (let x = col * cellW; x < (col + 1) * cellW; x++) {
+            const idx = (y * gridW + x) * 3;
+            const lum = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            sum += lum;
+            sumSq += lum * lum;
+            count++;
+          }
+        }
+        const mean = sum / count;
+        variance[row][col] = sumSq / count - mean * mean;
+      }
+    }
+
+    // Trova le colonne con contenuto (varianza alta)
+    const colContent = Array(10).fill(0);
+    for (let col = 0; col < 10; col++) {
+      for (let row = 0; row < 6; row++) {
+        if (variance[row][col] > 400) colContent[col]++;
+      }
+    }
+
+    // Trova il range di colonne con contenuto significativo
+    let firstContent = -1;
+    let lastContent = -1;
+    for (let col = 0; col < 10; col++) {
+      if (colContent[col] >= 2) {
+        if (firstContent === -1) firstContent = col;
+        lastContent = col;
+      }
+    }
+
+    // Se non c'è contenuto rilevante, mantieni la regione base
+    if (firstContent === -1 || lastContent === -1) return null;
+
+    // Converti in percentuali (con margine)
+    const x = Math.max(0, (firstContent / 10) * 100 - 2);
+    const right = Math.min(100, ((lastContent + 1) / 10) * 100 + 2);
+    const width = right - x;
+
+    // Applica solo se la regione trovata è significativamente più stretta
+    // della regione base (almeno 20% più stretta)
+    if (width < baseRegion.width * 0.8) {
+      return {
+        x: Math.round(x),
+        y: baseRegion.y,
+        width: Math.round(width),
+        height: baseRegion.height,
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function findProductNameBlock(
