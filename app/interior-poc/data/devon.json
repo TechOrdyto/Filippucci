@@ -190,19 +190,19 @@
       "colli": 1,
       "prices": {
         "tessuto": {
-          "B": 1323,
-          "A": 1336,
-          "K": 1349,
-          "W": 1362,
-          "Z": 1381
+          "B": 1628,
+          "A": 1662,
+          "K": 1688,
+          "W": 1714,
+          "Z": 1792
         },
         "pelle": {
-          "P": 1429,
-          "L": 1518,
-          "S": 1559
+          "P": 1909,
+          "L": 2085,
+          "S": 2183
         },
         "tessutoMt": {
-          "U": 1662
+          "U": 2425
         }
       },
       "technicalImage": "/products/devon/DPL2-technical.png"
@@ -220,19 +220,19 @@
       "colli": 1,
       "prices": {
         "tessuto": {
-          "B": 287,
-          "A": 301,
-          "K": 306,
-          "W": 326,
-          "Z": 339
+          "B": 1323,
+          "A": 1336,
+          "K": 1349,
+          "W": 1362,
+          "Z": 1381
         },
         "pelle": {
-          "P": 388,
-          "L": 467,
-          "S": 507
+          "P": 1429,
+          "L": 1518,
+          "S": 1559
         },
         "tessutoMt": {
-          "U": 605
+          "U": 1662
         }
       },
       "technicalImage": "/products/devon/DSG1-technical.png"
@@ -250,19 +250,19 @@
       "colli": 1,
       "prices": {
         "tessuto": {
-          "B": 353,
-          "A": 371,
-          "K": 383,
-          "W": 411,
-          "Z": 438
+          "B": 1628,
+          "A": 1649,
+          "K": 1662,
+          "W": 1688,
+          "Z": 1714
         },
         "pelle": {
-          "P": 517,
-          "L": 631,
-          "S": 691
+          "P": 1787,
+          "L": 1909,
+          "S": 1968
         },
         "tessutoMt": {
-          "U": 847
+          "U": 2169
         }
       },
       "technicalImage": "/products/devon/DSG2-technical.png"

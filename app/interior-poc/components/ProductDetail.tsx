@@ -10,7 +10,6 @@ interface DevonVariant {
   weightKg: number;
   volumeMc: number;
   colli: number;
-  priceRange?: { min: number; max: number } | null;
   prices: Record<string, Record<string, number>>;
   technicalImage?: string;
 }
@@ -30,6 +29,13 @@ interface DevonData {
 interface ProductDetailProps {
   product: Product;
 }
+
+// Etichette per le categorie di rivestimento
+const CATEGORY_LABELS: Record<string, string> = {
+  tessuto: "Tessuto",
+  pelle: "Pelle",
+  tessutoMt: "Tessuto mt",
+};
 
 /**
  * Dettaglio prodotto: mostra la base dati completa quando un prodotto
@@ -114,7 +120,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       {selected && (
         <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-[var(--text)]">
                 {selected.code} <span className="ml-1 font-normal text-[var(--text-muted)]">{selected.type}</span>
               </div>
@@ -124,22 +130,46 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 <span>Altezza: <b className="text-[var(--text)]">{selected.dimensions.height} cm</b></span>
                 <span>Peso: <b className="text-[var(--text)]">{selected.weightKg} kg</b></span>
               </div>
-              {selected.priceRange && (
-                <div className="mt-1 text-xs">
-                  Prezzo:{" "}
-                  <b className="text-[var(--accent-strong)]">
-                    €{selected.priceRange.min.toLocaleString("it-IT")}–
-                    {selected.priceRange.max.toLocaleString("it-IT")}
-                  </b>
+
+              {/* Tabella prezzi per rivestimento e colore */}
+              <div className="mt-3">
+                <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)]">
+                  Prezzi (€)
+                </h5>
+                <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="bg-[var(--surface-strong)]">
+                      <tr>
+                        <th className="px-2 py-1 font-semibold text-[var(--text-muted)]">Rivestimento</th>
+                        <th className="px-2 py-1 font-semibold text-[var(--text-muted)]">Colore</th>
+                        <th className="px-2 py-1 text-right font-semibold text-[var(--text-muted)]">Prezzo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(selected.prices).map(([category, colors]) =>
+                        Object.entries(colors).map(([color, price]) => (
+                          <tr key={`${category}-${color}`} className="border-t border-[var(--border)]">
+                            <td className="px-2 py-1 text-[var(--text-muted)]">
+                              {CATEGORY_LABELS[category] ?? category}
+                            </td>
+                            <td className="px-2 py-1 font-semibold text-[var(--text)]">{color}</td>
+                            <td className="px-2 py-1 text-right font-semibold text-[var(--accent-strong)]">
+                              €{price.toLocaleString("it-IT")}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-              )}
+              </div>
             </div>
             {selected.technicalImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={selected.technicalImage}
                 alt={`Disegno tecnico ${selected.code}`}
-                className="h-32 w-auto shrink-0 rounded-lg border border-[var(--border)] bg-white object-contain"
+                className="h-40 w-auto shrink-0 rounded-lg border border-[var(--border)] bg-white object-contain"
               />
             )}
           </div>
