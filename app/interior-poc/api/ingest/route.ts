@@ -12,8 +12,11 @@ export async function POST(request: Request) {
     if (!body.fileData) {
       return NextResponse.json({ error: "File mancante" }, { status: 400 });
     }
-    if (!body.type || !["floorplan", "catalog"].includes(body.type)) {
-      return NextResponse.json({ error: "Tipo non valido" }, { status: 400 });
+    if (body.type !== "catalog") {
+      return NextResponse.json(
+        { error: "Tipo non valido: solo 'catalog' (la piantina si importa da DXF)" },
+        { status: 400 }
+      );
     }
 
     // Decodifica base64
@@ -30,7 +33,7 @@ export async function POST(request: Request) {
     };
 
     // Esegui la saga
-    const saga = buildSaga(body.type);
+    const saga = buildSaga();
     const result = await saga.run(ctx);
 
     if (!result.success) {

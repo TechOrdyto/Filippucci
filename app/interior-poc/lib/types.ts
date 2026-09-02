@@ -24,16 +24,6 @@ export interface Product {
   price: number | null;
 }
 
-export interface FloorplanData {
-  id: string;
-  name: string;
-  unit: "cm" | "m";
-  dimensions: { width: number; height: number };
-  ceilingHeight: number;
-  walls?: Wall[];
-  rooms: FloorplanRoom[];
-}
-
 export interface Wall {
   id: string;
   start: [number, number]; // [x, y] in metri

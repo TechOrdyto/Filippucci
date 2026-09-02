@@ -1,10 +1,34 @@
 import { NextResponse } from "next/server";
 import { findProductById } from "../../lib/catalog";
-import floorplanData from "../../data/floorplan.json";
+import floorplanModel from "../../data/floorplan-model.json";
+import floorplanDxf from "../../data/floorplan-dxf.json";
 import designerRules from "../../data/designer-rules.json";
 
-const floorplan = floorplanData as any;
 const rules = designerRules as any;
+
+// Contesto "appartamento" ricavato dal DXF (dimensioni) + modello (stanze).
+// Il DXF è la sorgente unica della geometria; il modello fornisce i nomi.
+const model = floorplanModel as any;
+const dxf = floorplanDxf as any;
+
+const floorplan = {
+  id: model.id,
+  name: model.name,
+  dimensions: { width: dxf.width, height: dxf.height },
+  ceilingHeight: 2.7, // altezza soffitto non presente nel DXF (default 2.7m)
+  rooms: model.rooms.map((room: any) => {
+    const pts = room.geometry.points as [number, number][];
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = Math.max(...ys) - Math.min(...ys);
+    return {
+      id: room.id,
+      name: room.name,
+      area: Math.round(w * h * 100) / 100,
+    };
+  }),
+};
 
 // Provider di generazione immagini:
 // 1. Pollinations.ai (gratuito, senza API key) — default

@@ -1,0 +1,2348 @@
+{
+  "id": "piano-rialzato",
+  "name": "Piano Rialzato",
+  "width": 1183.9,
+  "height": 1360.4,
+  "source": "cad",
+  "rooms": [
+    {
+      "id": "room-1",
+      "name": "Stanza 1",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            268,
+            342
+          ],
+          [
+            473,
+            342
+          ],
+          [
+            473,
+            486
+          ],
+          [
+            268,
+            486
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-5",
+        "obj-35",
+        "obj-36",
+        "obj-38",
+        "obj-39",
+        "obj-40",
+        "obj-41",
+        "obj-43",
+        "obj-44",
+        "obj-45",
+        "obj-50",
+        "obj-51",
+        "obj-52",
+        "obj-60"
+      ]
+    },
+    {
+      "id": "room-2",
+      "name": "Stanza 2",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            904,
+            479
+          ],
+          [
+            1101,
+            479
+          ],
+          [
+            1101,
+            640
+          ],
+          [
+            904,
+            640
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-32",
+        "obj-42",
+        "obj-54",
+        "obj-55",
+        "obj-56",
+        "obj-57",
+        "obj-61",
+        "obj-63",
+        "obj-64",
+        "obj-66",
+        "obj-67",
+        "obj-73",
+        "obj-74",
+        "obj-78",
+        "obj-79",
+        "obj-81",
+        "obj-82",
+        "obj-83",
+        "obj-84",
+        "obj-93"
+      ]
+    },
+    {
+      "id": "room-3",
+      "name": "Stanza 3",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            268,
+            76
+          ],
+          [
+            473,
+            76
+          ],
+          [
+            473,
+            288
+          ],
+          [
+            268,
+            288
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-1",
+        "obj-2",
+        "obj-18",
+        "obj-19",
+        "obj-20",
+        "obj-22",
+        "obj-23",
+        "obj-26",
+        "obj-27",
+        "obj-28",
+        "obj-29",
+        "obj-33",
+        "obj-34"
+      ]
+    },
+    {
+      "id": "room-4",
+      "name": "Stanza 4",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            13,
+            857
+          ],
+          [
+            143,
+            857
+          ],
+          [
+            143,
+            1242
+          ],
+          [
+            13,
+            1242
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-95",
+        "obj-97",
+        "obj-98",
+        "obj-103",
+        "obj-104",
+        "obj-106",
+        "obj-107",
+        "obj-109",
+        "obj-114",
+        "obj-122",
+        "obj-126"
+      ]
+    },
+    {
+      "id": "room-5",
+      "name": "Stanza 5",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            771,
+            854
+          ],
+          [
+            1109,
+            854
+          ],
+          [
+            1109,
+            1034
+          ],
+          [
+            771,
+            1034
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-86",
+        "obj-89",
+        "obj-90",
+        "obj-92",
+        "obj-94",
+        "obj-100",
+        "obj-101",
+        "obj-110",
+        "obj-111",
+        "obj-112",
+        "obj-113"
+      ]
+    },
+    {
+      "id": "room-6",
+      "name": "Stanza 6",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            556,
+            995
+          ],
+          [
+            868,
+            995
+          ],
+          [
+            868,
+            1328
+          ],
+          [
+            556,
+            1328
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-121",
+        "obj-124",
+        "obj-125",
+        "obj-127",
+        "obj-128",
+        "obj-129",
+        "obj-132",
+        "obj-133",
+        "obj-135",
+        "obj-138",
+        "obj-139"
+      ]
+    },
+    {
+      "id": "room-7",
+      "name": "Stanza 7",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            132,
+            996
+          ],
+          [
+            492,
+            996
+          ],
+          [
+            492,
+            1326
+          ],
+          [
+            132,
+            1326
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-115",
+        "obj-116",
+        "obj-117",
+        "obj-118",
+        "obj-119",
+        "obj-120",
+        "obj-123",
+        "obj-130",
+        "obj-131",
+        "obj-134",
+        "obj-136",
+        "obj-137"
+      ]
+    },
+    {
+      "id": "room-8",
+      "name": "Stanza 8",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            136,
+            512
+          ],
+          [
+            489,
+            512
+          ],
+          [
+            489,
+            848
+          ],
+          [
+            136,
+            848
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-58",
+        "obj-59",
+        "obj-62",
+        "obj-65",
+        "obj-68",
+        "obj-69",
+        "obj-70",
+        "obj-71",
+        "obj-72",
+        "obj-75",
+        "obj-76",
+        "obj-77",
+        "obj-80",
+        "obj-85",
+        "obj-87",
+        "obj-88",
+        "obj-91",
+        "obj-96",
+        "obj-99",
+        "obj-102",
+        "obj-105",
+        "obj-108"
+      ]
+    },
+    {
+      "id": "room-9",
+      "name": "Stanza 9",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            515,
+            83
+          ],
+          [
+            1096,
+            83
+          ],
+          [
+            1096,
+            397
+          ],
+          [
+            515,
+            397
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-3",
+        "obj-4",
+        "obj-6",
+        "obj-7",
+        "obj-8",
+        "obj-9",
+        "obj-10",
+        "obj-11",
+        "obj-12",
+        "obj-13",
+        "obj-14",
+        "obj-15",
+        "obj-16",
+        "obj-17",
+        "obj-21",
+        "obj-24",
+        "obj-25",
+        "obj-30",
+        "obj-31",
+        "obj-37",
+        "obj-46",
+        "obj-47",
+        "obj-48",
+        "obj-49",
+        "obj-53"
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj-1",
+      "name": "Elemento 1",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 324,
+        "y": 48,
+        "width": 45,
+        "height": 18
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-2",
+      "name": "Elemento 2",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 376,
+        "y": 48,
+        "width": 45,
+        "height": 18
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-3",
+      "name": "Elemento 3",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 760,
+        "y": 48,
+        "width": 46,
+        "height": 24
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-4",
+      "name": "Elemento 4",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 813,
+        "y": 48,
+        "width": 45,
+        "height": 24
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-5",
+      "name": "Elemento 5",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 108,
+        "y": 52,
+        "width": 285,
+        "height": 572
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-6",
+      "name": "Elemento 6",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 428,
+        "y": 52,
+        "width": 325,
+        "height": 345
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-7",
+      "name": "Elemento 7",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 865,
+        "y": 52,
+        "width": 268,
+        "height": 166
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-8",
+      "name": "Elemento 8",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 515,
+        "y": 106,
+        "width": 23,
+        "height": 40
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-9",
+      "name": "Elemento 9",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 749,
+        "y": 120,
+        "width": 26,
+        "height": 254
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-10",
+      "name": "Elemento 10",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 613,
+        "y": 125,
+        "width": 112,
+        "height": 84
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-11",
+      "name": "Elemento 11",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 663,
+        "y": 125,
+        "width": 62,
+        "height": 10
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-12",
+      "name": "Elemento 12",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 732,
+        "y": 125,
+        "width": 10,
+        "height": 245
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-13",
+      "name": "Elemento 13",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 868,
+        "y": 142,
+        "width": 39,
+        "height": 187
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-14",
+      "name": "Elemento 14",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 867,
+        "y": 156,
+        "width": 39,
+        "height": 187
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-15",
+      "name": "Elemento 15",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 515,
+        "y": 157,
+        "width": 23,
+        "height": 33
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-16",
+      "name": "Elemento 16",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 832,
+        "y": 174,
+        "width": 12,
+        "height": 33
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-17",
+      "name": "Elemento 17",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 930,
+        "y": 174,
+        "width": 12,
+        "height": 33
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-18",
+      "name": "Elemento 18",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 346,
+        "y": 176,
+        "width": 8,
+        "height": 167
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-19",
+      "name": "Elemento 19",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 193,
+        "width": 32,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-20",
+      "name": "Elemento 20",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 317,
+        "y": 193,
+        "width": 28,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-21",
+      "name": "Elemento 21",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 515,
+        "y": 199,
+        "width": 33,
+        "height": 160
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-22",
+      "name": "Elemento 22",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 216,
+        "width": 37,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-23",
+      "name": "Elemento 23",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 312,
+        "y": 216,
+        "width": 33,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-24",
+      "name": "Elemento 24",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 663,
+        "y": 216,
+        "width": 62,
+        "height": 73
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-25",
+      "name": "Elemento 25",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1106,
+        "y": 225,
+        "width": 25,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-26",
+      "name": "Elemento 26",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 240,
+        "width": 37,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-27",
+      "name": "Elemento 27",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 312,
+        "y": 240,
+        "width": 33,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-28",
+      "name": "Elemento 28",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 263,
+        "width": 37,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-29",
+      "name": "Elemento 29",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 312,
+        "y": 263,
+        "width": 33,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-30",
+      "name": "Elemento 30",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 832,
+        "y": 277,
+        "width": 12,
+        "height": 33
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-31",
+      "name": "Elemento 31",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 930,
+        "y": 277,
+        "width": 12,
+        "height": 33
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-32",
+      "name": "Elemento 32",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1106,
+        "y": 277,
+        "width": 25,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-33",
+      "name": "Elemento 33",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 286,
+        "width": 37,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-34",
+      "name": "Elemento 34",
+      "type": "furniture",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 312,
+        "y": 286,
+        "width": 33,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-35",
+      "name": "Elemento 35",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 361,
+        "y": 295,
+        "width": 52,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-36",
+      "name": "Elemento 36",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 420,
+        "y": 295,
+        "width": 53,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-37",
+      "name": "Elemento 37",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 663,
+        "y": 296,
+        "width": 62,
+        "height": 74
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-38",
+      "name": "Elemento 38",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 309,
+        "width": 37,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-39",
+      "name": "Elemento 39",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 312,
+        "y": 309,
+        "width": 33,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-40",
+      "name": "Elemento 40",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 361,
+        "y": 318,
+        "width": 47,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-41",
+      "name": "Elemento 41",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 425,
+        "y": 318,
+        "width": 48,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-42",
+      "name": "Elemento 42",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 982,
+        "y": 329,
+        "width": 151,
+        "height": 239
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-43",
+      "name": "Elemento 43",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 330,
+        "width": 65,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-44",
+      "name": "Elemento 44",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 354,
+        "width": 34,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-45",
+      "name": "Elemento 45",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 319,
+        "y": 354,
+        "width": 31,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-46",
+      "name": "Elemento 46",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 996,
+        "y": 358,
+        "width": 31,
+        "height": 31
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-47",
+      "name": "Elemento 47",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1024,
+        "y": 358,
+        "width": 21,
+        "height": 20
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-48",
+      "name": "Elemento 48",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1052,
+        "y": 358,
+        "width": 22,
+        "height": 20
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-49",
+      "name": "Elemento 49",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1070,
+        "y": 358,
+        "width": 26,
+        "height": 31
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-50",
+      "name": "Elemento 50",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 268,
+        "y": 377,
+        "width": 39,
+        "height": 15
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-51",
+      "name": "Elemento 51",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 314,
+        "y": 377,
+        "width": 36,
+        "height": 15
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-52",
+      "name": "Elemento 52",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 476,
+        "y": 404,
+        "width": 99,
+        "height": 63
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-53",
+      "name": "Elemento 53",
+      "type": "furniture",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 681,
+        "y": 405,
+        "width": 36,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-54",
+      "name": "Elemento 54",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 996,
+        "y": 414,
+        "width": 46,
+        "height": 50
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-55",
+      "name": "Elemento 55",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1070,
+        "y": 432,
+        "width": 26,
+        "height": 32
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-56",
+      "name": "Elemento 56",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1052,
+        "y": 443,
+        "width": 22,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-57",
+      "name": "Elemento 57",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 874,
+        "y": 471,
+        "width": 259,
+        "height": 220
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-58",
+      "name": "Elemento 58",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 469,
+        "y": 474,
+        "width": 129,
+        "height": 374
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-59",
+      "name": "Elemento 59",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 400,
+        "y": 489,
+        "width": 62,
+        "height": 79
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-60",
+      "name": "Elemento 60",
+      "type": "furniture",
+      "roomId": "room-1",
+      "geometry": {
+        "type": "rectangle",
+        "x": 506,
+        "y": 529,
+        "width": 47,
+        "height": 46
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-61",
+      "name": "Elemento 61",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1112,
+        "y": 575,
+        "width": 25,
+        "height": 19
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-62",
+      "name": "Elemento 62",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 506,
+        "y": 584,
+        "width": 41,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-63",
+      "name": "Elemento 63",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 662,
+        "y": 584,
+        "width": 49,
+        "height": 71
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-64",
+      "name": "Elemento 64",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 720,
+        "y": 584,
+        "width": 24,
+        "height": 201
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-65",
+      "name": "Elemento 65",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 514,
+        "y": 592,
+        "width": 39,
+        "height": 37
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-66",
+      "name": "Elemento 66",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1112,
+        "y": 601,
+        "width": 25,
+        "height": 19
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-67",
+      "name": "Elemento 67",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 669,
+        "y": 607,
+        "width": 21,
+        "height": 22
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-68",
+      "name": "Elemento 68",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 464,
+        "y": 628,
+        "width": 23,
+        "height": 48
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-69",
+      "name": "Elemento 69",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 105,
+        "y": 631,
+        "width": 21,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-70",
+      "name": "Elemento 70",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 295,
+        "y": 636,
+        "width": 29,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-71",
+      "name": "Elemento 71",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 506,
+        "y": 636,
+        "width": 42,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-72",
+      "name": "Elemento 72",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 513,
+        "y": 645,
+        "width": 40,
+        "height": 37
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-73",
+      "name": "Elemento 73",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 662,
+        "y": 662,
+        "width": 49,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-74",
+      "name": "Elemento 74",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 913,
+        "y": 679,
+        "width": 205,
+        "height": 15
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-75",
+      "name": "Elemento 75",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 105,
+        "y": 683,
+        "width": 21,
+        "height": 46
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-76",
+      "name": "Elemento 76",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 464,
+        "y": 683,
+        "width": 23,
+        "height": 64
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-77",
+      "name": "Elemento 77",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 506,
+        "y": 691,
+        "width": 41,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-78",
+      "name": "Elemento 78",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 903,
+        "y": 695,
+        "width": 108,
+        "height": 103
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-79",
+      "name": "Elemento 79",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 877,
+        "y": 698,
+        "width": 19,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-80",
+      "name": "Elemento 80",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 514,
+        "y": 699,
+        "width": 39,
+        "height": 37
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-81",
+      "name": "Elemento 81",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1018,
+        "y": 699,
+        "width": 18,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-82",
+      "name": "Elemento 82",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1043,
+        "y": 699,
+        "width": 18,
+        "height": 44
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-83",
+      "name": "Elemento 83",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1068,
+        "y": 700,
+        "width": 18,
+        "height": 44
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-84",
+      "name": "Elemento 84",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1093,
+        "y": 700,
+        "width": 18,
+        "height": 44
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-85",
+      "name": "Elemento 85",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 295,
+        "y": 703,
+        "width": 29,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-86",
+      "name": "Elemento 86",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 662,
+        "y": 714,
+        "width": 49,
+        "height": 71
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-87",
+      "name": "Elemento 87",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 108,
+        "y": 736,
+        "width": 281,
+        "height": 142
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-88",
+      "name": "Elemento 88",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 506,
+        "y": 743,
+        "width": 41,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-89",
+      "name": "Elemento 89",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 877,
+        "y": 750,
+        "width": 19,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-90",
+      "name": "Elemento 90",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1043,
+        "y": 750,
+        "width": 18,
+        "height": 44
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-91",
+      "name": "Elemento 91",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 514,
+        "y": 751,
+        "width": 39,
+        "height": 37
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-92",
+      "name": "Elemento 92",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1068,
+        "y": 751,
+        "width": 18,
+        "height": 43
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-93",
+      "name": "Elemento 93",
+      "type": "furniture",
+      "roomId": "room-2",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1093,
+        "y": 751,
+        "width": 18,
+        "height": 43
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-94",
+      "name": "Elemento 94",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1018,
+        "y": 755,
+        "width": 18,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-95",
+      "name": "Elemento 95",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 13,
+        "y": 762,
+        "width": 41,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-96",
+      "name": "Elemento 96",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 61,
+        "y": 762,
+        "width": 40,
+        "height": 16
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-97",
+      "name": "Elemento 97",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 13,
+        "y": 785,
+        "width": 41,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-98",
+      "name": "Elemento 98",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 61,
+        "y": 785,
+        "width": 40,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-99",
+      "name": "Elemento 99",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 506,
+        "y": 798,
+        "width": 41,
+        "height": 39
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-100",
+      "name": "Elemento 100",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 900,
+        "y": 801,
+        "width": 218,
+        "height": 15
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-101",
+      "name": "Elemento 101",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 746,
+        "y": 802,
+        "width": 387,
+        "height": 103
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-102",
+      "name": "Elemento 102",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 514,
+        "y": 806,
+        "width": 39,
+        "height": 37
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-103",
+      "name": "Elemento 103",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 13,
+        "y": 809,
+        "width": 41,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-104",
+      "name": "Elemento 104",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 61,
+        "y": 809,
+        "width": 40,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-105",
+      "name": "Elemento 105",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 396,
+        "y": 812,
+        "width": 59,
+        "height": 62
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-106",
+      "name": "Elemento 106",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 13,
+        "y": 833,
+        "width": 36,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-107",
+      "name": "Elemento 107",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 66,
+        "y": 833,
+        "width": 35,
+        "height": 17
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-108",
+      "name": "Elemento 108",
+      "type": "furniture",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 465,
+        "y": 855,
+        "width": 204,
+        "height": 19
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-109",
+      "name": "Elemento 109",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 4,
+        "y": 869,
+        "width": 99,
+        "height": 382
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-110",
+      "name": "Elemento 110",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1119,
+        "y": 912,
+        "width": 18,
+        "height": 19
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-111",
+      "name": "Elemento 111",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1120,
+        "y": 938,
+        "width": 17,
+        "height": 19
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-112",
+      "name": "Elemento 112",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 875,
+        "y": 952,
+        "width": 258,
+        "height": 203
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-113",
+      "name": "Elemento 113",
+      "type": "furniture",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 747,
+        "y": 959,
+        "width": 121,
+        "height": 84
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-114",
+      "name": "Elemento 114",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 110,
+        "y": 981,
+        "width": 43,
+        "height": 134
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-115",
+      "name": "Elemento 115",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 138,
+        "y": 987,
+        "width": 186,
+        "height": 62
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-116",
+      "name": "Elemento 116",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 401,
+        "y": 987,
+        "width": 196,
+        "height": 2
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-117",
+      "name": "Elemento 117",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 166,
+        "y": 989,
+        "width": 123,
+        "height": 49
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-118",
+      "name": "Elemento 118",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 184,
+        "y": 992,
+        "width": 123,
+        "height": 49
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-119",
+      "name": "Elemento 119",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 138,
+        "y": 996,
+        "width": 21,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-120",
+      "name": "Elemento 120",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 110,
+        "y": 996,
+        "width": 780,
+        "height": 361
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-121",
+      "name": "Elemento 121",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 508,
+        "y": 996,
+        "width": 44,
+        "height": 330
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-122",
+      "name": "Elemento 122",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 107,
+        "y": 1122,
+        "width": 15,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-123",
+      "name": "Elemento 123",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 213,
+        "y": 1138,
+        "width": 134,
+        "height": 138
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-124",
+      "name": "Elemento 124",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 671,
+        "y": 1139,
+        "width": 132,
+        "height": 123
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-125",
+      "name": "Elemento 125",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 879,
+        "y": 1162,
+        "width": 14,
+        "height": 41
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-126",
+      "name": "Elemento 126",
+      "type": "furniture",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 107,
+        "y": 1174,
+        "width": 14,
+        "height": 45
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-127",
+      "name": "Elemento 127",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 879,
+        "y": 1210,
+        "width": 14,
+        "height": 41
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-128",
+      "name": "Elemento 128",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 671,
+        "y": 1245,
+        "width": 55,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-129",
+      "name": "Elemento 129",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 749,
+        "y": 1245,
+        "width": 54,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-130",
+      "name": "Elemento 130",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 213,
+        "y": 1258,
+        "width": 55,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-131",
+      "name": "Elemento 131",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 291,
+        "y": 1259,
+        "width": 55,
+        "height": 21
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-132",
+      "name": "Elemento 132",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 679,
+        "y": 1272,
+        "width": 51,
+        "height": 28
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-133",
+      "name": "Elemento 133",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 745,
+        "y": 1272,
+        "width": 50,
+        "height": 28
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-134",
+      "name": "Elemento 134",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 154,
+        "y": 1281,
+        "width": 33,
+        "height": 32
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-135",
+      "name": "Elemento 135",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 621,
+        "y": 1281,
+        "width": 33,
+        "height": 32
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-136",
+      "name": "Elemento 136",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 221,
+        "y": 1286,
+        "width": 51,
+        "height": 28
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-137",
+      "name": "Elemento 137",
+      "type": "furniture",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 286,
+        "y": 1286,
+        "width": 51,
+        "height": 28
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-138",
+      "name": "Elemento 138",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 662,
+        "y": 1320,
+        "width": 69,
+        "height": 7
+      },
+      "actions": []
+    },
+    {
+      "id": "obj-139",
+      "name": "Elemento 139",
+      "type": "furniture",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 749,
+        "y": 1320,
+        "width": 64,
+        "height": 7
+      },
+      "actions": []
+    }
+  ]
+}

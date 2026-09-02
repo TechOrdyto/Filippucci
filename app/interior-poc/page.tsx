@@ -1,22 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MentionInput from "./components/MentionInput";
-import FloorplanViewer from "./components/FloorplanViewer";
 import DesignSummary from "./components/DesignSummary";
 import RenderResult, { type RenderVariant } from "./components/RenderResult";
 import ReferenceImagePicker from "./components/ReferenceImagePicker";
 import ThemeToggle from "./components/ThemeToggle";
+import RoomsSidebar from "./components/RoomsSidebar";
+import FloorplanViewer from "./components/FloorplanViewer";
+import Inspector from "./components/Inspector";
 import { catalog, findProductById, parseMentions } from "./lib/catalog";
-import type { DesignProposal, DesignState, ProductMention } from "./lib/types";
+import type {
+  DesignProposal,
+  DesignState,
+  FloorplanRoom,
+  ProductMention,
+} from "./lib/types";
 import type { CameraPosition, Viewpoint } from "./lib/camera/types";
-import { findRoomAtPoint, clampToRoom, distanceToWalls } from "./lib/camera/geometry";
 import { generateViewpoints, DEFAULT_CAMERA_CONFIG } from "./lib/camera/viewpoints";
 import { buildCameraPrompt } from "./lib/camera/prompt-builder";
-import floorplanData from "./data/floorplan.json";
+import { CadFloorPlanSource } from "./floorplan/source";
+import { useFloorPlan } from "./floorplan/use-floor-plan";
+import { getObject } from "./floorplan/model";
+import { boundsFromPolygon, polygonCenter } from "./floorplan/geometry";
+import type { Selection } from "./floorplan/types";
+import floorplanDxfData from "./data/floorplan-dxf.json";
 import designerRules from "./data/designer-rules.json";
 
-const floorplan = floorplanData as any;
 const rules = designerRules as any;
 const CAMERA_DIRECTIONS = [
   "Nord",
@@ -71,53 +81,96 @@ export default function InteriorPocPage() {
   const [camera, setCamera] = useState<CameraPosition | null>(null);
   const [viewpoints, setViewpoints] = useState<Viewpoint[]>([]);
 
+  // Pannelli responsive (mobile/tablet)
+  const [showRooms, setShowRooms] = useState(false);
+  const [showInspector, setShowInspector] = useState(false);
+
+  // Click esterno all'intera sezione planimetria (viewer + sidebar + inspector)
+  // → deseleziona. L'Inspector è DENTRO il perimetro, quindi i suoi click
+  // (es. "Aggiungi azione") non azzerano la selezione.
+  const moduleRef = useRef<HTMLDivElement>(null);
+  const handleSelectRef = useRef<(s: Selection | null) => void>(() => {});
+  useEffect(() => {
+    const handler = (e: PointerEvent) => {
+      const el = moduleRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) handleSelectRef.current(null);
+    };
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, []);
+
+  // Nuovo modulo planimetria
+  const {
+    model,
+    selection,
+    mode,
+    activeRoomId,
+    selectRoom,
+    selectObject,
+    clearSelection,
+    switchMode,
+    handleAddAction,
+    handleRemoveAction,
+    renameRoom,
+  } = useFloorPlan();
+
+  const geometry = useMemo(
+    () => new CadFloorPlanSource(floorplanDxfData as any).getGeometry(),
+    []
+  );
+
   const explicitProducts = useMemo(
     () => mentions.map((m) => findProductById(m.productId)).filter(Boolean),
     [mentions]
   );
 
-  const handleRoomClick = (roomId: string, x: number, y: number) => {
-    const room = floorplan.rooms.find((r: any) => r.id === roomId);
-    if (!room) return;
+  const toCameraRoom = (room: any): FloorplanRoom => {
+    const bounds = boundsFromPolygon(room.geometry.points);
+    return {
+      id: room.id,
+      name: room.name,
+      area: Math.round(bounds.width * bounds.height * 100) / 100,
+      bounds,
+      polygon: room.geometry.points,
+      openings: [],
+    };
+  };
 
+  const focusRoom = (roomId: string) => {
     setSelectedRoomId(roomId);
-
-    // Clamp alla distanza minima dai muri
-    const point = clampToRoom({ x, y }, room);
-    const dist = distanceToWalls(point, room, floorplan.walls ?? []);
-    const minDist = DEFAULT_CAMERA_CONFIG.minDistanceFromWall;
-
-    const finalPos =
-      dist < minDist
-        ? {
-            x: point.x + (point.x < room.bounds.x + room.bounds.width / 2 ? minDist : -minDist),
-            y: point.y + (point.y < room.bounds.y + room.bounds.height / 2 ? minDist : -minDist),
-          }
-        : point;
-
+    const room = model.rooms.find((r) => r.id === roomId);
+    if (!room) return;
+    const center = polygonCenter(room.geometry.points);
     setCamera({
-      x: Math.round(finalPos.x * 100) / 100,
-      y: Math.round(finalPos.y * 100) / 100,
+      x: Math.round(center.x * 100) / 100,
+      y: Math.round(center.y * 100) / 100,
       rotation: 0,
       fov: DEFAULT_CAMERA_CONFIG.defaultFov,
       roomId,
     });
-
-    // Genera viewpoint per la stanza
-    setViewpoints(generateViewpoints(room, floorplan.walls ?? []));
+    setViewpoints(generateViewpoints(toCameraRoom(room), []));
   };
 
-  const handleCameraChange = (newCamera: CameraPosition) => {
-    const room = floorplan.rooms.find((r: any) => r.id === newCamera.roomId);
-    if (!room) return;
+  const handleSelect = (sel: Selection | null) => {
+    if (!sel) {
+      clearSelection();
+      return;
+    }
+    if (sel.type === "room") {
+      selectRoom(sel.id);
+      focusRoom(sel.id);
+    } else {
+      selectObject(sel.id);
+      const obj = getObject(model, sel.id);
+      if (obj) focusRoom(obj.roomId);
+    }
+  };
+  handleSelectRef.current = handleSelect;
 
-    // Clamp dentro la stanza
-    const clamped = clampToRoom({ x: newCamera.x, y: newCamera.y }, room);
-    setCamera({
-      ...newCamera,
-      x: Math.round(clamped.x * 100) / 100,
-      y: Math.round(clamped.y * 100) / 100,
-    });
+  const handleSelectRoom = (roomId: string) => {
+    selectRoom(roomId);
+    focusRoom(roomId);
   };
 
   const handleSelectViewpoint = (vp: Viewpoint) => {
@@ -130,6 +183,12 @@ export default function InteriorPocPage() {
     });
   };
 
+  const handleGenerateViewpoints = () => {
+    if (!selectedRoomId) return;
+    const room = model.rooms.find((r) => r.id === selectedRoomId);
+    if (room) setViewpoints(generateViewpoints(toCameraRoom(room), []));
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
@@ -137,7 +196,6 @@ export default function InteriorPocPage() {
     setError(null);
 
     try {
-      // 1. Build proposal from mentions + prompt
       const proposal: DesignProposal = {
         ...createInitialProposal(),
         explicitProducts: explicitProducts as any[],
@@ -145,8 +203,7 @@ export default function InteriorPocPage() {
         narrative: prompt,
       };
 
-      // 3. Costruisci il prompt con il contesto camera
-      const selectedRoom = floorplan.rooms.find((r: any) => r.id === selectedRoomId);
+      const selectedRoom = model.rooms.find((r) => r.id === selectedRoomId);
       const finalPrompt =
         camera && selectedRoom
           ? buildCameraPrompt(
@@ -166,7 +223,6 @@ export default function InteriorPocPage() {
             )
           : prompt;
 
-      // 4. Update state
       const newState: DesignState = {
         sessionId: crypto.randomUUID(),
         current: proposal,
@@ -182,14 +238,13 @@ export default function InteriorPocPage() {
       };
       setState(newState);
 
-      // 5. Call generation API
       const res = await fetch("/interior-poc/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: finalPrompt,
           productIds: explicitProducts.map((p) => (p as any).id),
-          floorplanId: floorplan.id,
+          floorplanId: model.id,
           roomId: selectedRoomId,
           camera: camera
             ? {
@@ -237,7 +292,7 @@ export default function InteriorPocPage() {
   };
 
   const selectedRoomName = selectedRoomId
-    ? floorplan.rooms.find((room: any) => room.id === selectedRoomId)?.name
+    ? model.rooms.find((room: any) => room.id === selectedRoomId)?.name
     : null;
   const currentStep = imageUrl ? 4 : prompt.trim() ? 3 : camera ? 2 : 1;
   const catalogCategories = [
@@ -428,16 +483,81 @@ export default function InteriorPocPage() {
             </section>
             </div>
 
+            {/* MODULO PLANIMETRIA — tre aree (DXF-first) */}
             <div className="order-1">
-            <FloorplanViewer
-              floorplan={floorplan}
-              camera={camera}
-              selectedRoomId={selectedRoomId}
-              viewpoints={viewpoints}
-              onRoomClick={handleRoomClick}
-              onCameraChange={handleCameraChange}
-              onSelectViewpoint={handleSelectViewpoint}
-            />
+              <section className="panel rounded-2xl p-5 sm:p-6">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="eyebrow mb-2">01 · Piantina</p>
+                    <h3 className="display-title text-2xl text-[var(--text)]">Scegli una stanza.</h3>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      Clicca sulla stanza che vuoi vedere nell’immagine.
+                    </p>
+                  </div>
+                </div>
+
+                <div ref={moduleRef} className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)_300px] lg:gap-4">
+                  {/* Toggle pannelli (mobile/tablet) */}
+                  <div className="mb-3 flex gap-2 lg:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setShowRooms((v) => !v)}
+                      className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                        showRooms
+                          ? "border-blue-300 bg-blue-50 text-blue-700"
+                          : "border-gray-200 bg-white text-gray-600"
+                      }`}
+                    >
+                      🏠 Stanze
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowInspector((v) => !v)}
+                      className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                        showInspector
+                          ? "border-blue-300 bg-blue-50 text-blue-700"
+                          : "border-gray-200 bg-white text-gray-600"
+                      }`}
+                    >
+                      🔍 Inspector
+                    </button>
+                  </div>
+
+                  {/* Stanze */}
+                  <div className={`mb-4 lg:mb-0 ${showRooms ? "block" : "hidden"} lg:block`}>
+                    <RoomsSidebar
+                      model={model}
+                      selection={selection}
+                      onSelectRoom={handleSelectRoom}
+                    />
+                  </div>
+
+                  {/* Planimetria */}
+                  <div className="mb-4 lg:mb-0">
+                    <FloorplanViewer
+                      geometry={geometry}
+                      model={model}
+                      selection={selection}
+                      mode={mode}
+                      activeRoomId={activeRoomId}
+                      onSelect={handleSelect}
+                      onSwitchMode={switchMode}
+                      onDeselectRoom={clearSelection}
+                    />
+                  </div>
+
+                  {/* Inspector */}
+                  <div className={`${showInspector ? "block" : "hidden"} lg:block`}>
+                    <Inspector
+                      model={model}
+                      selection={selection}
+                      onAddAction={handleAddAction}
+                      onRemoveAction={handleRemoveAction}
+                      onRenameRoom={renameRoom}
+                    />
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
 
@@ -453,6 +573,13 @@ export default function InteriorPocPage() {
                       {selectedRoomName ?? "Ambiente selezionato"}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateViewpoints}
+                    className="ghost-action rounded-full px-3 py-2 text-xs font-semibold"
+                  >
+                    🔄 Genera visuali
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

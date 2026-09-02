@@ -1,9 +1,8 @@
-// Interpretazione AI del contenuto estratto (cataloghi e piantine)
+// Interpretazione AI del contenuto estratto (cataloghi)
 // Usa il client AI unificato (opencode con fallback OpenAI)
 
 import {
   chatCompletion,
-  chatCompletionWithImage,
   extractJson,
   type AiClientOptions,
 } from "../ai-client";
@@ -63,108 +62,6 @@ Regole:
 
   return {
     data: parsed.products ?? [],
-    raw: response.content,
-    confidence: 0.9,
-    warnings: [],
-    provider: response.provider,
-  };
-}
-
-/**
- * Interpreta testo OCR di una piantina in dati strutturati
- */
-export async function interpretFloorplanText(
-  extractedText: string,
-  options: AiClientOptions = {}
-): Promise<AiInterpretationResult<any>> {
-  const systemPrompt = `Sei un architetto esperto. Interpreta il testo OCR di una piantina architettonica.
-Estrai i dati strutturati in JSON:
-{
-  "id": "slug-univoco",
-  "name": "nome piano (es. Piano Rialzato)",
-  "unit": "m",
-  "dimensions": { "width": metri, "height": metri },
-  "ceilingHeight": metri,
-  "rooms": [
-    {
-      "id": "slug-stanza",
-      "name": "nome stanza",
-      "area": mq,
-      "bounds": { "x": 0, "y": 0, "width": metri, "height": metri },
-      "openings": [
-        {
-          "id": "slug-apertura",
-          "type": "window | french-door | door",
-          "position": { "x": metri, "y": metri },
-          "width": metri,
-          "height": metri,
-          "wall": "north | south | east | west",
-          "exposure": "north | south | east | west"
-        }
-      ]
-    }
-  ]
-}
-Regole:
-- Usa le misure reali presenti nel testo OCR (es. "3.62", "2.61", "mq. 47.09")
-- Se una misura manca, stimala in modo plausibile
-- Le coordinate bounds devono essere coerenti con le dimensioni totali
-- Esposizione: deduci da posizione e contesto
-- Rispondi SOLO con JSON valido, nessun altro testo`;
-
-  const response = await chatCompletion(
-    [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: extractedText },
-    ],
-    options
-  );
-
-  const parsed = extractJson<any>(response.content);
-
-  return {
-    data: parsed,
-    raw: response.content,
-    confidence: 0.9,
-    warnings: [],
-    provider: response.provider,
-  };
-}
-
-/**
- * Interpreta immagine di una piantina (vision)
- */
-export async function interpretFloorplanImage(
-  imageDataUrl: string,
-  options: AiClientOptions = {}
-): Promise<AiInterpretationResult<any>> {
-  const systemPrompt = `Sei un architetto esperto. Analizza l'immagine della piantina architettonica.
-Estrai i dati strutturati in JSON:
-{
-  "id": "slug-univoco",
-  "name": "nome piano",
-  "unit": "m",
-  "dimensions": { "width": metri, "height": metri },
-  "ceilingHeight": metri,
-  "rooms": [
-    {
-      "id": "slug-stanza",
-      "name": "nome stanza",
-      "area": mq,
-      "bounds": { "x": 0, "y": 0, "width": metri, "height": metri },
-      "openings": []
-    }
-  ]
-}
-Leggi le misure scritte sulla piantina (es. "3.62", "mq. 47.09").
-Rispondi SOLO con JSON valido, nessun altro testo.`;
-
-  const response = await chatCompletionWithImage(systemPrompt, imageDataUrl, options);
-
-  const parsed = extractJson<any>(response.content);
-
-  return {
-    data: parsed,
     raw: response.content,
     confidence: 0.9,
     warnings: [],
