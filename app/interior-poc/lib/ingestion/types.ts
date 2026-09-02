@@ -72,10 +72,12 @@ export interface InterpretedProduct {
   materials?: string[];
   finishes?: string[];
   pageNumber: number;
-  imageRegion?: {
+  // Una o più regioni immagine (una per foto del prodotto, da più pagine)
+  imageRegions?: Array<{
     bbox: { x: number; y: number; width: number; height: number };
     verified: boolean;
-  };
+    pageNumber: number;
+  }>;
 }
 
 // ─── Validazione ────────────────────────────────────────────────

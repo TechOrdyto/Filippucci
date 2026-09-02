@@ -24,12 +24,47 @@ export const interpretCatalogStep = createStep(
     const products: CatalogInterpretation["products"] = [];
     const warnings: string[] = [];
 
+    // Raccogli i prodotti da tutte le pagine, poi raggruppa per nome
+    // (le pagine 13-18 di Blevio sono lo stesso articolo con più foto)
+    const rawProducts: CatalogInterpretation["products"] = [];
     for (const page of ocrResults) {
       const product = interpretPage(page);
       if (product) {
-        products.push(product);
+        rawProducts.push(product);
       }
     }
+
+    // Raggruppa per nome (case-insensitive, con similarità):
+    // unisci le imageRegions. "BLENIO" e "BLEVIO" sono lo stesso articolo
+    // (PaddleOCR può leggere male una lettera), quindi usa la distanza di
+    // Levenshtein per raggruppare nomi simili.
+    const byName = new Map<string, CatalogInterpretation["products"][number]>();
+    for (const product of rawProducts) {
+      const key = product.name.toLowerCase();
+      // Cerca un gruppo esistente con nome simile
+      let existing: CatalogInterpretation["products"][number] | undefined;
+      for (const [k, v] of byName) {
+        if (levenshtein(k, key) <= Math.max(1, key.length * 0.2)) {
+          existing = v;
+          break;
+        }
+      }
+      if (!existing) {
+        byName.set(key, product);
+      } else {
+        // Unisci: mantieni i dati più completi e accumula le imageRegions
+        existing.imageRegions = [
+          ...(existing.imageRegions ?? []),
+          ...(product.imageRegions ?? []),
+        ];
+        if (!existing.designer && product.designer) existing.designer = product.designer;
+        if (!existing.dimensions && product.dimensions) existing.dimensions = product.dimensions;
+        if ((!existing.materials || existing.materials.length === 0) && product.materials?.length) {
+          existing.materials = product.materials;
+        }
+      }
+    }
+    products.push(...byName.values());
 
     if (products.length === 0) {
       warnings.push("Nessun prodotto riconosciuto nelle pagine");
@@ -53,24 +88,45 @@ function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][n
 
   // Estrai il JSON dalla risposta
   const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
+  let product: any = null;
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      product = parsed.product;
+    } catch {
+      product = null;
+    }
+  }
 
-  try {
-    const parsed = JSON.parse(jsonMatch[0]);
-    const product = parsed.product;
-    if (!product || !product.name) return null;
+  // PaddleOCR è la fonte PRIMARIA per nome e designer:
+  // legge "BLEVIO" e "IGNAZIO GARDELLA" in tutte le pagine con alta confidenza,
+  // mentre l'AI vision spesso restituisce null o nomi errati nelle pagine di varianti.
+  const ocrTexts = page.textBlocks.map((t) => t.text.trim()).filter(Boolean);
+  const ocrName = findProductNameFromOcr(ocrTexts);
+  const ocrDesigner = findDesignerFromOcr(ocrTexts, ocrName);
 
-    // Cross-check con PaddleOCR: i textBlocks reali sono più affidabili
-    // dell'AI vision per nomi e designer (es. "BLEVIO" vs "Blenko").
-    // Il nome prodotto e il designer sono spesso i blocchi più grandi in alto.
-    const ocrTexts = page.textBlocks.map((t) => t.text.trim()).filter(Boolean);
-    const correctedName = correctNameWithOcr(product.name, ocrTexts);
-    const correctedDesigner = correctDesignerWithOcr(product.designer, ocrTexts, correctedName);
+  // Se PaddleOCR non trova un nome, usa quello dell'AI vision (se presente)
+  const aiName = product?.name;
+  const aiDesigner = product?.designer;
+  const name = ocrName ?? aiName;
+  if (!name) return null;
 
-    // Usa il bbox immagine fornito dall'AI vision (se presente)
-    const bbox = product.image_bbox;
-    let imageRegion = bbox && bbox.x !== undefined && bbox.y !== undefined
-      ? {
+  const correctedName = name;
+  const correctedDesigner = ocrDesigner ?? aiDesigner;
+
+    // Raccogli TUTTE le regioni immagine della pagina.
+    // L'AI vision può fornire più image_bbox (una per foto del prodotto).
+    const imageRegions: NonNullable<CatalogInterpretation["products"][number]["imageRegions"]> = [];
+
+    // 1. Regioni fornite dall'AI vision (può essere un singolo bbox o un array)
+    const aiBboxes = Array.isArray(product?.image_bbox)
+      ? product.image_bbox
+      : product?.image_bbox
+        ? [product.image_bbox]
+        : [];
+    for (const bbox of aiBboxes) {
+      if (bbox && bbox.x !== undefined && bbox.y !== undefined) {
+        imageRegions.push({
           bbox: {
             x: bbox.x,
             y: bbox.y,
@@ -78,38 +134,37 @@ function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][n
             height: bbox.height ?? 50,
           },
           verified: true,
-        }
-      : undefined;
+          pageNumber: page.pageNumber,
+        });
+      }
+    }
 
-    // Fallback deterministico: se l'AI non ha fornito un bbox valido,
-    // trova la regione immagine (senza testo) usando i bounding box OCR.
-    // Questo garantisce che l'immagine prodotto venga comunque ritagliata.
-    if (!imageRegion) {
-      const crop = findProductImageRegion(page.textBlocks, page.imageSize, product.name);
+    // 2. Fallback deterministico: se l'AI non ha fornito bbox validi,
+    //    trova la regione immagine (senza testo) usando i bounding box OCR.
+    if (imageRegions.length === 0) {
+      const crop = findProductImageRegion(page.textBlocks, page.imageSize, product?.name);
       if (crop.verified) {
-        imageRegion = {
+        imageRegions.push({
           bbox: crop.region,
           verified: true,
-        };
+          pageNumber: page.pageNumber,
+        });
       }
     }
 
     return {
-      id: `MOL-${(product.category ?? "PROD").slice(0, 3).toUpperCase()}-${page.pageNumber}`,
+      id: `MOL-${(product?.category ?? "PROD").slice(0, 3).toUpperCase()}-${page.pageNumber}`,
       name: correctedName,
       designer: correctedDesigner,
-      category: product.category,
-      subcategory: product.category,
-      description: product.description,
-      dimensions: product.dimensions,
-      materials: product.materials,
-      finishes: product.finishes,
+      category: product?.category,
+      subcategory: product?.category,
+      description: product?.description,
+      dimensions: product?.dimensions,
+      materials: product?.materials,
+      finishes: product?.finishes,
       pageNumber: page.pageNumber,
-      imageRegion,
+      imageRegions,
     };
-  } catch {
-    return null;
-  }
 }
 
 function extractDimensions(text: string): { width: number; depth: number; height: number } {
@@ -122,87 +177,6 @@ function extractDimensions(text: string): { width: number; depth: number; height
   };
 }
 
-
-/**
- * Corregge il nome prodotto usando i textBlocks PaddleOCR.
- * L'AI vision può leggere male il nome (es. "Blenko" invece di "BLEVIO").
- * Cerca il blocco di testo in maiuscolo che meglio corrisponde al nome AI.
- */
-function correctNameWithOcr(aiName: string, ocrTexts: string[]): string {
-  if (!aiName) return aiName;
-  const aiLower = aiName.toLowerCase();
-
-  // 1. Cerca un blocco che contiene il nome AI (case-insensitive)
-  const exact = ocrTexts.find((t) => t.toLowerCase() === aiLower);
-  if (exact) return exact;
-
-  // 2. Cerca un blocco in MAIUSCOLO che è un prefisso del nome AI
-  //    (es. AI="Blenko", OCR="BLEVIO" — cerca la parola più simile)
-  const upperBlocks = ocrTexts.filter((t) => t === t.toUpperCase() && t.length >= 3);
-  if (upperBlocks.length > 0) {
-    // Prendi il blocco maiuscolo più simile al nome AI (distanza di Levenshtein)
-    let best = upperBlocks[0];
-    let bestDist = Infinity;
-    for (const block of upperBlocks) {
-      const dist = levenshtein(block.toLowerCase(), aiLower);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = block;
-      }
-    }
-    // Accetta solo se la distanza è ragionevole (nome simile)
-    if (bestDist <= Math.max(2, aiName.length * 0.4)) {
-      return best;
-    }
-  }
-
-  return aiName;
-}
-
-/**
- * Corregge il designer usando i textBlocks PaddleOCR.
- * Il designer è tipicamente il blocco in MAIUSCOLO subito dopo il nome prodotto
- * (es. "BLEVIO" → "IGNAZIO GARDELLA"). L'AI vision spesso lo legge male.
- */
-function correctDesignerWithOcr(
-  aiDesigner: string,
-  ocrTexts: string[],
-  productName?: string
-): string {
-  if (!aiDesigner) return aiDesigner;
-  const aiLower = aiDesigner.toLowerCase();
-
-  // 1. Cerca un blocco che contiene il cognome del designer (ultima parola AI)
-  const words = aiDesigner.split(/\s+/);
-  const lastName = words[words.length - 1]?.toLowerCase();
-  if (lastName) {
-    const match = ocrTexts.find((t) => t.toLowerCase().includes(lastName));
-    if (match) return match;
-  }
-
-  // 2. Il designer è il blocco in MAIUSCOLO subito dopo il nome prodotto
-  //    (es. dopo "BLEVIO" viene "IGNAZIO GARDELLA")
-  if (productName) {
-    const nameIdx = ocrTexts.findIndex(
-      (t) => t.toLowerCase() === productName.toLowerCase()
-    );
-    if (nameIdx >= 0) {
-      // Cerca il prossimo blocco in maiuscolo dopo il nome
-      for (let i = nameIdx + 1; i < ocrTexts.length; i++) {
-        const t = ocrTexts[i];
-        if (t === t.toUpperCase() && t.length >= 3 && !t.includes(" ")) {
-          return t;
-        }
-        // Il designer può avere spazi (es. "IGNAZIO GARDELLA")
-        if (t === t.toUpperCase() && t.length >= 3) {
-          return t;
-        }
-      }
-    }
-  }
-
-  return aiDesigner;
-}
 
 /**
  * Distanza di Levenshtein (per confrontare nomi simili)
@@ -223,4 +197,52 @@ function levenshtein(a: string, b: string): number {
     }
   }
   return dp[m][n];
+}
+
+
+/**
+ * Trova il nome prodotto dai textBlocks PaddleOCR.
+ * Il nome è tipicamente il primo blocco in MAIUSCOLO (es. "BLEVIO").
+ */
+function findProductNameFromOcr(ocrTexts: string[]): string | null {
+  // Cerca il primo blocco in maiuscolo con 3+ caratteri, senza spazi
+  // (i nomi prodotto Molteni sono singole parole in maiuscolo)
+  for (const t of ocrTexts) {
+    const clean = t.trim();
+    if (
+      clean === clean.toUpperCase() &&
+      clean.length >= 3 &&
+      !clean.includes(" ") &&
+      !/^[0-9]+$/.test(clean) &&
+      !/^[A-Z]\s*[<>]+$/.test(clean) // esclude "A E <>" (rumore)
+    ) {
+      return clean;
+    }
+  }
+  return null;
+}
+
+/**
+ * Trova il designer dai textBlocks PaddleOCR.
+ * Il designer è il blocco in MAIUSCOLO subito dopo il nome prodotto
+ * (es. dopo "BLEVIO" viene "IGNAZIO GARDELLA").
+ */
+function findDesignerFromOcr(ocrTexts: string[], productName: string | null): string | null {
+  if (!productName) return null;
+  const nameIdx = ocrTexts.findIndex((t) => t.trim() === productName);
+  if (nameIdx < 0) return null;
+
+  // Cerca il prossimo blocco in maiuscolo dopo il nome
+  for (let i = nameIdx + 1; i < ocrTexts.length; i++) {
+    const t = ocrTexts[i].trim();
+    if (
+      t === t.toUpperCase() &&
+      t.length >= 3 &&
+      !/^[0-9]+$/.test(t) &&
+      !/^[A-Z]\s*[<>]+$/.test(t)
+    ) {
+      return t;
+    }
+  }
+  return null;
 }
