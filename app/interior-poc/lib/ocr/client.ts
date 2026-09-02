@@ -11,13 +11,80 @@ export interface OcrOptions {
 }
 
 /**
- * Esegue OCR su un'immagine usando AI vision (gpt-4o-mini)
+ * Esegue OCR su un'immagine usando una strategia ibrida:
+ * 1. PaddleOCR (locale) estrae il TESTO preciso con bounding box reali
+ *    (nomi, designer, dimensioni) — molto più accurato dell'AI vision
+ * 2. AI vision (OpenAI) interpreta la pagina e restituisce il JSON strutturato
+ *    (categoria, materiali, descrizione, regioni immagine)
+ *
+ * Il risultato combina: textBlocks reali (per il crop) + fullText JSON (per l'interpretazione)
  */
 export async function ocrImage(
   imageBuffer: Buffer,
   options: OcrOptions = {}
 ): Promise<OcrPageResult> {
-  return ocrWithAiVision(imageBuffer, options);
+  // 1. PaddleOCR per il testo preciso (se disponibile)
+  const paddleResult = await ocrWithPaddle(imageBuffer, options).catch((err) => {
+    console.warn("⚠️ PaddleOCR non disponibile, uso solo AI vision:", err.message);
+    return null;
+  });
+
+  // 2. AI vision per l'interpretazione strutturata
+  const aiResult = await ocrWithAiVision(imageBuffer, options);
+
+  // Combina: usa i textBlocks reali di PaddleOCR (per il crop preciso)
+  // e il fullText JSON dell'AI vision (per l'interpretazione)
+  if (paddleResult) {
+    return {
+      pageNumber: aiResult.pageNumber,
+      textBlocks: paddleResult.textBlocks,
+      imageSize: paddleResult.imageSize,
+      fullText: aiResult.fullText,
+    };
+  }
+
+  return aiResult;
+}
+
+/**
+ * OCR con PaddleOCR (servizio locale su localhost:8001)
+ * Estrae testo preciso con bounding box reali
+ */
+async function ocrWithPaddle(
+  imageBuffer: Buffer,
+  options: OcrOptions
+): Promise<OcrPageResult> {
+  const base64 = imageBuffer.toString("base64");
+
+  const res = await fetch("http://localhost:8001/ocr", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_base64: base64,
+      lang: options.lang ?? "it",
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`PaddleOCR error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const textBlocks: OcrTextBlock[] = (data.text_blocks ?? []).map(
+    (b: any) => ({
+      text: b.text,
+      confidence: b.confidence,
+      bbox: b.bbox,
+      center: b.center,
+    })
+  );
+
+  return {
+    pageNumber: 1,
+    textBlocks,
+    imageSize: data.image_size ?? { width: 0, height: 0 },
+    fullText: textBlocks.map((t) => t.text).join("\n"),
+  };
 }
 
 /**
@@ -217,8 +284,19 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
 
 /**
  * Verifica che il servizio OCR sia disponibile
- * (per compatibilità con la saga — sempre true con AI vision)
+ * Controlla PaddleOCR (locale) e, in alternativa, la presenza di OPENAI_API_KEY
  */
 export async function checkOcrServer(): Promise<boolean> {
-  return true;
+  // PaddleOCR locale
+  try {
+    const res = await fetch("http://localhost:8001/health", {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) return true;
+  } catch {
+    // PaddleOCR non attivo
+  }
+
+  // Fallback: AI vision (OpenAI)
+  return Boolean(process.env.OPENAI_API_KEY);
 }
