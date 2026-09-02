@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { canAccess } from "@/lib/auth/roles";
 import { extractTextFromPdf } from "../../lib/extraction/pdf";
 import { extractCatalogProducts } from "../../lib/extraction/catalog-extractor";
 import { interpretCatalogText } from "../../lib/extraction/ai-interpreter";
@@ -15,6 +17,15 @@ interface ExtractRequest {
 
 export async function POST(request: Request) {
   try {
+    // Guard: autenticazione + ruolo
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
+    }
+    if (!canAccess(session.user.role, "extract")) {
+      return NextResponse.json({ error: "Permessi insufficienti" }, { status: 403 });
+    }
+
     const body: ExtractRequest = await request.json();
 
     if (!body.fileData) {

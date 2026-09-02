@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { canAccess } from "@/lib/auth/roles";
 import { buildSaga } from "../../lib/ingestion/builder";
 import type { IngestRequest, SagaContext } from "../../lib/ingestion/types";
 
@@ -7,6 +9,15 @@ export const maxDuration = 300; // 5 minuti per OCR
 
 export async function POST(request: Request) {
   try {
+    // Guard: autenticazione + ruolo
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
+    }
+    if (!canAccess(session.user.role, "ingest")) {
+      return NextResponse.json({ error: "Permessi insufficienti" }, { status: 403 });
+    }
+
     const body: IngestRequest = await request.json();
 
     if (!body.fileData) {
