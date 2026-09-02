@@ -215,6 +215,7 @@ async function interpretPage(
       dimensions: product?.dimensions,
       materials: product?.materials,
       finishes: product?.finishes,
+      collection: product?.collection,
       pageNumber: page.pageNumber,
       imageRegions,
     };

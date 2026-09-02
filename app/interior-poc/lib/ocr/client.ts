@@ -111,11 +111,12 @@ Analizza QUESTA pagina di catalogo ed estrai i dati del prodotto in formato JSON
   "product": {
     "name": "nome prodotto (es. Emile, Augusto, Cleo)",
     "designer": "designer (es. Vincent Van Duysen)",
-    "category": "categoria (es. Seating System, Sofa, Armchair, Table)",
-    "description": "descrizione breve in italiano",
-    "materials": ["materiali in italiano (es. tessuto, pelle, legno, acciaio)"],
-    "finishes": ["finiture (es. Web W6281, Kendal KI642)"],
-    "dimensions": { "width": cm, "depth": cm, "height": cm } (se presenti, cerca pattern come L 220 P 90 H 85),
+    "category": "categoria (es. Seating System, Sofa, Armchair, Table, Chair)",
+    "description": "descrizione COMPLETA in italiano (riassumi il testo della pagina, 2-3 frasi)",
+    "materials": ["materiali in italiano, includi le essenze legno della struttura (es. eucalipto, rovere grafite, rovere nero, rovere sunrise, rovere caffé) e i rivestimenti (tessuto, pelle)"],
+    "finishes": ["finiture e rivestimenti specifici (es. Web W6281, Kendal KI642, Wonder WG447, pelle Extra L162)"],
+    "dimensions": { "width": cm, "depth": cm, "height": cm } (se presenti, cerca pattern come L 220 P 90 H 85 o numeri con unità),
+    "collection": "composizione della collezione se descritta (es. 4 sedie, 2 poltrone, 1 sgabello)",
     "image_bbox": {
       "x": percentuale dal bordo sinistro (0-100),
       "y": percentuale dal bordo superiore (0-100),
@@ -126,7 +127,8 @@ Analizza QUESTA pagina di catalogo ed estrai i dati del prodotto in formato JSON
 }
 IMPORTANTE:
 - image_bbox deve indicare la regione dell'IMMAGINE del prodotto (la foto del divano/poltrona), NON il testo. Osserva dove sta la foto nella pagina e indica il suo rettangolo in percentuale.
-- materials in ITALIANO (tessuto, pelle, legno, ecc.)
+- materials in ITALIANO, includi TUTTE le essenze legno e i rivestimenti menzionati nel testo
+- description: riassumi il testo descrittivo della pagina (non solo una frase breve)
 - Se le dimensioni non sono leggibili, usa null
 Se la pagina non contiene un prodotto, rispondi con {"product": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`
@@ -215,9 +217,9 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      // gpt-4o per il floorplan (più potente per piantine complesse),
-      // gpt-4o-mini per il catalogo (più economico)
-      model: options.documentType === "floorplan" ? "gpt-4o" : "gpt-4o-mini",
+      // gpt-4o per floorplan e catalogo (più potente, meno allucinazioni)
+      // Il catalogo ha testo denso che gpt-4o-mini legge male
+      model: "gpt-4o",
       temperature: 0.1,
       max_tokens: 8192,
       messages: [
@@ -225,12 +227,12 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
         {
           role: "user",
           content: [
-            // detail: "high" per il floorplan (serve precisione), "low" per il catalogo
+            // detail: "high" per leggere il testo denso del catalogo
             {
               type: "image_url",
               image_url: {
                 url: imageDataUrl,
-                detail: options.documentType === "floorplan" ? "high" : "low",
+                detail: "high",
               },
             },
           ],
