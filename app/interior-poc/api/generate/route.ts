@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { canAccess } from "@/lib/auth/roles";
 import { findProductById } from "../../lib/catalog";
 import floorplanModel from "../../data/floorplan-model.json";
 import floorplanDxf from "../../data/floorplan-dxf.json";
@@ -50,6 +52,15 @@ interface GenerateRequest {
 
 export async function POST(request: Request) {
   try {
+    // Guard: autenticazione + ruolo
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
+    }
+    if (!canAccess(session.user.role, "generate")) {
+      return NextResponse.json({ error: "Permessi insufficienti" }, { status: 403 });
+    }
+
     const body: GenerateRequest = await request.json();
 
     if (!body.prompt?.trim()) {
