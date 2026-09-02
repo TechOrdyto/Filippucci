@@ -25,8 +25,9 @@ export const validateCatalogStep = createStep(
       if (!product.name) {
         errors.push(`Prodotto senza nome (pagina ${product.pageNumber})`);
       }
-      if (!product.imageRegion || !product.imageRegion.verified) {
-        warnings.push(`Prodotto "${product.name}": regione immagine non verificata`);
+      const hasVerifiedRegion = (product.imageRegions ?? []).some((r) => r.verified);
+      if (!hasVerifiedRegion) {
+        warnings.push(`Prodotto "${product.name}": nessuna regione immagine verificata`);
       }
     }
 

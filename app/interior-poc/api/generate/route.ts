@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { canAccess } from "@/lib/auth/roles";
 import { findProductById } from "../../lib/catalog";
 import floorplanModel from "../../data/floorplan-model-casa-enri.json";
 import floorplanDxf from "../../data/floorplan-dxf-casa-enri.json";
@@ -88,6 +90,15 @@ interface ResolvedObjectAssignment {
 
 export async function POST(request: Request) {
   try {
+    // Guard: autenticazione + ruolo
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
+    }
+    if (!canAccess(session.user.role, "generate")) {
+      return NextResponse.json({ error: "Permessi insufficienti" }, { status: 403 });
+    }
+
     const body: GenerateRequest = await request.json();
 
     if (!body.prompt?.trim()) {
@@ -587,18 +598,39 @@ async function generateImageWithDalle(
     ? process.env.OPENAI_IMAGE_MODEL_REF ?? "gpt-image-1"
     : process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1-mini";
 
-  // Prompt ottimizzato: richiesta utente + prodotti + stile fotorealistico
-  const parts: string[] = [userPrompt.trim()];
+  // Carica le immagini dei prodotti come riferimento
+  const productImages = await loadProductImages(products);
 
+  // Prompt RIGIDO: i prodotti devono essere riprodotti ESATTAMENTE
+  // come nelle foto di riferimento allegate. Nessuna sostituzione.
+  const parts: string[] = [];
+
+  // 1. Richiesta utente
+  parts.push(userPrompt.trim());
+
+  // 2. Vincoli sui prodotti (riferimento numerato alle foto allegate)
   if (products.length > 0) {
-    const productDesc = products
-      .map((p) => `${p.name} (${p.descriptionForAI?.slice(0, 100) ?? ""})`)
-      .join(", ");
+    const constraints = products
+      .map((p, i) => {
+        const dims = p.dimensions
+          ? `${p.dimensions.width}cm W × ${p.dimensions.depth}cm D × ${p.dimensions.height}cm H`
+          : "";
+        return `- Product ${i + 1}: ${p.name} by ${p.designer} (${dims}). Reference photo: image ${i + 1}.`;
+      })
+      .join("\n");
+
     parts.push(
-      `Include these EXACT furniture pieces from the reference images: ${productDesc}. Reproduce them faithfully with the same design, colors and materials.`
+      `MANDATORY FURNITURE — reproduce EXACTLY as in the reference photos:\n${constraints}\n` +
+        `STRICT RULES:\n` +
+        `- Each product MUST be identical to its reference photo: same design, silhouette, proportions, colors, materials, legs, upholstery.\n` +
+        `- DO NOT substitute, replace, redesign, or invent similar furniture.\n` +
+        `- DO NOT change colors, materials, or proportions.\n` +
+        `- DO NOT add furniture that is not listed above.\n` +
+        `- If a product appears in the scene, it MUST be the exact product from the photo.`
     );
   }
 
+  // 3. Stile fotorealistico
   parts.push(
     "The first reference image is an authoritative top-down scene map with the selected room, openings, camera point, viewing direction and catalog anchors. Convert that map into the requested interior perspective; never output a floorplan or a diagram."
   );
@@ -719,9 +751,13 @@ async function loadProductImages(
 
   const images: { buffer: Buffer; mime: string; name: string }[] = [];
   for (const product of products) {
-    const imagePath = product.images?.[0];
-    if (!imagePath) continue;
+    // Carica SOLO la PRIMA immagine del prodotto (la più rappresentativa).
+    // Le immagini extra (scene, viste multiple, altri modelli) confondono
+    // il modello e lo portano a sostituire il prodotto con uno simile.
+    const imagePaths = product.images ?? [];
+    if (imagePaths.length === 0) continue;
 
+    const imagePath = imagePaths[0];
     // Il path è relativo a /public (es. /products/sofas/augusto.png)
     const filePath = join(process.cwd(), "public", imagePath.replace(/^\//, ""));
     try {

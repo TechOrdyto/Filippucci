@@ -11,13 +11,80 @@ export interface OcrOptions {
 }
 
 /**
- * Esegue OCR su un'immagine usando AI vision (gpt-4o-mini)
+ * Esegue OCR su un'immagine usando una strategia ibrida:
+ * 1. PaddleOCR (locale) estrae il TESTO preciso con bounding box reali
+ *    (nomi, designer, dimensioni) — molto più accurato dell'AI vision
+ * 2. AI vision (OpenAI) interpreta la pagina e restituisce il JSON strutturato
+ *    (categoria, materiali, descrizione, regioni immagine)
+ *
+ * Il risultato combina: textBlocks reali (per il crop) + fullText JSON (per l'interpretazione)
  */
 export async function ocrImage(
   imageBuffer: Buffer,
   options: OcrOptions = {}
 ): Promise<OcrPageResult> {
-  return ocrWithAiVision(imageBuffer, options);
+  // 1. PaddleOCR per il testo preciso (se disponibile)
+  const paddleResult = await ocrWithPaddle(imageBuffer, options).catch((err) => {
+    console.warn("⚠️ PaddleOCR non disponibile, uso solo AI vision:", err.message);
+    return null;
+  });
+
+  // 2. AI vision per l'interpretazione strutturata
+  const aiResult = await ocrWithAiVision(imageBuffer, options);
+
+  // Combina: usa i textBlocks reali di PaddleOCR (per il crop preciso)
+  // e il fullText JSON dell'AI vision (per l'interpretazione)
+  if (paddleResult) {
+    return {
+      pageNumber: aiResult.pageNumber,
+      textBlocks: paddleResult.textBlocks,
+      imageSize: paddleResult.imageSize,
+      fullText: aiResult.fullText,
+    };
+  }
+
+  return aiResult;
+}
+
+/**
+ * OCR con PaddleOCR (servizio locale su localhost:8001)
+ * Estrae testo preciso con bounding box reali
+ */
+async function ocrWithPaddle(
+  imageBuffer: Buffer,
+  options: OcrOptions
+): Promise<OcrPageResult> {
+  const base64 = imageBuffer.toString("base64");
+
+  const res = await fetch("http://localhost:8001/ocr", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_base64: base64,
+      lang: options.lang ?? "it",
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`PaddleOCR error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const textBlocks: OcrTextBlock[] = (data.text_blocks ?? []).map(
+    (b: any) => ({
+      text: b.text,
+      confidence: b.confidence,
+      bbox: b.bbox,
+      center: b.center,
+    })
+  );
+
+  return {
+    pageNumber: 1,
+    textBlocks,
+    imageSize: data.image_size ?? { width: 0, height: 0 },
+    fullText: textBlocks.map((t) => t.text).join("\n"),
+  };
 }
 
 /**
@@ -44,11 +111,12 @@ Analizza QUESTA pagina di catalogo ed estrai i dati del prodotto in formato JSON
   "product": {
     "name": "nome prodotto (es. Emile, Augusto, Cleo)",
     "designer": "designer (es. Vincent Van Duysen)",
-    "category": "categoria (es. Seating System, Sofa, Armchair, Table)",
-    "description": "descrizione breve in italiano",
-    "materials": ["materiali in italiano (es. tessuto, pelle, legno, acciaio)"],
-    "finishes": ["finiture (es. Web W6281, Kendal KI642)"],
-    "dimensions": { "width": cm, "depth": cm, "height": cm } (se presenti, cerca pattern come L 220 P 90 H 85),
+    "category": "categoria (es. Seating System, Sofa, Armchair, Table, Chair)",
+    "description": "descrizione COMPLETA in italiano (riassumi il testo della pagina, 2-3 frasi)",
+    "materials": ["materiali in italiano, includi le essenze legno della struttura (es. eucalipto, rovere grafite, rovere nero, rovere sunrise, rovere caffé) e i rivestimenti (tessuto, pelle)"],
+    "finishes": ["finiture e rivestimenti specifici (es. Web W6281, Kendal KI642, Wonder WG447, pelle Extra L162)"],
+    "dimensions": { "width": cm, "depth": cm, "height": cm } (se presenti, cerca pattern come L 220 P 90 H 85 o numeri con unità),
+    "collection": "composizione della collezione se descritta (es. 4 sedie, 2 poltrone, 1 sgabello)",
     "image_bbox": {
       "x": percentuale dal bordo sinistro (0-100),
       "y": percentuale dal bordo superiore (0-100),
@@ -59,7 +127,8 @@ Analizza QUESTA pagina di catalogo ed estrai i dati del prodotto in formato JSON
 }
 IMPORTANTE:
 - image_bbox deve indicare la regione dell'IMMAGINE del prodotto (la foto del divano/poltrona), NON il testo. Osserva dove sta la foto nella pagina e indica il suo rettangolo in percentuale.
-- materials in ITALIANO (tessuto, pelle, legno, ecc.)
+- materials in ITALIANO, includi TUTTE le essenze legno e i rivestimenti menzionati nel testo
+- description: riassumi il testo descrittivo della pagina (non solo una frase breve)
 - Se le dimensioni non sono leggibili, usa null
 Se la pagina non contiene un prodotto, rispondi con {"product": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`
@@ -148,9 +217,9 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      // gpt-4o per il floorplan (più potente per piantine complesse),
-      // gpt-4o-mini per il catalogo (più economico)
-      model: options.documentType === "floorplan" ? "gpt-4o" : "gpt-4o-mini",
+      // gpt-4o per floorplan e catalogo (più potente, meno allucinazioni)
+      // Il catalogo ha testo denso che gpt-4o-mini legge male
+      model: "gpt-4o",
       temperature: 0.1,
       max_tokens: 8192,
       messages: [
@@ -158,12 +227,12 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
         {
           role: "user",
           content: [
-            // detail: "high" per il floorplan (serve precisione), "low" per il catalogo
+            // detail: "high" per leggere il testo denso del catalogo
             {
               type: "image_url",
               image_url: {
                 url: imageDataUrl,
-                detail: options.documentType === "floorplan" ? "high" : "low",
+                detail: "high",
               },
             },
           ],
@@ -217,8 +286,19 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
 
 /**
  * Verifica che il servizio OCR sia disponibile
- * (per compatibilità con la saga — sempre true con AI vision)
+ * Controlla PaddleOCR (locale) e, in alternativa, la presenza di OPENAI_API_KEY
  */
 export async function checkOcrServer(): Promise<boolean> {
-  return true;
+  // PaddleOCR locale
+  try {
+    const res = await fetch("http://localhost:8001/health", {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) return true;
+  } catch {
+    // PaddleOCR non attivo
+  }
+
+  // Fallback: AI vision (OpenAI)
+  return Boolean(process.env.OPENAI_API_KEY);
 }
