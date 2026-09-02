@@ -1,0 +1,389 @@
+{
+  "id": "devon",
+  "name": "DEVON",
+  "designer": "Rodolfo Dordoni",
+  "year": 2020,
+  "category": "Chairs",
+  "collection": "Sedie/Poltrone",
+  "description": "Quattro sedie, due poltroncine a pozzetto, uno sgabello bar con supporto lombare e uno senza, sono gli elementi che compongono la collezione Devon. Tutte le strutture sono in massello di frassino tinto in essenza. Sedute e schienale imbottite in tessuto o pelle scelti tra la gamma Molteni&C.",
+  "materials": {
+    "structure": "Legno massello di abete (Picea abies) e pannelli di particelle di legno, con cinghie elastiche",
+    "poltroncinaStructure": "Polimex (materiale composito poliestere/poliuretano) rivestito con poliuretano espanso",
+    "upholstery": "Poliuretano espanso ad alta portanza e densità variabile, fodera in vellutino accoppiato",
+    "backrest": "Legno massello tinto, piedi d'appoggio in materiale plastico antiscivolo",
+    "seat": "Tessuto, pelle"
+  },
+  "finishes": {
+    "base": [
+      "eucalipto",
+      "rovere grafite",
+      "rovere nero",
+      "rovere sunrise",
+      "rovere caffé"
+    ],
+    "upholstery": [
+      "tessuto",
+      "pelle"
+    ]
+  },
+  "variants": [
+    {
+      "code": "DSD1",
+      "type": "sedia",
+      "dimensions": {
+        "width": 47,
+        "depth": 82,
+        "height": 61
+      },
+      "weightKg": 12.65,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1248,
+          "A": 1276,
+          "K": 1289,
+          "W": 1315,
+          "Z": 1343
+        },
+        "pelle": {
+          "P": 1421,
+          "L": 1533,
+          "S": 1600
+        },
+        "tessutoMt": {
+          "U": 1758
+        }
+      },
+      "technicalImage": "/products/devon/DSD1-technical.png"
+    },
+    {
+      "code": "DSD2",
+      "type": "sedia con braccioli",
+      "dimensions": {
+        "width": 47,
+        "depth": 82,
+        "height": 61
+      },
+      "weightKg": 13.15,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1435,
+          "A": 1468,
+          "K": 1485,
+          "W": 1516,
+          "Z": 1549
+        },
+        "pelle": {
+          "P": 1648,
+          "L": 1774,
+          "S": 1852
+        },
+        "tessutoMt": {
+          "U": 2053
+        }
+      },
+      "technicalImage": "/products/devon/DSD2-technical.png"
+    },
+    {
+      "code": "DSB1",
+      "type": "sedia",
+      "dimensions": {
+        "width": 47,
+        "depth": 83,
+        "height": 61
+      },
+      "weightKg": 11.5,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1336,
+          "A": 1349,
+          "K": 1362,
+          "W": 1381,
+          "Z": 1429
+        },
+        "pelle": {
+          "P": 1518,
+          "L": 1559,
+          "S": 1662
+        },
+        "tessutoMt": {
+          "U": 1699
+        }
+      },
+      "technicalImage": "/products/devon/DSB1-technical.png"
+    },
+    {
+      "code": "DSB2",
+      "type": "sedia con braccioli",
+      "dimensions": {
+        "width": 47,
+        "depth": 83,
+        "height": 61
+      },
+      "weightKg": 11.0,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1564,
+          "A": 1597,
+          "K": 1615,
+          "W": 1655,
+          "Z": 1693
+        },
+        "pelle": {
+          "P": 1805,
+          "L": 1980,
+          "S": 2072
+        },
+        "tessutoMt": {
+          "U": 2308
+        }
+      },
+      "technicalImage": "/products/devon/DSB2-technical.png"
+    },
+    {
+      "code": "DPL1",
+      "type": "poltroncina",
+      "dimensions": {
+        "width": 64,
+        "depth": 76,
+        "height": 59
+      },
+      "weightKg": 12.5,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1628,
+          "A": 1662,
+          "K": 1688,
+          "W": 1714,
+          "Z": 1787
+        },
+        "pelle": {
+          "P": 1909,
+          "L": 1968,
+          "S": 2112
+        },
+        "tessutoMt": {
+          "U": 2169
+        }
+      },
+      "technicalImage": "/products/devon/DPL1-technical.png"
+    },
+    {
+      "code": "DPL2",
+      "type": "poltroncina",
+      "dimensions": {
+        "width": 64,
+        "depth": 76,
+        "height": 59
+      },
+      "weightKg": 13.0,
+      "volumeMc": 0.36,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 1323,
+          "A": 1350,
+          "K": 1368,
+          "W": 1400,
+          "Z": 1432
+        },
+        "pelle": {
+          "P": 1527,
+          "L": 1675,
+          "S": 1753
+        },
+        "tessutoMt": {
+          "U": 1953
+        }
+      },
+      "technicalImage": "/products/devon/DPL2-technical.png"
+    },
+    {
+      "code": "DSG1",
+      "type": "sgabello",
+      "dimensions": {
+        "width": 44,
+        "depth": 49,
+        "height": 69
+      },
+      "weightKg": 10.8,
+      "volumeMc": 0.19,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 287,
+          "A": 301,
+          "K": 306,
+          "W": 326,
+          "Z": 339
+        },
+        "pelle": {
+          "P": 388,
+          "L": 467,
+          "S": 507
+        },
+        "tessutoMt": {
+          "U": 605
+        }
+      },
+      "technicalImage": "/products/devon/DSG1-technical.png"
+    },
+    {
+      "code": "DSG2",
+      "type": "sgabello",
+      "dimensions": {
+        "width": 44,
+        "depth": 44,
+        "height": 69
+      },
+      "weightKg": 12.5,
+      "volumeMc": 0.29,
+      "colli": 1,
+      "prices": {
+        "tessuto": {
+          "B": 353,
+          "A": 371,
+          "K": 383,
+          "W": 411,
+          "Z": 438
+        },
+        "pelle": {
+          "P": 517,
+          "L": 631,
+          "S": 691
+        },
+        "tessutoMt": {
+          "U": 847
+        }
+      },
+      "technicalImage": "/products/devon/DSG2-technical.png"
+    }
+  ],
+  "upholsteryPrices": {
+    "RIV/DSD1": {
+      "O": 390,
+      "B": 417,
+      "A": 436,
+      "K": 463,
+      "W": 495,
+      "Z": 582,
+      "P": 713,
+      "L": 788,
+      "S": 978,
+      "U": 1052
+    },
+    "RIV/DSD2": {
+      "O": 417,
+      "B": 445,
+      "A": 463,
+      "K": 495,
+      "W": 524,
+      "Z": 614,
+      "P": 754,
+      "L": 834,
+      "S": 1024,
+      "U": 1099
+    },
+    "RIV/DSB1": {
+      "O": 434,
+      "B": 465,
+      "A": 486,
+      "K": 516,
+      "W": 548,
+      "Z": 648,
+      "P": 794,
+      "L": 876,
+      "S": 1082,
+      "U": 1165
+    },
+    "RIV/DSB2": {
+      "O": 448,
+      "B": 479,
+      "A": 496,
+      "K": 530,
+      "W": 560,
+      "Z": 661,
+      "P": 812,
+      "L": 908,
+      "S": 1107,
+      "U": 1189
+    },
+    "RIV/DPL1": {
+      "O": 438,
+      "B": 467,
+      "A": 489,
+      "K": 528,
+      "W": 567,
+      "Z": 684,
+      "P": 847,
+      "L": 939,
+      "S": 1180,
+      "U": 1271
+    },
+    "RIV/DPL2": {
+      "O": 476,
+      "B": 507,
+      "A": 528,
+      "K": 567,
+      "W": 605,
+      "Z": 729,
+      "P": 901,
+      "L": 990,
+      "S": 1239,
+      "U": 1336
+    },
+    "RIV/DSG1": {
+      "O": 287,
+      "B": 301,
+      "A": 306,
+      "K": 326,
+      "W": 339,
+      "Z": 388,
+      "P": 467,
+      "L": 507,
+      "S": 605,
+      "U": 646
+    },
+    "RIV/DSG2": {
+      "O": 353,
+      "B": 371,
+      "A": 383,
+      "K": 411,
+      "W": 438,
+      "Z": 517,
+      "P": 631,
+      "L": 691,
+      "S": 847,
+      "U": 906
+    }
+  },
+  "notes": [
+    "A richiesta tutti gli elementi sono producibili utilizzando una pelle speciale antibatterica e antivirale denominata 'L ECO' con sovrapprezzo del 5%",
+    "Tutte le parti rivestite sono considerate nella stessa tipologia/variante colore",
+    "Non sono possibili riduzioni di alcun genere e variazioni delle finiture",
+    "Nella compilazione dell'Ordine specificare la finitura del basamento"
+  ],
+  "source": {
+    "catalog": "2025_CT_Dining_IT-EN.pdf",
+    "pages": [
+      104,
+      105,
+      106
+    ],
+    "priceList": "2026_PL_Living-Systems-Dining_IT_EUR.pdf",
+    "priceListPages": [
+      416,
+      417,
+      418
+    ]
+  }
+}

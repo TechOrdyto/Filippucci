@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import MentionInput from "./components/MentionInput";
 import DesignSummary from "./components/DesignSummary";
+import ProductDetail from "./components/ProductDetail";
 import RenderResult, { type RenderVariant } from "./components/RenderResult";
 import ReferenceImagePicker from "./components/ReferenceImagePicker";
 import ThemeToggle from "./components/ThemeToggle";
@@ -434,6 +435,13 @@ export default function InteriorPocPage() {
                       </span>
                     ))}
                   </div>
+
+                  {/* Dettaglio prodotto: base dati completa (varianti, misure, prezzi) */}
+                  {explicitProducts.map((product) => (
+                    <div key={`detail-${(product as any).id}`} className="mt-3">
+                      <ProductDetail product={product as any} />
+                    </div>
+                  ))}
                 </div>
               )}
 
