@@ -162,20 +162,32 @@ async function interpretPage(
     if (imageBuffer) {
       const contentRegions = await findAllContentRegions(imageBuffer, page.textBlocks);
       for (const region of contentRegions) {
-        // Evita duplicati: salta se la regione è già coperta da una esistente
-        const isDuplicate = imageRegions.some((r) => {
+        // Trova se la regione si sovrappone a una esistente
+        const overlapping = imageRegions.find((r) => {
           const overlapX = Math.min(r.bbox.x + r.bbox.width, region.x + region.width) -
             Math.max(r.bbox.x, region.x);
           const overlapY = Math.min(r.bbox.y + r.bbox.height, region.y + region.height) -
             Math.max(r.bbox.y, region.y);
           return overlapX > 0 && overlapY > 0;
         });
-        if (!isDuplicate) {
+
+        if (!overlapping) {
+          // Nessuna sovrapposizione: aggiungi
           imageRegions.push({
             bbox: region,
             verified: true,
             pageNumber: page.pageNumber,
           });
+        } else {
+          // Sovrapposizione: se la nuova regione è significativamente
+          // PIÙ GRANDE (almeno 20% in area), sostituisci quella esistente.
+          // (Il bbox dell'AI vision può essere impreciso e più piccolo
+          // della foto reale trovata dall'analisi del contenuto)
+          const existingArea = overlapping.bbox.width * overlapping.bbox.height;
+          const newArea = region.width * region.height;
+          if (newArea > existingArea * 1.2) {
+            overlapping.bbox = region;
+          }
         }
       }
     }

@@ -187,7 +187,7 @@ export async function findAllContentRegions(
     }
     const meanVar = totalVar / totalCount;
     // Soglia: 2.5x la varianza media (foto hanno varianza molto alta)
-    const threshold = Math.max(meanVar * 2.5, 50);
+    const threshold = Math.max(meanVar * 0.8, 20);
 
     // Cella con contenuto = varianza sopra soglia
     const isContent = (row: number, col: number) => variance[row][col] > threshold;
@@ -264,9 +264,71 @@ export async function findAllContentRegions(
       }
     }
 
+    // Espandi i cluster verso i bordi della pagina: le foto spesso hanno
+    // bordi con meno dettagli (sfondo chiaro) che il clustering perde.
+    // Espandi finché non si incontra una zona chiaramente vuota.
+    const expanded = merged.map((cluster) => {
+      const exp = { ...cluster };
+
+      // Espandi verso l'alto: finché la riga sopra ha contenuto "debole"
+      // (almeno 30% delle celle con varianza sopra la sotto-soglia)
+      while (exp.minRow > 0) {
+        const rowAbove = exp.minRow - 1;
+        let weakCount = 0;
+        let totalCount = 0;
+        for (let col = exp.minCol; col <= exp.maxCol; col++) {
+          totalCount++;
+          if (variance[rowAbove][col] > threshold * 0.3) weakCount++;
+        }
+        if (totalCount === 0 || weakCount / totalCount < 0.3) break;
+        exp.minRow = rowAbove;
+      }
+
+      // Espandi verso il basso
+      while (exp.maxRow < gridH - 1) {
+        const rowBelow = exp.maxRow + 1;
+        let weakCount = 0;
+        let totalCount = 0;
+        for (let col = exp.minCol; col <= exp.maxCol; col++) {
+          totalCount++;
+          if (variance[rowBelow][col] > threshold * 0.3) weakCount++;
+        }
+        if (totalCount === 0 || weakCount / totalCount < 0.3) break;
+        exp.maxRow = rowBelow;
+      }
+
+      // Espandi verso sinistra
+      while (exp.minCol > 0) {
+        const colLeft = exp.minCol - 1;
+        let weakCount = 0;
+        let totalCount = 0;
+        for (let row = exp.minRow; row <= exp.maxRow; row++) {
+          totalCount++;
+          if (variance[row][colLeft] > threshold * 0.3) weakCount++;
+        }
+        if (totalCount === 0 || weakCount / totalCount < 0.3) break;
+        exp.minCol = colLeft;
+      }
+
+      // Espandi verso destra
+      while (exp.maxCol < gridW - 1) {
+        const colRight = exp.maxCol + 1;
+        let weakCount = 0;
+        let totalCount = 0;
+        for (let row = exp.minRow; row <= exp.maxRow; row++) {
+          totalCount++;
+          if (variance[row][colRight] > threshold * 0.3) weakCount++;
+        }
+        if (totalCount === 0 || weakCount / totalCount < 0.3) break;
+        exp.maxCol = colRight;
+      }
+
+      return exp;
+    });
+
     // Converti i cluster in regioni percentuali
     const regions: CropRegion[] = [];
-    for (const cluster of merged) {
+    for (const cluster of expanded) {
       // Margini proporzionali alla dimensione della regione
       const marginX = Math.max(1, Math.round((cluster.maxCol - cluster.minCol + 1) * 0.06));
       const marginY = Math.max(1, Math.round((cluster.maxRow - cluster.minRow + 1) * 0.06));
@@ -320,6 +382,128 @@ export async function findAllContentRegions(
     return regions;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Rifinisce i bordi di una regione approssimativa analizzando il contenuto
+ * con una griglia fine. Trova i confini esatti della foto rimuovendo
+ * testo/rumore/spazi vuoti ai bordi.
+ */
+async function refineRegion(
+  imageBuffer: Buffer,
+  region: CropRegion
+): Promise<CropRegion | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const metadata = await sharp(imageBuffer).metadata();
+    const W = metadata.width ?? 100;
+    const H = metadata.height ?? 100;
+
+    // Converti la regione in pixel
+    const rx = Math.max(0, Math.round((region.x / 100) * W));
+    const ry = Math.max(0, Math.round((region.y / 100) * H));
+    const rw = Math.min(W - rx, Math.round((region.width / 100) * W));
+    const rh = Math.min(H - ry, Math.round((region.height / 100) * H));
+    if (rw < 10 || rh < 10) return null;
+
+    // Analizza la regione con una griglia fine (40x24)
+    const { data } = await sharp(imageBuffer)
+      .extract({ left: rx, top: ry, width: rw, height: rh })
+      .resize(40, 24)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const gridW = 40;
+    const gridH = 24;
+
+    // Calcola la varianza locale per ogni cella
+    const variance: number[][] = [];
+    for (let row = 0; row < gridH; row++) {
+      variance[row] = [];
+      for (let col = 0; col < gridW; col++) {
+        const idx = (row * gridW + col) * 3;
+        const lum = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        let localVar = 0;
+        let count = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const ny = row + dy;
+            const nx = col + dx;
+            if (ny >= 0 && ny < gridH && nx >= 0 && nx < gridW) {
+              const nIdx = (ny * gridW + nx) * 3;
+              const nLum = (data[nIdx] + data[nIdx + 1] + data[nIdx + 2]) / 3;
+              localVar += (nLum - lum) * (nLum - lum);
+              count++;
+            }
+          }
+        }
+        variance[row][col] = count > 0 ? localVar / count : 0;
+      }
+    }
+
+    // Soglia relativa alla varianza media della regione
+    let totalVar = 0;
+    let totalCount = 0;
+    for (let row = 0; row < gridH; row++) {
+      for (let col = 0; col < gridW; col++) {
+        totalVar += variance[row][col];
+        totalCount++;
+      }
+    }
+    const meanVar = totalVar / totalCount;
+    // Soglia bassa: il refinement deve trovare i bordi della foto,
+    // non tagliarla. Usa 0.8x la media per non perdere i bordi.
+    const threshold = Math.max(meanVar * 0.8, 15);
+
+    const isContent = (row: number, col: number) => variance[row][col] > threshold;
+
+    // Trova i bordi: prima e ultima riga/colonna con contenuto
+    let top = gridH, bottom = -1, left = gridW, right = -1;
+    for (let row = 0; row < gridH; row++) {
+      for (let col = 0; col < gridW; col++) {
+        if (isContent(row, col)) {
+          if (row < top) top = row;
+          if (row > bottom) bottom = row;
+          if (col < left) left = col;
+          if (col > right) right = col;
+        }
+      }
+    }
+
+    if (bottom === -1) return null;
+
+    // Margine proporzionale (5% della regione)
+    const marginX = Math.max(1, Math.round((right - left + 1) * 0.05));
+    const marginY = Math.max(1, Math.round((bottom - top + 1) * 0.05));
+
+    // Converti in percentuali della pagina
+    const newX = Math.max(0, ((left - marginX) / gridW) * region.width + region.x);
+    const newY = Math.max(0, ((top - marginY) / gridH) * region.height + region.y);
+    const newRight = Math.min(100, ((right + 1 + marginX) / gridW) * region.width + region.x);
+    const newBottom = Math.min(100, ((bottom + 1 + marginY) / gridH) * region.height + region.y);
+
+    const newWidth = newRight - newX;
+    const newHeight = newBottom - newY;
+
+    // Applica il refinement: restringe se il contenuto è più piccolo,
+    // ma ESPANDE se il contenuto si estende oltre i bordi della regione.
+    // (La regione iniziale può essere più piccola della foto reale)
+    const refinedRegion: CropRegion = {
+      x: Math.round(newX),
+      y: Math.round(newY),
+      width: Math.round(newWidth),
+      height: Math.round(newHeight),
+    };
+
+    // Verifica che la regione raffinata sia ancora valida
+    if (refinedRegion.width < 5 || refinedRegion.height < 5) {
+      return region;
+    }
+
+    return refinedRegion;
+  } catch {
+    return region;
   }
 }
 
