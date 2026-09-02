@@ -169,6 +169,120 @@ async function findContentRegion(
   }
 }
 
+/**
+ * Trova TUTTE le regioni con contenuto visivo (foto) nella pagina.
+ * Analizza la varianza dei pixel in una griglia e identifica i cluster
+ * di celle con contenuto separati da zone vuote.
+ * Es. pagina con foto grande a destra + miniatura in basso a sinistra
+ * → restituisce 2 regioni.
+ */
+export async function findAllContentRegions(
+  imageBuffer: Buffer
+): Promise<CropRegion[]> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const { data } = await sharp(imageBuffer)
+      .resize(100, 62)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const gridW = 100;
+    const gridH = 62;
+    const cellW = 10;
+    const cellH = 10;
+
+    // Calcola la varianza per ogni cella della griglia (10x6)
+    const variance: number[][] = [];
+    for (let row = 0; row < 6; row++) {
+      variance[row] = [];
+      for (let col = 0; col < 10; col++) {
+        let sum = 0, sumSq = 0, count = 0;
+        for (let y = row * cellH; y < (row + 1) * cellH; y++) {
+          for (let x = col * cellW; x < (col + 1) * cellW; x++) {
+            const idx = (y * gridW + x) * 3;
+            const lum = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            sum += lum;
+            sumSq += lum * lum;
+            count++;
+          }
+        }
+        const mean = sum / count;
+        variance[row][col] = sumSq / count - mean * mean;
+      }
+    }
+
+    // Cella con contenuto = varianza alta (foto/dettagli)
+    const isContent = (row: number, col: number) => variance[row][col] > 400;
+
+    // Trova i cluster di colonne con contenuto (separati da colonne vuote)
+    const colHasContent = Array(10).fill(false);
+    for (let col = 0; col < 10; col++) {
+      let count = 0;
+      for (let row = 0; row < 6; row++) {
+        if (isContent(row, col)) count++;
+      }
+      colHasContent[col] = count >= 1; // almeno 1 riga con contenuto (cattura anche miniature)
+    }
+
+    // Raggruppa le colonne con contenuto in cluster
+    const clusters: Array<{ start: number; end: number }> = [];
+    let current: { start: number; end: number } | null = null;
+    for (let col = 0; col < 10; col++) {
+      if (colHasContent[col]) {
+        if (!current) {
+          current = { start: col, end: col };
+        } else {
+          current.end = col;
+        }
+      } else {
+        if (current) {
+          clusters.push(current);
+          current = null;
+        }
+      }
+    }
+    if (current) clusters.push(current);
+
+    // Converti i cluster in regioni percentuali
+    const regions: CropRegion[] = [];
+    for (const cluster of clusters) {
+      // Determina l'estensione verticale del contenuto nel cluster
+      let topRow = 6, bottomRow = -1;
+      for (let row = 0; row < 6; row++) {
+        for (let col = cluster.start; col <= cluster.end; col++) {
+          if (isContent(row, col)) {
+            if (row < topRow) topRow = row;
+            if (row > bottomRow) bottomRow = row;
+          }
+        }
+      }
+      if (bottomRow === -1) continue;
+
+      const x = Math.max(0, (cluster.start / 10) * 100 - 2);
+      const right = Math.min(100, ((cluster.end + 1) / 10) * 100 + 2);
+      const y = Math.max(0, (topRow / 6) * 100 - 2);
+      const bottom = Math.min(100, ((bottomRow + 1) / 6) * 100 + 2);
+
+      const width = right - x;
+      const height = bottom - y;
+
+      // Ignora regioni troppo piccole (< 8% della pagina)
+      if (width < 8 || height < 8) continue;
+
+      regions.push({
+        x: Math.round(x),
+        y: Math.round(y),
+        width: Math.round(width),
+        height: Math.round(height),
+      });
+    }
+
+    return regions;
+  } catch {
+    return [];
+  }
+}
+
 function findProductNameBlock(
   textBlocks: OcrTextBlock[],
   productName?: string

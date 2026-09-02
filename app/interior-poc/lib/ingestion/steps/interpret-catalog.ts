@@ -4,7 +4,7 @@
 import type { SagaContext, CatalogInterpretation, OcrPageResult } from "../types";
 import { createStep } from "../saga";
 import { saveInterpretation, deleteFile } from "../store";
-import { findProductImageRegion } from "../../geometry/image-cropper";
+import { findProductImageRegion, findAllContentRegions } from "../../geometry/image-cropper";
 
 // Pattern per riconoscere elementi del catalogo
 const PRODUCT_NAME_PATTERN = /^([A-Z][A-Z0-9.\s'’-]{2,40})\s*—/;
@@ -155,8 +155,32 @@ async function interpretPage(
       }
     }
 
-    // 2. Fallback deterministico: se l'AI non ha fornito bbox validi,
-    //    trova la regione immagine (senza testo) usando i bounding box OCR.
+    // 2. Analisi del contenuto visivo: trova TUTTE le regioni con foto
+    //    (foto grande + miniature). Es. pagina 13 di Blevio ha la foto
+    //    grande a destra E una miniatura in basso a sinistra.
+    if (imageBuffer) {
+      const contentRegions = await findAllContentRegions(imageBuffer);
+      for (const region of contentRegions) {
+        // Evita duplicati: salta se la regione è già coperta da una esistente
+        const isDuplicate = imageRegions.some((r) => {
+          const overlapX = Math.min(r.bbox.x + r.bbox.width, region.x + region.width) -
+            Math.max(r.bbox.x, region.x);
+          const overlapY = Math.min(r.bbox.y + r.bbox.height, region.y + region.height) -
+            Math.max(r.bbox.y, region.y);
+          return overlapX > 0 && overlapY > 0;
+        });
+        if (!isDuplicate) {
+          imageRegions.push({
+            bbox: region,
+            verified: true,
+            pageNumber: page.pageNumber,
+          });
+        }
+      }
+    }
+
+    // 3. Fallback deterministico: se non è stata trovata NESSUNA regione,
+    //    usa i bounding box OCR per trovare la zona senza testo.
     if (imageRegions.length === 0) {
       const crop = await findProductImageRegion(page.textBlocks, page.imageSize, product?.name, imageBuffer);
       if (crop.verified) {
