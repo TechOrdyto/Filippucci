@@ -62,7 +62,7 @@ function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][n
 
     // Usa il bbox immagine fornito dall'AI vision (se presente)
     const bbox = product.image_bbox;
-    const imageRegion = bbox && bbox.x !== undefined && bbox.y !== undefined
+    let imageRegion = bbox && bbox.x !== undefined && bbox.y !== undefined
       ? {
           bbox: {
             x: bbox.x,
@@ -73,6 +73,19 @@ function interpretPage(page: OcrPageResult): CatalogInterpretation["products"][n
           verified: true,
         }
       : undefined;
+
+    // Fallback deterministico: se l'AI non ha fornito un bbox valido,
+    // trova la regione immagine (senza testo) usando i bounding box OCR.
+    // Questo garantisce che l'immagine prodotto venga comunque ritagliata.
+    if (!imageRegion) {
+      const crop = findProductImageRegion(page.textBlocks, page.imageSize, product.name);
+      if (crop.verified) {
+        imageRegion = {
+          bbox: crop.region,
+          verified: true,
+        };
+      }
+    }
 
     return {
       id: `MOL-${(product.category ?? "PROD").slice(0, 3).toUpperCase()}-${page.pageNumber}`,
