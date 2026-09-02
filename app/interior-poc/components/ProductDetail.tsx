@@ -164,14 +164,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 </div>
               </div>
             </div>
-            {selected.technicalImage && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={selected.technicalImage}
-                alt={`Disegno tecnico ${selected.code}`}
-                className="h-40 w-auto shrink-0 rounded-lg border border-[var(--border)] bg-white object-contain"
-              />
-            )}
           </div>
         </div>
       )}
