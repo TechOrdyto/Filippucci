@@ -866,10 +866,9 @@
         "legno"
       ],
       "images": [
-        "/products/devon/devon-chair-square.png",
-        "/products/devon/devon-p1-right-square.png",
-        "/products/devon/devon-p2-main-square.png",
-        "/products/devon/devon-p3-right-square.png"
+        "/products/devon/devon-chair-transparent.png",
+        "/products/devon/devon-p1-right-transparent.png",
+        "/products/devon/devon-p3-right-transparent.png"
       ],
       "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=204",
       "price": null
