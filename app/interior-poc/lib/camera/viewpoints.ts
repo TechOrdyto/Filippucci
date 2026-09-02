@@ -9,9 +9,13 @@ import {
   isPositionValid,
   toPoints,
 } from "./geometry";
+import { PLAN_UNITS_PER_METER } from "../../floorplan/units";
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
-  minDistanceFromWall: 0.3,
+  // Il DXF importato resta in unità piano (cm). La camera si tiene a
+  // circa 30 cm dai muri, ma il calcolo avviene nello stesso sistema della
+  // piantina per non alterare la sorgente CAD.
+  minDistanceFromWall: 0.3 * PLAN_UNITS_PER_METER,
   defaultFov: 70,
   defaultViewpoints: 4,
 };
@@ -37,93 +41,70 @@ export function generateViewpoints(
   const center = polygonCenter(polygon);
   const points = toPoints(polygon);
   const viewpoints: Viewpoint[] = [];
+  const minDistance = config.minDistanceFromWall;
+  let sequence = 0;
 
-  // 1. Angolo sud-ovest → guarda nord-est
-  const sw = findCorner(points, "south-west");
-  if (sw) {
-    const pos = insetFromCorner(sw, polygon, config.minDistanceFromWall);
-    if (isPositionValid(pos, room, walls, config.minDistanceFromWall)) {
-      viewpoints.push({
-        id: `${room.id}-vp-1`,
-        roomId: room.id,
-        position: pos,
-        rotation: rotationToTarget(pos, center),
-        fov: config.defaultFov,
-        label: "Angolo sud-ovest → nord-est",
-      });
-    }
+  const addCandidate = (
+    position: Point,
+    label: string,
+    kind: Viewpoint["kind"],
+    target = center
+  ) => {
+    if (!isPositionValid(position, room, walls, minDistance)) return;
+    const duplicate = viewpoints.some(
+      (viewpoint) => Math.hypot(viewpoint.position.x - position.x, viewpoint.position.y - position.y) < minDistance
+    );
+    if (duplicate) return;
+    sequence += 1;
+    viewpoints.push({
+      id: `${room.id}-vp-${sequence}`,
+      roomId: room.id,
+      position,
+      rotation: rotationToTarget(position, target),
+      fov: config.defaultFov,
+      label,
+      kind,
+    });
+  };
+
+  // Se l'import CAD fornisce le aperture, le preferiamo perché danno
+  // visuali più naturali. L'attuale DXF resta compatibile anche senza
+  // questo metadato e usa i punti geometrici di riserva qui sotto.
+  const openingOffset = Math.max(minDistance * 2, 60);
+  for (const opening of room.openings) {
+    const position = moveOpeningInside(opening, openingOffset);
+    const isWindow = opening.type === "window" || opening.type === "french-door";
+    addCandidate(
+      position,
+      isWindow ? "Dalla finestra → interno" : "Dall'ingresso → centro",
+      isWindow ? "window" : "door"
+    );
   }
 
-  // 2. Angolo sud-est → guarda nord-ovest
-  const se = findCorner(points, "south-east");
-  if (se) {
-    const pos = insetFromCorner(se, polygon, config.minDistanceFromWall);
-    if (isPositionValid(pos, room, walls, config.minDistanceFromWall)) {
-      viewpoints.push({
-        id: `${room.id}-vp-2`,
-        roomId: room.id,
-        position: pos,
-        rotation: rotationToTarget(pos, center),
-        fov: config.defaultFov,
-        label: "Angolo sud-est → nord-ovest",
-      });
-    }
+  // Quattro angoli: sono sempre comprensibili e garantiscono il ventaglio
+  // anche quando il DXF non espone ancora porte/finestre come metadati.
+  const corners: Array<[
+    "north-west" | "north-east" | "south-west" | "south-east",
+    string
+  ]> = [
+    ["south-west", "Angolo sud-ovest → centro"],
+    ["south-east", "Angolo sud-est → centro"],
+    ["north-west", "Angolo nord-ovest → centro"],
+    ["north-east", "Angolo nord-est → centro"],
+  ];
+  for (const [direction, label] of corners) {
+    const corner = findCorner(points, direction);
+    if (corner) addCandidate(insetFromCorner(corner, center, minDistance), label, "corner");
   }
 
-  // 3. Vicino all'ingresso → guarda il centro
-  const door = room.openings.find((o) => o.type === "door");
-  if (door) {
-    const pos = {
-      x: door.position.x + (door.position.x < center.x ? 0.5 : -0.5),
-      y: door.position.y + (door.position.y < center.y ? 0.5 : -0.5),
-    };
-    if (isPositionValid(pos, room, walls, config.minDistanceFromWall)) {
-      viewpoints.push({
-        id: `${room.id}-vp-3`,
-        roomId: room.id,
-        position: pos,
-        rotation: rotationToTarget(pos, center),
-        fov: config.defaultFov,
-        label: "Vicino all'ingresso → centro",
-      });
-    }
+  // Ultimo fallback per stanze strette o poligoni irregolari: un punto
+  // centrale valido è preferibile a una lista vuota.
+  addCandidate(center, "Centro stanza → interno", "center");
+
+  if (viewpoints.length > 0 && !viewpoints.some((viewpoint) => viewpoint.kind === "recommended")) {
+    viewpoints[0] = { ...viewpoints[0], kind: "recommended" };
   }
 
-  // 4. Davanti alla finestra → guarda l'interno
-  const window = room.openings.find((o) => o.type === "window" || o.type === "french-door");
-  if (window) {
-    const pos = {
-      x: window.position.x + (window.position.x < center.x ? 0.8 : -0.8),
-      y: window.position.y + (window.position.y < center.y ? 0.8 : -0.8),
-    };
-    if (isPositionValid(pos, room, walls, config.minDistanceFromWall)) {
-      viewpoints.push({
-        id: `${room.id}-vp-4`,
-        roomId: room.id,
-        position: pos,
-        rotation: rotationToTarget(pos, center),
-        fov: config.defaultFov,
-        label: "Davanti alla finestra → interno",
-      });
-    }
-  }
-
-  // 5. Centro stanza → guarda la finestra principale
-  if (window) {
-    const pos = center;
-    if (isPositionValid(pos, room, walls, config.minDistanceFromWall)) {
-      viewpoints.push({
-        id: `${room.id}-vp-5`,
-        roomId: room.id,
-        position: pos,
-        rotation: rotationToTarget(pos, { x: window.position.x, y: window.position.y }),
-        fov: config.defaultFov,
-        label: "Centro stanza → finestra",
-      });
-    }
-  }
-
-  // Limita al numero richiesto
   return viewpoints.slice(0, config.defaultViewpoints);
 }
 
@@ -159,20 +140,30 @@ function findCorner(
  */
 function insetFromCorner(
   corner: Point,
-  polygon: Array<[number, number]>,
+  center: Point,
   inset: number
 ): Point {
-  const center = polygonCenter(polygon);
-  const dx = center.x - corner.x;
-  const dy = center.y - corner.y;
-  const len = Math.hypot(dx, dy);
-  if (len === 0) return corner;
-
-  const nx = dx / len;
-  const ny = dy / len;
-
   return {
-    x: corner.x + nx * inset * 2,
-    y: corner.y + ny * inset * 2,
+    // Muoviamo separatamente sugli assi: così anche una stanza stretta
+    // mantiene la distanza minima da entrambi i muri dell'angolo.
+    x: corner.x + Math.sign(center.x - corner.x) * inset,
+    y: corner.y + Math.sign(center.y - corner.y) * inset,
   };
+}
+
+function moveOpeningInside(
+  opening: FloorplanRoom["openings"][number],
+  distance: number
+): Point {
+  switch (opening.wall) {
+    case "north":
+      return { x: opening.position.x, y: opening.position.y + distance };
+    case "south":
+      return { x: opening.position.x, y: opening.position.y - distance };
+    case "east":
+      return { x: opening.position.x - distance, y: opening.position.y };
+    case "west":
+    default:
+      return { x: opening.position.x + distance, y: opening.position.y };
+  }
 }

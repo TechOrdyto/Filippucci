@@ -1,8 +1,8 @@
 // Tipi per il 2D Interior Camera Controller
 
 export interface CameraPosition {
-  x: number;          // metri, stesso sistema della planimetria
-  y: number;          // metri
+  x: number;          // unità della planimetria (il DXF resta in unità piano)
+  y: number;          // unità della planimetria (il DXF resta in unità piano)
   rotation: number;   // gradi, 0 = nord, 90 = est, 180 = sud, 270 = ovest
   fov: number;        // campo visivo in gradi (default 70)
   roomId: string;     // stanza in cui si trova la camera
@@ -12,6 +12,7 @@ export interface CameraContext {
   roomId: string;
   roomName: string;
   position: { x: number; y: number };
+  roomBounds?: { x: number; y: number; width: number; height: number };
   rotation: number;
   fov: number;
   viewDirection: { x: number; y: number };  // vettore normalizzato
@@ -28,7 +29,8 @@ export interface Viewpoint {
   position: { x: number; y: number };
   rotation: number;
   fov: number;
-  label: string;  // "Angolo sud-ovest → nord-est"
+  label: string;
+  kind?: "recommended" | "door" | "window" | "corner" | "center";
 }
 
 export interface Point {
@@ -38,7 +40,7 @@ export interface Point {
 
 // Configurazione camera
 export interface CameraConfig {
-  minDistanceFromWall: number;  // metri (default 0.30)
+  minDistanceFromWall: number;  // unità della planimetria
   defaultFov: number;           // gradi (default 70)
   defaultViewpoints: number;    // quanti viewpoint generare (default 4)
 }

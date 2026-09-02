@@ -1,0 +1,461 @@
+{
+  "id": "piano-rialzato-casa-enri",
+  "name": "Casa Enri · Demo Filippucci",
+  "width": 1563,
+  "height": 1361.6,
+  "source": "cad",
+  "rooms": [
+    {
+      "id": "room-1",
+      "name": "Ambiente 1",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            398,
+            96
+          ],
+          [
+            585,
+            96
+          ],
+          [
+            585,
+            325
+          ],
+          [
+            398,
+            325
+          ]
+        ]
+      },
+      "objectIds": []
+    },
+    {
+      "id": "room-2",
+      "name": "Ambiente 2",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            828,
+            96
+          ],
+          [
+            989,
+            96
+          ],
+          [
+            989,
+            225
+          ],
+          [
+            1018,
+            225
+          ],
+          [
+            1018,
+            319
+          ],
+          [
+            828,
+            319
+          ]
+        ]
+      },
+      "objectIds": []
+    },
+    {
+      "id": "room-3",
+      "name": "Ambiente 3",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            1032,
+            102
+          ],
+          [
+            1307,
+            102
+          ],
+          [
+            1307,
+            365
+          ],
+          [
+            1032,
+            365
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-2"
+      ]
+    },
+    {
+      "id": "room-4",
+      "name": "Ambiente 4",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            1318,
+            100
+          ],
+          [
+            1473,
+            100
+          ],
+          [
+            1473,
+            365
+          ],
+          [
+            1318,
+            365
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-1"
+      ]
+    },
+    {
+      "id": "room-5",
+      "name": "Ambiente 5",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            40,
+            370
+          ],
+          [
+            420,
+            370
+          ],
+          [
+            420,
+            657
+          ],
+          [
+            40,
+            657
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-3",
+        "obj-6"
+      ]
+    },
+    {
+      "id": "room-6",
+      "name": "Ambiente 6",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            40,
+            800
+          ],
+          [
+            420,
+            800
+          ],
+          [
+            420,
+            1205
+          ],
+          [
+            40,
+            1205
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-7",
+        "obj-11",
+        "obj-12"
+      ]
+    },
+    {
+      "id": "room-7",
+      "name": "Ambiente 7",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            590,
+            366
+          ],
+          [
+            958,
+            366
+          ],
+          [
+            958,
+            778
+          ],
+          [
+            590,
+            778
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-5",
+        "obj-9"
+      ]
+    },
+    {
+      "id": "room-8",
+      "name": "Ambiente 8",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            590,
+            915
+          ],
+          [
+            978,
+            915
+          ],
+          [
+            978,
+            1208
+          ],
+          [
+            590,
+            1208
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-10"
+      ]
+    },
+    {
+      "id": "room-9",
+      "name": "Ambiente 9",
+      "type": "room",
+      "geometry": {
+        "type": "polygon",
+        "points": [
+          [
+            1110,
+            496
+          ],
+          [
+            1471,
+            496
+          ],
+          [
+            1471,
+            770
+          ],
+          [
+            1110,
+            770
+          ]
+        ]
+      },
+      "objectIds": [
+        "obj-4",
+        "obj-8"
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj-1",
+      "name": "Elemento 6",
+      "type": "furniture-anchor",
+      "roomId": "room-4",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1372.4,
+        "y": 93.1,
+        "width": 106.9,
+        "height": 106.9
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-2",
+      "name": "Elemento 3",
+      "type": "furniture-anchor",
+      "roomId": "room-3",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1161.3,
+        "y": 292,
+        "width": 250,
+        "height": 100
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-3",
+      "name": "Elemento 9",
+      "type": "furniture-anchor",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 29.9,
+        "y": 374.5,
+        "width": 240,
+        "height": 283.2
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-4",
+      "name": "Elemento 4",
+      "type": "furniture-anchor",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1071.5,
+        "y": 461.6,
+        "width": 364.1,
+        "height": 205
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-5",
+      "name": "Elemento 2",
+      "type": "furniture-anchor",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 651,
+        "y": 477,
+        "width": 254,
+        "height": 132.9
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-6",
+      "name": "Elemento 10",
+      "type": "furniture-anchor",
+      "roomId": "room-5",
+      "geometry": {
+        "type": "rectangle",
+        "x": 373.1,
+        "y": 583.7,
+        "width": 56.2,
+        "height": 76.7
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-7",
+      "name": "Elemento 8",
+      "type": "furniture-anchor",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 30.8,
+        "y": 719.5,
+        "width": 397.8,
+        "height": 175.6
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-8",
+      "name": "Elemento 5",
+      "type": "furniture-anchor",
+      "roomId": "room-9",
+      "geometry": {
+        "type": "rectangle",
+        "x": 1143.1,
+        "y": 723.1,
+        "width": 312,
+        "height": 56
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-9",
+      "name": "Elemento 11",
+      "type": "furniture-anchor",
+      "roomId": "room-7",
+      "geometry": {
+        "type": "rectangle",
+        "x": 581.3,
+        "y": 790.6,
+        "width": 404,
+        "height": 46.4
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-10",
+      "name": "Elemento 12",
+      "type": "furniture-anchor",
+      "roomId": "room-8",
+      "geometry": {
+        "type": "rectangle",
+        "x": 678,
+        "y": 971.1,
+        "width": 210,
+        "height": 146.3
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-11",
+      "name": "Elemento 1",
+      "type": "furniture-anchor",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 359.3,
+        "y": 989.1,
+        "width": 80,
+        "height": 190.8
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    },
+    {
+      "id": "obj-12",
+      "name": "Elemento 7",
+      "type": "furniture-anchor",
+      "roomId": "room-6",
+      "geometry": {
+        "type": "rectangle",
+        "x": 32.2,
+        "y": 1121.4,
+        "width": 240,
+        "height": 73.5
+      },
+      "actions": [],
+      "source": "auto-anchor"
+    }
+  ]
+}

@@ -1,9 +1,12 @@
 "use client";
 
 import type { DesignProposal, Product } from "../lib/types";
+import { findProductById } from "../lib/catalog";
+import type { FloorPlan } from "../floorplan/types";
 
 interface DesignSummaryProps {
   proposal: DesignProposal;
+  model: FloorPlan;
   onRemoveSuggested?: (productId: string) => void;
 }
 
@@ -105,7 +108,7 @@ function readableLighting(value: string) {
   return labels[value] ?? value.replaceAll("-", " ");
 }
 
-export default function DesignSummary({ proposal, onRemoveSuggested }: DesignSummaryProps) {
+export default function DesignSummary({ proposal, model, onRemoveSuggested }: DesignSummaryProps) {
   return (
     <section className="panel rounded-2xl p-5 sm:p-6">
       <div className="mb-5 flex items-start justify-between gap-4">
@@ -139,6 +142,41 @@ export default function DesignSummary({ proposal, onRemoveSuggested }: DesignSum
           )}
         </div>
       </div>
+
+      {/* Associazioni tra ancore CAD e catalogo */}
+      {proposal.objectAssignments.length > 0 && (
+        <div className="mb-4">
+          <div className="eyebrow mb-2">Associazioni in pianta</div>
+          <div className="space-y-2">
+            {proposal.objectAssignments.map((assignment) => {
+              const object = model.objects.find((item) => item.id === assignment.objectId);
+              const room = object
+                ? model.rooms.find((item) => item.id === object.roomId)
+                : undefined;
+              const product = findProductById(assignment.productId);
+              if (!object || !product) return null;
+
+              return (
+                <div
+                  key={assignment.objectId}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-xs font-semibold text-[var(--text)]">
+                      {object.name}
+                    </span>
+                    <span className="shrink-0 text-xs text-[var(--text-soft)]">→</span>
+                    <span className="min-w-0 truncate text-right text-xs font-semibold text-[var(--accent-strong)]">
+                      {product.name}
+                    </span>
+                  </div>
+                  {room && <p className="mt-1 text-[10px] text-[var(--text-soft)]">{room.name}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stile */}
       <div className="mb-4">

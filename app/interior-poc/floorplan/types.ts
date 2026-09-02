@@ -1,7 +1,7 @@
 // Tipi core del modulo Planimetria
-// Sistema di coordinate: UNICO, in metri, coincidente con la planimetria
-// (width × height della casa). Tutte le geometrie appartengono a questo sistema.
-// La visualizzazione usa SVG con viewBox="0 0 width height".
+// Sistema di coordinate: unico e coincidente con la sorgente DXF.
+// Le geometrie restano nelle unità piano importate (viewBox SVG); la
+// conversione in metri avviene solo nei calcoli semantici della camera/API.
 
 export interface PolygonGeometry {
   type: "polygon";
@@ -93,13 +93,3 @@ export interface Selection {
   type: SelectionType;
   id: string;
 }
-
-/**
- * Modalità di selezione a due livelli (layer):
- * - "room": il click seleziona SOLO le stanze
- * - "object": il click seleziona SOLO gli elementi della stanza attiva
- *
- * Il flusso è: prima selezioni una stanza (modalità room), poi selezioni
- * gli elementi di quella stanza (modalità object).
- */
-export type SelectionMode = "room" | "object";

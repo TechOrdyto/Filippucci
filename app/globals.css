@@ -14,11 +14,15 @@
   --border-strong: #b7c5cc;
   --text: #25333a;
   --text-muted: #617078;
-  --text-soft: #8a989f;
+  --text-soft: #64767d;
   --accent: #5d7883;
   --accent-strong: #3f5c68;
   --accent-soft: #dce8ec;
+  --accent-ink: #3f5c68;
+  --action-hover: #5d7883;
   --success: #55796d;
+  --success-soft: #e3ece8;
+  --success-fill: rgba(85, 121, 109, 0.16);
   --danger: #a85d58;
   --shadow: 0 16px 40px rgba(42, 61, 70, 0.08);
   --room-living: #dfe9ed;
@@ -45,9 +49,13 @@
   --text-muted: #b2c0c5;
   --text-soft: #84949b;
   --accent: #9ab7c1;
-  --accent-strong: #70919d;
+  --accent-strong: #5a7a85;
   --accent-soft: #344950;
+  --accent-ink: #b6d1d8;
+  --action-hover: #4f6d77;
   --success: #9abcae;
+  --success-soft: #2d4039;
+  --success-fill: rgba(154, 188, 174, 0.18);
   --danger: #e19a91;
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
   --room-living: #405158;
@@ -87,7 +95,8 @@ input {
 
 button:focus-visible,
 textarea:focus-visible,
-input:focus-visible {
+input:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
@@ -168,7 +177,7 @@ input:focus-visible {
 }
 
 .primary-action:hover:not(:disabled) {
-  background: var(--accent);
+  background: var(--action-hover);
   transform: translateY(-1px);
   box-shadow: 0 12px 24px color-mix(in srgb, var(--accent-strong) 28%, transparent);
 }
@@ -217,7 +226,7 @@ input:focus-visible {
 }
 
 .soft-badge {
-  color: var(--accent-strong);
+  color: var(--accent-ink);
   background: var(--accent-soft);
 }
 

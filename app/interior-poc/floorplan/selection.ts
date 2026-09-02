@@ -1,12 +1,11 @@
-// Gestione centralizzata della selezione
-// Selezione a DUE livelli (layer):
-//   - modalità "room": il click considera SOLO le stanze
-//   - modalità "object": il click considera SOLO gli elementi della stanza attiva
+// Gestione centralizzata della selezione.
 //
-// L'hit-test delle stanze sceglie la stanza PIÙ PICCOLA che contiene il punto:
-// questo risolve le sovrapposizioni dei bounding box di regioni a forma di L.
+// La piantina mantiene un unico gesto: un click può selezionare direttamente
+// un elemento oppure, se il punto è libero, la stanza sottostante. Il focus
+// della camera viene poi aggiornato dal livello React che conosce il contesto
+// della sessione.
 
-import type { FloorPlan, Selection, SelectionMode } from "./types";
+import type { FloorPlan, Selection } from "./types";
 import { pointInGeometry, pointInPolygon } from "./geometry";
 
 function polygonArea(points: [number, number][]): number {
@@ -20,36 +19,20 @@ function polygonArea(points: [number, number][]): number {
 export function hitTest(
   model: FloorPlan,
   x: number,
-  y: number,
-  mode: SelectionMode,
-  activeRoomId: string | null
+  y: number
 ): Selection | null {
-  if (mode === "object") {
-    // Fase 2 — Elementi: solo quelli della stanza attiva
-    const objects = activeRoomId
-      ? model.objects.filter((o) => o.roomId === activeRoomId)
-      : [];
-    for (let i = objects.length - 1; i >= 0; i--) {
-      const obj = objects[i];
-      if (pointInGeometry(x, y, obj.geometry)) {
-        return { type: "object", id: obj.id };
-      }
+  // Gli elementi sono tutti interattivi. In caso di sovrapposizione, l'ultimo
+  // elemento del modello (quello disegnato sopra) riceve il click.
+  for (let i = model.objects.length - 1; i >= 0; i--) {
+    const obj = model.objects[i];
+    if (pointInGeometry(x, y, obj.geometry)) {
+      return { type: "object", id: obj.id };
     }
-
-    // Click dentro la stanza attiva ma non su un elemento:
-    // mantieni la stanza selezionata.
-    if (activeRoomId) {
-      const room = model.rooms.find((r) => r.id === activeRoomId);
-      if (room && pointInPolygon(x, y, room.geometry.points)) {
-        return { type: "room", id: room.id };
-      }
-    }
-
-    // Click fuori dalla stanza attiva → deseleziona
-    return null;
   }
 
-  // Fase 1 — Stanze: scegli la PIÙ PICCOLA che contiene il punto
+  // Se non c'è un elemento sotto il puntatore, seleziona la stanza più
+  // piccola che contiene il punto. Questo conserva il comportamento utile
+  // per i poligoni che si sovrappongono.
   let best: Selection | null = null;
   let bestArea = Infinity;
   for (const room of model.rooms) {

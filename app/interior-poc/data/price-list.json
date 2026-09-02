@@ -1,0 +1,10 @@
+{
+  "id": "filippucci-price-list-demo",
+  "name": "Listino demo Filippucci",
+  "brand": "Molteni&C",
+  "version": "0.1-demo",
+  "currency": "EUR",
+  "vatRate": 22,
+  "prices": [],
+  "notes": "Inserire i prezzi ufficiali prima dell'uso commerciale. Gli articoli senza riga prezzo vengono mostrati come 'Prezzo su richiesta'."
+}

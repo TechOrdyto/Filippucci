@@ -56,7 +56,7 @@ export default function ReferenceImagePicker({ onChange }: ReferenceImagePickerP
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-center gap-2">
-        <p className="eyebrow">Foto della stanza</p>
+        <p className="eyebrow">Foto di riferimento</p>
         <span className="text-[11px] text-[var(--text-soft)]">Facoltativa</span>
       </div>
 
@@ -65,11 +65,11 @@ export default function ReferenceImagePicker({ onChange }: ReferenceImagePickerP
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
-            alt="Anteprima della stanza caricata"
+            alt="Anteprima della foto di riferimento"
             className="h-20 w-28 shrink-0 rounded-lg object-cover"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[var(--text)]">Foto aggiunta</p>
+            <p className="text-xs font-semibold text-[var(--text)]">Foto caricata</p>
             <p className="mt-1 truncate text-[11px] text-[var(--text-muted)]">{fileName}</p>
             <button
               type="button"
@@ -99,8 +99,8 @@ export default function ReferenceImagePicker({ onChange }: ReferenceImagePickerP
             +
           </span>
           <span className="min-w-0">
-            <span className="block text-xs font-semibold text-[var(--text)]">Aggiungi una foto della stanza</span>
-            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">Clicca o trascina qui un’immagine del cliente · JPG, PNG o WEBP</span>
+            <span className="block text-xs font-semibold text-[var(--text)]">Aggiungi una foto di riferimento</span>
+            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">Clicca o trascina qui una foto dell’ambiente · JPG, PNG o WEBP</span>
           </span>
         </label>
       )}

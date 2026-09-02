@@ -10,10 +10,27 @@ export interface VectorLine {
   end: [number, number];
 }
 
+/**
+ * Metadato opzionale per porte/finestre fornito da un import CAD più ricco.
+ * L'attuale DXF-first continua a importare tutte le linee esattamente come
+ * prima; quando il file contiene questi dati, la camera può usarli per
+ * proporre punti di vista più utili.
+ */
+export interface FloorPlanOpeningHint {
+  id: string;
+  type: "door" | "window" | "french-door";
+  position: [number, number];
+  width: number;
+  height?: number;
+  wall: "north" | "south" | "east" | "west";
+  exposure?: "north" | "south" | "east" | "west";
+}
+
 export interface FloorPlanGeometry {
   width: number;
   height: number;
   vectorLines: VectorLine[];
+  openings?: FloorPlanOpeningHint[];
 }
 
 export interface FloorPlanSource {
@@ -28,6 +45,7 @@ interface DxfData {
     start: [number, number];
     end: [number, number];
   }>;
+  openings?: FloorPlanOpeningHint[];
 }
 
 /**
@@ -51,6 +69,7 @@ export class CadFloorPlanSource implements FloorPlanSource {
         start: l.start,
         end: l.end,
       })),
+      openings: this.data.openings ?? [],
     };
   }
 }

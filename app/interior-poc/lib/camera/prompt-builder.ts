@@ -25,15 +25,21 @@ export function buildCameraPromptSegment(ctx: CameraContext): string {
 function describePosition(ctx: CameraContext): string {
   const { x, y } = ctx.position;
   const room = ctx.roomName;
+  const normalizedX = ctx.roomBounds
+    ? (x - ctx.roomBounds.x) / Math.max(ctx.roomBounds.width, 1)
+    : x;
+  const normalizedY = ctx.roomBounds
+    ? (y - ctx.roomBounds.y) / Math.max(ctx.roomBounds.height, 1)
+    : y;
 
   // Posizione relativa: vicino a quale lato?
   const sides: string[] = [];
-  if (y < 0.33) sides.push("the north side");
-  else if (y > 0.66) sides.push("the south side");
+  if (normalizedY < 0.33) sides.push("the north side");
+  else if (normalizedY > 0.66) sides.push("the south side");
   else sides.push("the center");
 
-  if (x < 0.33) sides.push("the west side");
-  else if (x > 0.66) sides.push("the east side");
+  if (normalizedX < 0.33) sides.push("the west side");
+  else if (normalizedX > 0.66) sides.push("the east side");
 
   return sides.join(", ");
 }

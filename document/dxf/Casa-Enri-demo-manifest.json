@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "demo-candidate",
+  "sourceFile": "/Users/diego/Ordyto Progetti/Filippucci/document/dxf/Casa-Enri-lavoro-geometri.dxf",
+  "outputFile": "/Users/diego/Ordyto Progetti/Filippucci/document/dxf/Casa-Enri-demo-filippucci.dxf",
+  "coordinateSystem": "cm, Y ribaltata solo nell'import app; il DXF resta nelle coordinate CAD originali",
+  "classification": {
+    "walls": "Linee-04 → FP_WALLS",
+    "doors": "archi PROSP e sole linee PROSP collegate agli archi → FP_DOORS",
+    "windows": "non separati automaticamente: la sorgente li mescola con dettagli/scale in prosp1",
+    "rooms": "poligoni calibrati sui bordi interni dei muri per la demo Casa Enri; il fallback automatico resta disponibile per file senza calibrazione",
+    "objects": "polilinee rettangolari demo generate raggruppando la geometria dei layer arredo; tipo volutamente generico",
+    "untouched": "layer nativi conservati per poter correggere la classificazione senza perdere geometria"
+  },
+  "statistics": {
+    "sourceEntities": 2043,
+    "importedLines": 2773,
+    "rooms": 9,
+    "objects": 12,
+    "doors": 7,
+    "layerCounts": {
+      "arredi": 5,
+      "FP_WALLS": 214,
+      "Linee-04 → FP_WALLS": 214,
+      "prospMURI": 5,
+      "prosp1": 83,
+      "PROSP": 94,
+      "tratt": 1,
+      "FP_DOORS": 42,
+      "PROSP → FP_DOORS": 42,
+      "tratteggio-grigio": 43,
+      "Linee-04": 12,
+      "Quote": 14,
+      "Linee-02": 931,
+      "VISTE_01": 33,
+      "RETINI": 100,
+      "Linee-01": 28,
+      "linee_01": 14,
+      "RETINO-INOX": 1,
+      "linee_bianche": 14,
+      "Finestre": 1,
+      "RETINI Inox": 1,
+      "ARREDO": 13,
+      "04 ARREDI": 9,
+      "Linee-03": 4,
+      "retino_cristallo": 3,
+      "linee-bianche": 21,
+      "retino-fuochi": 346,
+      "RETINO-NOCE-SC": 11
+    }
+  },
+  "reviewBeforeClientDemo": [
+    "Controllare visivamente le ancore FP_OBJECTS e rimuovere eventuali falsi positivi non pertinenti.",
+    "La calibrazione delle nove aree è specifica per Casa Enri: per un altro DXF usare FP_ROOMS o una nuova calibrazione verificata.",
+    "Le finestre restano visibili nei layer nativi ma non sono ancora un layer FP_WINDOWS affidabile."
+  ]
+}

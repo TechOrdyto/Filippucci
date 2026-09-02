@@ -1,6 +1,8 @@
 import type { Product, ProductMention } from "./types";
 import catalogData from "../data/catalog.json";
 
+export const catalogBrand = "Molteni&C";
+
 export const catalog: Product[] = catalogData.products as Product[];
 
 export function findProductById(id: string): Product | undefined {
