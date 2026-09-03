@@ -3,6 +3,7 @@
 // Usa AI vision (gpt-4o-mini) — funziona ovunque, alta precisione per quote tecniche
 
 import type { OcrPageResult, OcrTextBlock } from "../ingestion/types";
+import { chatCompletionWithImage } from "../ai-client";
 
 export interface OcrOptions {
   lang?: string;
@@ -210,44 +211,14 @@ REGOLE CRITICHE:
 Se non riesci a leggere la piantina, rispondi con {"floorplan": null}.
 Rispondi SOLO con JSON valido, nessun altro testo.`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      // gpt-4o per floorplan e catalogo (più potente, meno allucinazioni)
-      // Il catalogo ha testo denso che gpt-4o-mini legge male
-      model: "gpt-4o",
-      temperature: 0.1,
-      max_tokens: 8192,
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            // detail: "high" per leggere il testo denso del catalogo
-            {
-              type: "image_url",
-              image_url: {
-                url: imageDataUrl,
-                detail: "high",
-              },
-            },
-          ],
-        },
-      ],
-    }),
+  // Usa il client AI unificato: prova opencode zen (gratuito) con fallback OpenAI
+  // Non passiamo il modello: opencode usa il suo default (mimo-v2.5-free),
+  // OpenAI usa gpt-4o (default nel client)
+  const aiResponse = await chatCompletionWithImage(systemPrompt, imageDataUrl, {
+    temperature: 0.1,
+    maxTokens: 8192,
   });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error?.message ?? `AI vision error ${res.status}`);
-  }
-
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content ?? "";
+  const content = aiResponse.content;
 
   // Per catalogo e floorplan, il contenuto è già JSON strutturato
   if (options.documentType === "catalog" || options.documentType === "floorplan") {
