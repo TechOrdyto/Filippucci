@@ -202,6 +202,7 @@ function buildCameraSection(scene: RenderSceneSpec): string {
   }
 
   const view = describeCameraView(scene);
+  const wallOrientation = describeWallOrientation(scene);
 
   return `CAMERA:
 - Position: x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m
@@ -211,7 +212,80 @@ function buildCameraSection(scene: RenderSceneSpec): string {
 - Camera height: ${formatMeters(camera.height)}m (eye level)
 - Room: ${camera.roomId}
 - Camera confirmed inside room: ${camera.insideRoom ? "true" : "false"}
-${view ? `- What the camera sees (in depth order): ${view}` : ""}`;
+${view ? `- What the camera sees (in depth order): ${view}` : ""}
+${wallOrientation ? `- Wall orientation relative to camera:\n${wallOrientation}` : ""}`;
+}
+
+/**
+ * Descrive l'ORIENTAMENTO dei muri della stanza rispetto alla camera.
+ * Il modello deve sapere quale muro è di fronte, quale a sinistra, quale a
+ * destra e quale dietro — altrimenti genera una stanza con angolatura
+ * sbagliata (orienta solo i mobili, non i muri).
+ */
+function describeWallOrientation(scene: RenderSceneSpec): string {
+  const camera = scene.camera;
+  const room = scene.room;
+  if (!camera || !room) return "";
+
+  const rad = (camera.rotation * Math.PI) / 180;
+  const forwardX = Math.sin(rad);
+  const forwardY = -Math.cos(rad);
+  const rightX = Math.cos(rad);
+  const rightY = Math.sin(rad);
+
+  // Raggruppa i muri per orientamento (north/south/east/west) e calcola
+  // la posizione relativa alla camera.
+  const wallGroups = new Map<string, { distance: number; count: number }>();
+
+  for (const wall of room.walls) {
+    const mx = (wall.start[0] + wall.end[0]) / 2;
+    const my = (wall.start[1] + wall.end[1]) / 2;
+    const dx = mx - camera.x;
+    const dy = my - camera.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < 0.01) continue;
+
+    const forwardDot = (dx * forwardX + dy * forwardY) / distance;
+    const rightDot = (dx * rightX + dy * rightY) / distance;
+
+    // Determina l'orientamento del muro (angolo del segmento)
+    const wallDx = wall.end[0] - wall.start[0];
+    const wallDy = wall.end[1] - wall.start[1];
+    const wallAngle = (Math.atan2(wallDy, wallDx) * 180) / Math.PI;
+    const normalized = ((wallAngle % 180) + 180) % 180;
+    const orientation =
+      normalized < 45 || normalized >= 135
+        ? "horizontal (east-west)"
+        : "vertical (north-south)";
+
+    // Posizione relativa alla camera
+    const position =
+      forwardDot > 0.5
+        ? "in front of the camera"
+        : forwardDot < -0.5
+          ? "behind the camera"
+          : rightDot > 0
+            ? "to the right of the camera"
+            : "to the left of the camera";
+
+    const key = `${orientation} · ${position}`;
+    const existing = wallGroups.get(key);
+    wallGroups.set(key, {
+      distance: existing ? Math.min(existing.distance, distance) : distance,
+      count: (existing?.count ?? 0) + 1,
+    });
+  }
+
+  if (wallGroups.size === 0) return "";
+
+  const lines = Array.from(wallGroups.entries())
+    .sort((a, b) => a[1].distance - b[1].distance)
+    .map(
+      ([key, value]) =>
+        `  - ${value.count} wall segment${value.count > 1 ? "s" : ""} ${key}, nearest at ${formatMeters(value.distance)}m`
+    );
+
+  return lines.join("\n");
 }
 
 /**
