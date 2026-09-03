@@ -201,6 +201,8 @@ function buildCameraSection(scene: RenderSceneSpec): string {
     return "CAMERA:\nNo camera selected. The render must not invent a viewpoint.";
   }
 
+  const view = describeCameraView(scene);
+
   return `CAMERA:
 - Position: x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m
 - Rotation: ${Math.round(camera.rotation)}° (0 = north, 90 = east, 180 = south, 270 = west)
@@ -208,7 +210,69 @@ function buildCameraSection(scene: RenderSceneSpec): string {
 - Field of view: ${Math.round(camera.fov)}°
 - Camera height: ${formatMeters(camera.height)}m (eye level)
 - Room: ${camera.roomId}
-- Camera confirmed inside room: ${camera.insideRoom ? "true" : "false"}`;
+- Camera confirmed inside room: ${camera.insideRoom ? "true" : "false"}
+${view ? `- What the camera sees (in depth order): ${view}` : ""}`;
+}
+
+/**
+ * Descrive cosa vede la camera: muri e mobili nel cono FOV, in ordine di
+ * profondità (dal più vicino al più lontano). Aiuta il modello a tradurre
+ * la mappa top-down 2D in una prospettiva 3D con l'angolatura corretta.
+ */
+function describeCameraView(scene: RenderSceneSpec): string {
+  const camera = scene.camera;
+  const room = scene.room;
+  if (!camera || !room) return "";
+
+  const rad = (camera.rotation * Math.PI) / 180;
+  const forwardX = Math.sin(rad);
+  const forwardY = -Math.cos(rad);
+  const rightX = Math.cos(rad);
+  const rightY = Math.sin(rad);
+  const fovHalf = (camera.fov * Math.PI) / 360;
+
+  // Muri visibili: per ogni segmento, calcola se interseca il cono FOV
+  // (approssimazione: il punto medio del muro deve essere nel cono).
+  const visibleWalls = room.walls
+    .map((wall) => {
+      const mx = (wall.start[0] + wall.end[0]) / 2;
+      const my = (wall.start[1] + wall.end[1]) / 2;
+      const dx = mx - camera.x;
+      const dy = my - camera.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < 0.01) return null;
+      const forwardDot = (dx * forwardX + dy * forwardY) / distance;
+      const rightDot = (dx * rightX + dy * rightY) / distance;
+      const angle = Math.atan2(rightDot, forwardDot);
+      if (Math.abs(angle) > fovHalf) return null;
+      return { distance, angle, id: wall.id };
+    })
+    .filter((wall): wall is { distance: number; angle: number; id: string } => wall !== null)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 3)
+    .map((wall) => `wall ${wall.id} at ${formatMeters(wall.distance)}m`);
+
+  // Mobili visibili: nel cono FOV, ordinati per distanza.
+  const visibleFurniture = scene.furnitureInstances
+    .map((instance) => {
+      const dx = instance.position.x - camera.x;
+      const dy = instance.position.y - camera.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < 0.01) return null;
+      const forwardDot = (dx * forwardX + dy * forwardY) / distance;
+      const rightDot = (dx * rightX + dy * rightY) / distance;
+      const angle = Math.atan2(rightDot, forwardDot);
+      if (Math.abs(angle) > fovHalf) return null;
+      return { distance, angle, name: instance.productName, id: instance.instanceId };
+    })
+    .filter((f): f is { distance: number; angle: number; name: string; id: string } => f !== null)
+    .sort((a, b) => a.distance - b.distance)
+    .map((f) => `${f.name} at ${formatMeters(f.distance)}m`);
+
+  const parts: string[] = [];
+  if (visibleFurniture.length) parts.push(`furniture: ${visibleFurniture.join(", ")}`);
+  if (visibleWalls.length) parts.push(`walls: ${visibleWalls.join(", ")}`);
+  return parts.join("; ");
 }
 
 function buildFurnitureManifestSection(scene: RenderSceneSpec): string {
