@@ -172,6 +172,13 @@ function buildRoomSection(scene: RenderSceneSpec): string {
         .join("\n")
     : "- none";
 
+  // Se non ci sono muri interni, dichiaralo esplicitamente: il modello non
+  // deve inventare muri fantasma dietro i mobili.
+  const wallsDescription =
+    room.walls.length > 0
+      ? `${room.walls.length} wall segments (see the top-down scene map for exact positions)`
+      : "no internal walls — the room is a single open space delimited only by its perimeter";
+
   return `ROOM:
 - Floorplan: ${scene.floorplanId}
 - Room: ${room.name} [${room.id}]${room.type ? `, type: ${room.type}` : ""}
@@ -181,7 +188,7 @@ function buildRoomSection(scene: RenderSceneSpec): string {
 - Depth: ${formatMeters(room.depth)}m
 - Area: ${formatMeters(room.area)} m²
 - Ceiling height: ${formatMeters(room.ceilingHeight)}m
-- Walls: ${room.walls.length} wall segments
+- Walls: ${wallsDescription}
 - Doors:
 ${doors}
 - Windows:
