@@ -171,6 +171,14 @@ export async function POST(request: Request) {
     // Il modello NON deve disegnare il testo "@Augusto"
     const cleanUserPrompt = cleanPrompt(body.prompt, products as any[]);
 
+    // 1c. Estrai le linee walls del DXF che delimitano la stanza selezionata.
+    // Il modello deve vedere DOVE sono i muri (e dove NON sono), così non
+    // inventa muri fantasma dietro i mobili. Filtro per bbox estesa della
+    // stanza: include il perimetro e le eventuali pareti interne/nicchie.
+    const sceneWalls = selectedModelRoom
+      ? extractRoomWalls(dxf, selectedModelRoom)
+      : [];
+
     const scene = buildRenderScene({
       model,
       roomId: selectedRoom?.id ?? null,
@@ -188,6 +196,7 @@ export async function POST(request: Request) {
       prompt: cleanUserPrompt,
       finishes: body.finishes,
       openings: sceneOpenings,
+      walls: sceneWalls,
     });
     const sceneValidation = validateRenderScene(scene);
     if (sceneValidation.errors.length > 0) {
@@ -319,6 +328,37 @@ function buildReferenceImageMapping(
   }
 
   return mapping;
+}
+
+/**
+ * Estrae le linee walls del DXF che delimitano la stanza selezionata.
+ * Filtro per bbox estesa della stanza (perimetro + pareti interne/nicchie).
+ * Le linee restano in unità piano (cm): la conversione in metri avviene in
+ * buildRenderScene.
+ */
+function extractRoomWalls(dxf: any, room: any): Array<{ id: string; start: [number, number]; end: [number, number] }> {
+  const pts = room.geometry.points as [number, number][];
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const minX = Math.min(...xs) - 15;
+  const maxX = Math.max(...xs) + 15;
+  const minY = Math.min(...ys) - 15;
+  const maxY = Math.max(...ys) + 15;
+
+  return (dxf.lines ?? [])
+    .filter((line: any) => line.layer === "walls")
+    .filter((line: any) => {
+      const [x1, y1] = line.start;
+      const [x2, y2] = line.end;
+      const nearX = (x: number) => x >= minX && x <= maxX;
+      const nearY = (y: number) => y >= minY && y <= maxY;
+      return (nearX(x1) && nearY(y1)) || (nearX(x2) && nearY(y2));
+    })
+    .map((line: any, index: number) => ({
+      id: line.id ?? `wall-${index}`,
+      start: line.start,
+      end: line.end,
+    }));
 }
 
 /**
@@ -647,6 +687,27 @@ async function buildSceneReferenceImage(
     })
     .join("");
 
+  // Muri reali del DXF: il modello deve vedere DOVE sono i muri (e dove NON
+  // sono), così non inventa muri fantasma dietro i mobili. Le linee sono già
+  // in metri nel contratto di scena.
+  const walls = (scene.room.walls ?? [])
+    .map((wall) => {
+      const start = mapPoint(wall.start[0], wall.start[1]);
+      const end = mapPoint(wall.end[0], wall.end[1]);
+      return (
+        "<line x1=\"" +
+        start.x +
+        "\" y1=\"" +
+        start.y +
+        "\" x2=\"" +
+        end.x +
+        "\" y2=\"" +
+        end.y +
+        "\" stroke=\"#1e293b\" stroke-width=\"14\" stroke-linecap=\"round\"/>"
+      );
+    })
+    .join("");
+
   const anchors = scene.objects
     .filter((object) => object.roomId === scene.room?.id)
     .map((object) => {
@@ -691,10 +752,11 @@ async function buildSceneReferenceImage(
       Math.round(scene.camera.rotation) +
       "° · FOV " +
       Math.round(scene.camera.fov) +
-      "° · green = catalog anchor</text>",
+      "° · dark lines = real walls · green = catalog anchor</text>",
     "<polygon points=\"" +
       roomPolygon +
       "\" fill=\"#edf2f7\" stroke=\"#334155\" stroke-width=\"8\" stroke-linejoin=\"round\"/>",
+    walls,
     openings,
     "<path d=\"M " +
       cameraPoint.x +
