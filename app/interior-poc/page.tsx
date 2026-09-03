@@ -17,7 +17,6 @@ import type {
 } from "./lib/types";
 import type { CameraPosition, Viewpoint } from "./lib/camera/types";
 import { generateViewpoints, DEFAULT_CAMERA_CONFIG } from "./lib/camera/viewpoints";
-import { buildCameraPrompt } from "./lib/camera/prompt-builder";
 import { CadFloorPlanSource, type FloorPlanOpeningHint } from "./floorplan/source";
 import { useFloorPlan } from "./floorplan/use-floor-plan";
 import { getObject } from "./floorplan/model";
@@ -416,38 +415,16 @@ export default function InteriorPocPage() {
       // La visuale resta quella scelta anche se l'utente torna al modo arredi
       // prima di premere "Genera render".
       const activeCamera = camera;
-      const finishPrompt = [
-        wallFinish.trim() ? `Pareti: ${wallFinish.trim()}.` : "",
-        floorFinish.trim() ? `Pavimento: ${floorFinish.trim()}.` : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      const designPrompt = [finishPrompt, prompt.trim()].filter(Boolean).join(" ");
-      const finalPrompt =
-        activeCamera && selectedRoom
-          ? buildCameraPrompt(
-              {
-                roomId: activeCamera.roomId,
-                roomName: selectedRoom.name,
-                position: { x: activeCamera.x, y: activeCamera.y },
-                roomBounds: boundsFromPolygon(selectedRoom.geometry.points),
-                rotation: activeCamera.rotation,
-                fov: activeCamera.fov,
-                viewDirection: {
-                  x: Math.cos(((activeCamera.rotation - 90) * Math.PI) / 180),
-                  y: Math.sin(((activeCamera.rotation - 90) * Math.PI) / 180),
-                },
-                visibilityContext: { facing: "room", distanceToWall: 0 },
-              },
-              designPrompt
-            )
-          : designPrompt;
+      // Il prompt canonico (server) costruisce la sezione CAMERA dal contratto
+      // di scena: qui inviamo solo le indicazioni utente pulite (senza mention
+      // tecniche @prodotto) e le finiture come campi separati.
+      const designPrompt = prompt.trim();
 
       const res = await fetch("/interior-poc/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: finalPrompt,
+          prompt: designPrompt,
           productIds: requestProductIds,
           explicitProductIds: explicitProducts.map((product) => (product as Product).id),
           floorplanId: model.id,
@@ -464,6 +441,7 @@ export default function InteriorPocPage() {
                 y: activeCamera.y,
                 rotation: activeCamera.rotation,
                 fov: activeCamera.fov,
+                height: activeCamera.height ?? 1.5,
               }
             : null,
         }),

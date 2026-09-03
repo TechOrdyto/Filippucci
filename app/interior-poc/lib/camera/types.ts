@@ -6,6 +6,7 @@ export interface CameraPosition {
   rotation: number;   // gradi, 0 = nord, 90 = est, 180 = sud, 270 = ovest
   fov: number;        // campo visivo in gradi (default 70)
   roomId: string;     // stanza in cui si trova la camera
+  height?: number;    // altezza camera in metri (default 1.5)
 }
 
 export interface CameraContext {

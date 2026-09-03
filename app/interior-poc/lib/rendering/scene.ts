@@ -1,60 +1,40 @@
+// Contratto di scena per la generazione render.
+//
+// Il contratto (RenderSceneSpec) è la ALLOWLIST ASSOLUTA per il modello
+// immagini: contiene tutto e solo ciò che può essere renderizzato.
+// Le tre fonti autorevoli:
+//   1. Planimetria  → stanza, muri, aperture, camera, posizione/ingombro arredi
+//   2. Catalogo     → identità, design, materiali, colori, dimensioni dei mobili
+//   3. Campi utente → finiture e indicazioni esplicitamente inserite dall'utente
+//
+// Tutte le misure geometriche sono in METRI (il DXF resta in unità piano/cm;
+// la conversione avviene qui con planUnitsToMeters).
+
 import type { CameraPosition } from "../../lib/camera/types";
 import { geometryBounds, geometryCenter, pointInPolygon } from "../../floorplan/geometry";
 import type { FloorPlan, Geometry } from "../../floorplan/types";
+import { planUnitsToMeters } from "../../floorplan/units";
 import type { ObjectProductAssignment, Product } from "../types";
+import { buildFurnitureInstances } from "./instances";
+import type {
+  FurnitureInstance,
+  RenderFinishes,
+  RenderSceneCamera,
+  RenderSceneObject,
+  RenderSceneOpening,
+  RenderSceneRoom,
+  RenderSceneSpec,
+} from "./types";
 
-export interface RenderFinishes {
-  walls: string | null;
-  floor: string | null;
-}
-
-export interface RenderSceneRoom {
-  id: string;
-  name: string;
-  polygon: [number, number][];
-  bounds: { x: number; y: number; width: number; height: number };
-  openings: RenderSceneOpening[];
-}
-
-export interface RenderSceneOpening {
-  id: string;
-  type: "door" | "window" | "french-door";
-  position: { x: number; y: number };
-  width: number;
-  height?: number;
-  wall: "north" | "south" | "east" | "west";
-  exposure?: "north" | "south" | "east" | "west";
-}
-
-export interface RenderSceneCamera {
-  x: number;
-  y: number;
-  rotation: number;
-  fov: number;
-  roomId: string;
-}
-
-export interface RenderSceneObject {
-  objectId: string;
-  roomId: string;
-  anchor: Geometry;
-  anchorCenter: { x: number; y: number };
-  productId: string;
-  productName: string;
-  productDimensions: Product["dimensions"];
-  catalogImage: string | null;
-}
-
-export interface RenderSceneSpec {
-  version: 1;
-  floorplanId: string;
-  prompt: string;
-  room: RenderSceneRoom | null;
-  camera: RenderSceneCamera | null;
-  objects: RenderSceneObject[];
-  finishes: RenderFinishes;
-  unresolvedAssignments: ObjectProductAssignment[];
-}
+export type {
+  FurnitureInstance,
+  RenderFinishes,
+  RenderSceneCamera,
+  RenderSceneObject,
+  RenderSceneOpening,
+  RenderSceneRoom,
+  RenderSceneSpec,
+} from "./types";
 
 export interface SceneValidation {
   errors: string[];
@@ -70,6 +50,8 @@ interface BuildRenderSceneInput {
   prompt: string;
   finishes?: Partial<RenderFinishes> | null;
   openings?: RenderSceneOpening[];
+  ceilingHeight?: number;
+  walls?: Array<{ id: string; start: [number, number]; end: [number, number] }>;
 }
 
 export function normalizeRenderFinishes(
@@ -90,6 +72,8 @@ export function buildRenderScene({
   prompt,
   finishes,
   openings = [],
+  ceilingHeight = 2.7,
+  walls = [],
 }: BuildRenderSceneInput): RenderSceneSpec {
   const room = model.rooms.find((candidate) => candidate.id === roomId) ?? null;
   const productById = new Map(products.map((product) => [product.id, product]));
@@ -105,12 +89,17 @@ export function buildRenderScene({
       return [];
     }
 
+    const anchorCenter = geometryCenter(object.geometry);
+
     return [
       {
         objectId: object.id,
         roomId: object.roomId,
         anchor: object.geometry,
-        anchorCenter: geometryCenter(object.geometry),
+        anchorCenter: {
+          x: planUnitsToMeters(anchorCenter.x),
+          y: planUnitsToMeters(anchorCenter.y),
+        },
         productId: product.id,
         productName: product.name,
         productDimensions: product.dimensions,
@@ -119,34 +108,132 @@ export function buildRenderScene({
     ];
   });
 
+  // Manifest delle istanze fisiche: una voce per ogni ancora CAD associata.
+  // La lista NON viene deduplicata (due ancore → due istanze dello stesso divano).
+  const { instances: furnitureInstances, unresolvedAssignments: unresolvedInstances } =
+    buildFurnitureInstances({ model, assignments, products });
+  for (const unresolved of unresolvedInstances) {
+    if (!unresolvedAssignments.some((a) => a.objectId === unresolved.objectId)) {
+      unresolvedAssignments.push(unresolved);
+    }
+  }
+
+  const roomOpenings = room
+    ? openings.filter((opening) =>
+        pointInPolygon(opening.position.x, opening.position.y, room.geometry.points)
+      )
+    : [];
+
+  const renderRoom: RenderSceneRoom | null = room
+    ? buildRenderRoom(room, roomOpenings, ceilingHeight, walls)
+    : null;
+
+  const renderCamera: RenderSceneCamera | null = camera
+    ? buildRenderCamera(camera, renderRoom)
+    : null;
+
   return {
-    version: 1,
+    version: 2,
     floorplanId: model.id,
     prompt: prompt.trim(),
-    room: room
-      ? {
-          id: room.id,
-          name: room.name,
-          polygon: room.geometry.points,
-          bounds: geometryBounds(room.geometry),
-          openings: openings.filter((opening) =>
-            pointInPolygon(opening.position.x, opening.position.y, room.geometry.points)
-          ),
-        }
-      : null,
-    camera: camera
-      ? {
-          x: camera.x,
-          y: camera.y,
-          rotation: camera.rotation,
-          fov: camera.fov,
-          roomId: camera.roomId,
-        }
-      : null,
+    userDirection: prompt.trim(),
+    room: renderRoom,
+    camera: renderCamera,
     objects,
+    furnitureInstances,
     finishes: normalizeRenderFinishes(finishes),
     unresolvedAssignments,
   };
+}
+
+function buildRenderRoom(
+  room: FloorPlan["rooms"][number],
+  openings: RenderSceneOpening[],
+  ceilingHeight: number,
+  walls: Array<{ id: string; start: [number, number]; end: [number, number] }>
+): RenderSceneRoom {
+  const bounds = geometryBounds(room.geometry);
+  const width = planUnitsToMeters(bounds.width);
+  const depth = planUnitsToMeters(bounds.height);
+  const area = width * depth;
+
+  // Le aperture arrivano in unità piano (cm): convertiamo in metri.
+  const openingsInMeters: RenderSceneOpening[] = openings.map((opening) => ({
+    ...opening,
+    position: {
+      x: planUnitsToMeters(opening.position.x),
+      y: planUnitsToMeters(opening.position.y),
+    },
+    width: planUnitsToMeters(opening.width),
+    height: opening.height !== undefined ? planUnitsToMeters(opening.height) : undefined,
+  }));
+
+  const doors = openingsInMeters.filter(
+    (opening) => opening.type === "door" || opening.type === "french-door"
+  );
+  const windows = openingsInMeters.filter((opening) => opening.type === "window");
+
+  return {
+    id: room.id,
+    name: room.name,
+    type: room.type,
+    polygon: room.geometry.points.map(([x, y]) => [planUnitsToMeters(x), planUnitsToMeters(y)]),
+    bounds: {
+      x: planUnitsToMeters(bounds.x),
+      y: planUnitsToMeters(bounds.y),
+      width,
+      height: depth,
+    },
+    width,
+    depth,
+    area: Math.round(area * 100) / 100,
+    ceilingHeight,
+    walls: walls.map((wall) => ({
+      id: wall.id,
+      start: [planUnitsToMeters(wall.start[0]), planUnitsToMeters(wall.start[1])],
+      end: [planUnitsToMeters(wall.end[0]), planUnitsToMeters(wall.end[1])],
+    })),
+    doors,
+    windows,
+    openings: openingsInMeters,
+  };
+}
+
+function buildRenderCamera(
+  camera: CameraPosition,
+  room: RenderSceneRoom | null
+): RenderSceneCamera {
+  const cameraX = planUnitsToMeters(camera.x);
+  const cameraY = planUnitsToMeters(camera.y);
+  const insideRoom = room
+    ? pointInPolygon(cameraX, cameraY, room.polygon)
+    : false;
+
+  return {
+    x: cameraX,
+    y: cameraY,
+    rotation: camera.rotation,
+    direction: describeDirection(camera.rotation),
+    fov: camera.fov,
+    height: camera.height ?? 1.5,
+    roomId: camera.roomId,
+    insideRoom,
+  };
+}
+
+function describeDirection(rotation: number): string {
+  const dirs = [
+    "north",
+    "north-east",
+    "east",
+    "south-east",
+    "south",
+    "south-west",
+    "west",
+    "north-west",
+  ];
+  const idx = Math.round(rotation / 45) % 8;
+  return dirs[idx];
 }
 
 export function validateRenderScene(scene: RenderSceneSpec): SceneValidation {
@@ -165,7 +252,7 @@ export function validateRenderScene(scene: RenderSceneSpec): SceneValidation {
     if (scene.camera.roomId !== scene.room.id) {
       errors.push("La camera selezionata non appartiene alla stanza attiva.");
     }
-    if (!pointInPolygon(scene.camera.x, scene.camera.y, scene.room.polygon)) {
+    if (!scene.camera.insideRoom) {
       errors.push("Il punto della camera è fuori dalla stanza selezionata.");
     }
     if (scene.camera.fov < 35 || scene.camera.fov > 100) {
@@ -238,6 +325,7 @@ export function formatRenderScene(scene: RenderSceneSpec): string {
 - Wall finish: ${scene.finishes.walls ?? "not specified"}
 - Floor finish: ${scene.finishes.floor ?? "not specified"}
 - Catalog anchors: ${objects}
+- Furniture instances: ${scene.furnitureInstances.length}
 Treat this scene contract as the source of truth. Do not move the camera, change the room proportions, or substitute an assigned catalog product.`;
 }
 
@@ -247,7 +335,7 @@ function normalizeFinish(value?: string | null): string | null {
 }
 
 function roundPlanValue(value: number): string {
-  return (value / 100).toFixed(2);
+  return (Math.round(value * 100) / 100).toFixed(2);
 }
 
 function pointInGeometry(px: number, py: number, polygon: [number, number][]): boolean {
