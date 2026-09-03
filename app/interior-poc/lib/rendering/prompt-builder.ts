@@ -433,22 +433,29 @@ function buildProhibitionsSection(scene: RenderSceneSpec): string {
 - Do NOT add, remove, merge or duplicate furniture instances (exactly ${count} instances).
 - Do NOT substitute any catalog product with generic or similar furniture.
 - Do NOT change colors, materials, proportions or design of the catalog products.
-- Do NOT add furniture, decor, plants, rugs, curtains, drapes, blinds or objects not listed in the manifest.
+- Do NOT add furniture, decor, plants, rugs, curtains, drapes, blinds, tables, chairs, lamps, shelves or objects not listed in the manifest.
 - Do NOT add curtains, drapes or window treatments of any kind unless explicitly listed in ROOM FINISHES or USER RENDER DIRECTION.
 - Do NOT render rooms other than the selected room.
 - Do NOT change the room geometry, proportions, depth or openings.
 - Do NOT move the camera or change the viewpoint.
-- The top-down scene map is authoritative for the room shape, wall positions, furniture footprints and their placement. Match the perspective depth and furniture positions to that map.`;
+- The top-down scene map is authoritative for the room shape, wall positions, furniture footprints and their placement. Match the perspective depth, camera angle and furniture positions to that map.
+- The furniture dimensions in FURNITURE INSTANCE MANIFEST are authoritative. Scale each piece to fit the room: a ${count > 0 ? "sofa" : "piece"} must not exceed the room width or depth.`;
 }
 
 function buildOutputInstructionSection(scene: RenderSceneSpec): string {
   const camera = scene.camera;
+  const room = scene.room;
   const viewpoint = camera
     ? `Render the interior from the exact camera position and direction described in CAMERA (x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m, rotation ${Math.round(camera.rotation)}°, FOV ${Math.round(camera.fov)}°).`
     : "Render the interior from a natural eye-level viewpoint inside the room.";
 
+  const depth = room
+    ? `The room is ${formatMeters(room.width)}m wide and ${formatMeters(room.depth)}m deep. Render the perspective depth accurately: the far wall must appear at the correct distance, and furniture must be scaled to fit the room dimensions.`
+    : "";
+
   return `OUTPUT INSTRUCTION:
 ${viewpoint}
+${depth}
 Photorealistic interior render, professional architectural photography, natural daylight, realistic materials, accurate room proportions, high quality.`;
 }
 

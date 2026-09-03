@@ -525,6 +525,10 @@ async function editImageWithReferences(
   form.append("prompt", prompt);
   form.append("size", "1536x1024");
   form.append("quality", "medium");
+  // input_fidelity=high forza il modello a rispettare fedelmente le immagini
+  // di input (la mappa top-down di scena): geometria, posizione mobili,
+  // angolatura e profondità devono combaciare con la piantina.
+  form.append("input_fidelity", "high");
 
   // Aggiungi le immagini dei prodotti come riferimento
   for (const img of productImages) {
