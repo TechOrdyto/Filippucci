@@ -1,0 +1,36 @@
+{
+  "id": "augusto",
+  "name": "AUGUSTO",
+  "designer": "Vincent Van Duysen",
+  "year": 2019,
+  "category": "Sofas",
+  "collection": "Divani",
+  "description": "Il divano Augusto si evolve nella sua versione modulare, continuando a esplorare i contrasti tra le linee classiche del passato e il gusto attuale. Il desiderio dichiarato del designer belga è di 'trasferire l'atemporalità di Augusto in un sistema modulare', contemplando la grande novità di composizioni circolari grazie ai moduli curvilinei in grado di creare comode sedute attorno ad un cerchio di conversazione. La chiave estetica senza tempo del divano, caratterizzata dall'elegante piping che ne definisce le forme, rimane intatta. Gli elementi modulari del sistema comprendono elementi laterali e centrali, chaise lounge e isole per una zona di completo relax, e moduli curvilinei.",
+  "materials": {
+    "struttura": "Struttura metallica con cinghie elastiche",
+    "imbottitura": "Poliuretano espanso ad alta portanza e densità variabile",
+    "rivestimento": "Tessuto o pelle della gamma Molteni&C"
+  },
+  "finishes": {
+    "rivestimento": ["tessuto", "pelle"]
+  },
+  "variants": [
+    {
+      "code": "AUG-01",
+      "type": "divano 2 posti",
+      "dimensions": { "width": 240, "depth": 105, "height": 85 }
+    },
+    {
+      "code": "AUG-02",
+      "type": "divano 3 posti",
+      "dimensions": { "width": 300, "depth": 105, "height": 85 }
+    }
+  ],
+  "images": ["/products/augusto/augusto-1.png"],
+  "source": {
+    "catalog": "2025_CT_Sofas_IT-EN.pdf",
+    "pages": [26],
+    "priceList": null,
+    "priceListPages": []
+  }
+}

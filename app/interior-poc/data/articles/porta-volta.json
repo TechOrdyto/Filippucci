@@ -1,0 +1,77 @@
+{
+  "id": "porta-volta",
+  "name": "PORTA VOLTA",
+  "designer": "Herzog & de Meuron",
+  "year": 2023,
+  "category": "Chairs",
+  "collection": "Sedie",
+  "description": "La sedia Porta Volta by Herzog & de Meuron segna un nuovo capitolo nella collaborazione tra lo storico brand Molteni&C e lo studio di architettura di fama internazionale. La sedia evidenzia il rapporto tra la seduta imbottita e lo schienale rigido, elemento principale del design. Lo schienale segue il perimetro della seduta a formare una U, spingendosi in avanti per creare i braccioli, mentre una giunzione a pettine, formata da tre elementi a forma di U intrecciati, lo collega al telaio sottostante e alle gambe. La struttura è realizzata con legno massello di alta qualità.",
+  "materials": {
+    "rivestimenti": "Tessuto, pelle della gamma Molteni&C. Edizione speciale in velluto mohair",
+    "struttura": "Legno massello di frassino tinto: eucalipto, rovere nero, rovere sunrise, rovere grafite, rovere caffé",
+    "strutturaNoce": "Legno massello di noce canaletto",
+    "sedileSchienale": "Supporto in multistrato di legno con imbottitura in poliuretano a densità variabile, fodera in vellutino accoppiato, cotone e fibra poliestere"
+  },
+  "finishes": {
+    "struttura": ["eucalipto", "rovere nero", "rovere sunrise", "rovere grafite", "rovere caffé", "noce canaletto"],
+    "rivestimento": ["tessuto", "pelle", "velluto mohair"],
+    "mohairColori": ["royal blue", "sunflower yellow", "silver grey", "daisy pink"]
+  },
+  "variants": [
+    {
+      "code": "PSE1",
+      "type": "sedia dining",
+      "dimensions": { "width": 63.5, "depth": 63.5, "height": 80 },
+      "weightKg": 13,
+      "volumeMc": 0.32,
+      "colli": 1,
+      "prices": {
+        "tessuto": { "B": 1483, "A": 1493, "K": 1500, "W": 1510, "Z": 1515 },
+        "pelle": { "P": 1547, "L": 1615, "S": 1647, "U": 1716 },
+        "tessutoMt": { "U": 1763 }
+      }
+    },
+    {
+      "code": "PSB1",
+      "type": "sedia low chair",
+      "dimensions": { "width": 63.5, "depth": 63.5, "height": 75 },
+      "weightKg": 13,
+      "volumeMc": 0.32,
+      "colli": 1,
+      "prices": {
+        "tessuto": { "B": 1573, "A": 1584, "K": 1589, "W": 1599, "Z": 1605 },
+        "pelle": { "P": 1637, "L": 1699, "S": 1731, "U": 1800 },
+        "tessutoMt": { "U": 1842 }
+      }
+    },
+    {
+      "code": "PSI1",
+      "type": "schienale imbottito (noce)",
+      "dimensions": { "width": 63.5, "depth": 63.5, "height": 80 },
+      "weightKg": 13,
+      "volumeMc": 0.32,
+      "colli": 1,
+      "prices": {
+        "tessuto": { "B": 1984, "A": 1996, "K": 2001, "W": 2011, "Z": 2021 },
+        "pelle": { "P": 2048, "L": 2117, "S": 2143, "U": 2212 },
+        "tessutoMt": { "U": 2254 }
+      }
+    }
+  ],
+  "upholsteryPrices": {
+    "RIV/PSE1-RIV/PSB1": { "O": 211, "B": 221, "A": 227, "K": 238, "W": 248, "Z": 285, "P": 332, "L": 364, "S": 444, "U": 496 },
+    "RIV/PSI1": { "O": 206, "B": 216, "A": 221, "K": 233, "W": 238, "Z": 264, "P": 306, "L": 332, "S": 391, "U": 427 }
+  },
+  "notes": [
+    "A richiesta tutti gli elementi sono producibili utilizzando una pelle speciale antibatterica e antivirale denominata 'L ECO' con sovrapprezzo del 5%",
+    "Nella compilazione dell'ordine specificare la finitura della struttura",
+    "Specificare il rivestimento di seduta e dello schienale imbottito"
+  ],
+  "images": ["/products/porta-volta/porta-volta-1.png"],
+  "source": {
+    "catalog": "2025_CT_Dining_IT-EN.pdf",
+    "pages": [113],
+    "priceList": "2026_PL_Living-Systems-Dining_IT_EUR.pdf",
+    "priceListPages": [434, 435]
+  }
+}

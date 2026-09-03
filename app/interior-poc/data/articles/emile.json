@@ -1,0 +1,36 @@
+{
+  "id": "emile",
+  "name": "EMILE",
+  "designer": "Christophe Delcourt",
+  "year": 2020,
+  "category": "Sofas",
+  "collection": "Divani",
+  "description": "Progettato per rispondere alle più variegate esigenze degli spazi living contemporanei, Emile è caratterizzato da segni grafici distintivi, che percorrono i fianchi, il fronte e l'elegante schienale. Offre una serie di moduli abbinabili e connettibili, permettendo la creazione di configurazioni personalizzabili caratterizzate da comodità e morbidezza: sistemi di seduta vis-à-vis, circolari o semicircolari, oppure configurazioni più lineari. L'uso di grandi cuscini liberi offre la possibilità di adattare il comfort a seconda delle preferenze di ogni ospite.",
+  "materials": {
+    "struttura": "Legno massello e pannelli di particelle di legno",
+    "imbottitura": "Poliuretano espanso ad alta portanza e densità variabile",
+    "rivestimento": "Tessuto o pelle della gamma Molteni&C"
+  },
+  "finishes": {
+    "rivestimento": ["tessuto", "pelle"]
+  },
+  "variants": [
+    {
+      "code": "EMI-01",
+      "type": "divano 2 posti",
+      "dimensions": { "width": 220, "depth": 100, "height": 80 }
+    },
+    {
+      "code": "EMI-02",
+      "type": "divano 3 posti",
+      "dimensions": { "width": 280, "depth": 100, "height": 80 }
+    }
+  ],
+  "images": ["/products/emile/emile-1.png"],
+  "source": {
+    "catalog": "2025_CT_Sofas_IT-EN.pdf",
+    "pages": [9],
+    "priceList": null,
+    "priceListPages": []
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "id": "glove",
+  "name": "GLOVE",
+  "designer": "Patricia Urquiola",
+  "year": 2005,
+  "category": "Chairs",
+  "collection": "Sedie",
+  "description": "Sedute anticonvenzionali, pensate come aeree superfici elastiche al servizio del comfort. Una struttura tecnologica accoppiata a strategiche imbottiture, Glove ha vinto The Chicago Athenaeum Good Design Award 2007. Disponibile in pelle o tessuto, è caratterizzata da forme fluide e profili continui, dove il dettaglio di una curva genera il disegno senza aggiunte o accessori.",
+  "materials": {
+    "seduta": "Acciaio piegato e saldato con verniciatura protettiva",
+    "scocca": "Materiale termoplastico con inserto in poliuretano espanso",
+    "piedini": "Materiale plastico antiscivolo"
+  },
+  "finishes": {
+    "rivestimento": ["tessuto", "pelle"],
+    "zip": ["nero", "bianco"]
+  },
+  "variants": [
+    {
+      "code": "GSE1",
+      "type": "sedia",
+      "dimensions": { "width": 48, "depth": 52, "height": 79 },
+      "weightKg": 8.5,
+      "volumeMc": 0.184,
+      "colli": 1,
+      "prices": {
+        "tessuto": { "B": 658, "A": 695, "K": 732, "W": 775, "Z": 828 },
+        "pelle": { "P": 956, "L": 1182, "S": 1301, "U": 1403 },
+        "tessutoMt": { "U": 1508 }
+      }
+    }
+  ],
+  "upholsteryPrices": {
+    "RIV/GSE1": { "O": 289, "B": 329, "A": 367, "K": 413, "W": 466, "Z": 598, "P": 811, "L": 943, "S": 1048, "U": 1152 }
+  },
+  "notes": [
+    "La zip di chiusura situata nella parte posteriore delle sedie Glove costituisce un dettaglio essenziale per delineare la silhouette dell'oggetto",
+    "La zip è disponibile in due colori: nero e bianco",
+    "A richiesta tutti gli elementi sono producibili utilizzando una pelle speciale antibatterica e antivirale denominata 'L ECO' con sovrapprezzo del 5%"
+  ],
+  "images": ["/products/glove/glove-1.png", "/products/glove/glove-2.png"],
+  "source": {
+    "catalog": "2025_CT_Dining_IT-EN.pdf",
+    "pages": [119, 121],
+    "priceList": "2026_PL_Living-Systems-Dining_IT_EUR.pdf",
+    "priceListPages": [422, 423]
+  }
+}

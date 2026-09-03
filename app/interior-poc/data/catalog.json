@@ -24,9 +24,7 @@
         "Eclipse"
       ],
       "images": [
-        "/products/MOL-TAB-1-1.png",
-        "/products/MOL-TAB-1-2.png",
-        "/products/MOL-TAB-1-3.png"
+        "/products/blevio/blevio-1.png"
       ],
       "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=22",
       "price": null
@@ -54,7 +52,7 @@
         "legno"
       ],
       "images": [
-        "/products/arc.png"
+        "/products/arc/arc-1.png"
       ],
       "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=92",
       "price": null
@@ -115,7 +113,8 @@
         "legno"
       ],
       "images": [
-        "/products/glove.png"
+        "/products/glove/glove-1.png",
+        "/products/glove/glove-2.png"
       ],
       "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=234",
       "price": null
@@ -144,7 +143,7 @@
         "legno"
       ],
       "images": [
-        "/products/porta-volta.png"
+        "/products/porta-volta/porta-volta-1.png"
       ],
       "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=222",
       "price": null
@@ -178,7 +177,7 @@
         "Whim WL313"
       ],
       "images": [
-        "/products/sofas/cropped/emile.png"
+        "/products/emile/emile-1.png"
       ],
       "catalogRef": "2025_CT_Sofas_IT-EN.pdf#page=14",
       "price": null
@@ -214,7 +213,7 @@
         "Kolo KI142"
       ],
       "images": [
-        "/products/sofas/cropped/augusto.png"
+        "/products/augusto/augusto-1.png"
       ],
       "catalogRef": "2025_CT_Sofas_IT-EN.pdf#page=48",
       "price": null

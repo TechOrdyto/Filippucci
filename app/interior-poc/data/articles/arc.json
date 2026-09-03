@@ -1,0 +1,107 @@
+{
+  "id": "arc",
+  "name": "ARC",
+  "designer": "Foster + Partners",
+  "year": 2010,
+  "category": "Tables",
+  "collection": "Tavoli",
+  "description": "Un tavolo scultura che ripropone le forme delle tensostrutture. Il tavolo Arc incorpora diversi concetti innovativi che lo distinguono. La forma del basamento si ispira alle tecnostrutture spesso utilizzate nei moderni edifici, il materiale utilizzato: un nuovo cemento 'leggero' che nel suo impasto incorpora il colore ed uno speciale materiale fibroso che permette di ottenere strutture resistenti caratterizzate da un basso peso specifico. Arc è disponibile con piani rotondi e ovali in vetro o in marmo.",
+  "materials": {
+    "basamento": "Composto di cemento e fibre organiche, stampato in un unico blocco e colorato in massa",
+    "piedini": "Materiale plastico antiscivolo",
+    "pianoVetro": "Cristallo trasparente extrachiaro o fumé temperato Sp. 12 mm con bisello (esclusi AT02 e AT05)",
+    "pianoMarmo": "Bianco Carrara, calacatta, emperador dark, grigio oriente, nero marquina, silver wave, verde alpi, Sahara noir, rosso lepanto, maldive white, avocadus green — Sp. 20 mm con trattamento antimacchia idrorepellente"
+  },
+  "finishes": {
+    "basamento": ["bianco", "bronzo", "grigio", "nero", "mattone"],
+    "pianoVetro": ["vetro trasparente extrachiaro", "vetro fumé"],
+    "pianoMarmo": ["nero marquina", "bianco Carrara", "emperador dark", "grigio oriente", "silver wave", "verde alpi"],
+    "pianoMarmoSpeciale": ["Sahara noir", "calacatta", "rosso lepanto", "maldive white", "avocadus green"]
+  },
+  "variants": [
+    {
+      "code": "ATT1",
+      "type": "tavolo rotondo",
+      "dimensions": { "diameter": 130 },
+      "prices": {
+        "vetro": 3944,
+        "marmo": 4026,
+        "marmoSpeciale": 4109
+      }
+    },
+    {
+      "code": "ATT2",
+      "type": "tavolo rotondo",
+      "dimensions": { "diameter": 140 },
+      "prices": {
+        "vetro": 4459,
+        "marmo": 4712,
+        "marmoSpeciale": 4823
+      }
+    },
+    {
+      "code": "ATT3",
+      "type": "tavolo rotondo",
+      "dimensions": { "diameter": 150 },
+      "prices": {
+        "vetro": 5501,
+        "marmo": 5061,
+        "marmoSpeciale": 5467
+      }
+    },
+    {
+      "code": "ATT4",
+      "type": "tavolo rotondo",
+      "dimensions": { "diameter": 160 },
+      "prices": {
+        "vetro": 6005,
+        "marmo": 5467,
+        "marmoSpeciale": 6005
+      }
+    },
+    {
+      "code": "AT01",
+      "type": "tavolo ovale",
+      "dimensions": { "width": 130, "depth": 220 },
+      "prices": {
+        "vetro": 5574,
+        "marmo": 5825
+      }
+    },
+    {
+      "code": "AT03",
+      "type": "tavolo ovale",
+      "dimensions": { "width": 120, "depth": 180 },
+      "prices": {
+        "vetro": 4355,
+        "marmo": 4355,
+        "marmoSpeciale": 4770
+      }
+    },
+    {
+      "code": "AT04",
+      "type": "tavolo ovale",
+      "dimensions": { "width": 140, "depth": 260 },
+      "prices": {
+        "vetro": 6076,
+        "marmo": 6819
+      }
+    },
+    {
+      "code": "AT05",
+      "type": "tavolo ovale",
+      "dimensions": { "width": 140, "depth": 300 },
+      "prices": {
+        "vetro": 9920,
+        "marmo": 10570
+      }
+    }
+  ],
+  "images": ["/products/arc/arc-1.png"],
+  "source": {
+    "catalog": "2025_CT_Dining_IT-EN.pdf",
+    "pages": [48],
+    "priceList": "2026_PL_Living-Systems-Dining_IT_EUR.pdf",
+    "priceListPages": [308, 309]
+  }
+}

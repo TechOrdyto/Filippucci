@@ -385,5 +385,11 @@
       417,
       418
     ]
-  }
+  },
+  "images": [
+    "/products/devon/devon-chair-square.png",
+    "/products/devon/devon-p1-right-square.png",
+    "/products/devon/devon-p2-main-square.png",
+    "/products/devon/devon-p3-right-square.png"
+  ]
 }

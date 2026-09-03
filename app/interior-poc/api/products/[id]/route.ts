@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canAccess } from "@/lib/auth/roles";
 import { findProductById } from "../../../lib/catalog";
-import { devon, findDevonVariant, getDevonPriceRange } from "../../../lib/devon";
+import { findArticleData, getVariantPriceRange } from "../../../lib/articles";
 
 export const runtime = "nodejs";
 
 /**
  * GET /api/products/[id]
  * Restituisce i dati completi di un prodotto del catalogo.
- * Per DEVON include la base dati completa: varianti, misure, prezzi,
- * rivestimenti e finiture (dal listino prezzi).
+ * Include la base dati completa (varianti, misure, prezzi, rivestimenti,
+ * finiture) per gli articoli che hanno un file dati in data/articles/.
  */
 export async function GET(
   _request: Request,
@@ -32,15 +32,15 @@ export async function GET(
       return NextResponse.json({ error: "Prodotto non trovato" }, { status: 404 });
     }
 
-    // Base dati estesa per DEVON (varianti, prezzi, misure dal listino)
-    const isDevon = product.name.toLowerCase() === "devon";
-    const extendedData = isDevon
+    // Base dati estesa per gli articoli con file dati
+    const articleData = findArticleData(product.name);
+    const extendedData = articleData
       ? {
-          devon: {
-            ...devon,
-            variants: devon.variants.map((v) => ({
+          article: {
+            ...articleData,
+            variants: articleData.variants.map((v) => ({
               ...v,
-              priceRange: getDevonPriceRange(v.code),
+              priceRange: getVariantPriceRange(v),
             })),
           },
         }
