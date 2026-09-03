@@ -708,20 +708,32 @@ async function buildSceneReferenceImage(
     })
     .join("");
 
+  // Mobili come INGOMBRI REALI (rettangoli con le dimensioni del catalogo,
+  // orientati secondo l'ancora CAD). Il modello deve vedere DOVE e QUANTO è
+  // grande ogni mobile nella stanza, non un semplice puntino.
   const anchors = scene.objects
     .filter((object) => object.roomId === scene.room?.id)
     .map((object) => {
-      const point = mapPoint(object.anchorCenter.x, object.anchorCenter.y);
+      const center = mapPoint(object.anchorCenter.x, object.anchorCenter.y);
+      const dims = object.productDimensions;
+      const w = dims?.width ? (dims.width / 100) * scale : 40;
+      const d = dims?.depth ? (dims.depth / 100) * scale : 30;
+      const x = center.x - w / 2;
+      const y = center.y - d / 2;
       return (
-        "<circle cx=\"" +
-        point.x +
-        "\" cy=\"" +
-        point.y +
-        "\" r=\"12\" fill=\"#c8ff00\" stroke=\"#10181d\" stroke-width=\"4\"/>" +
-        "<text x=\"" +
-        (point.x + 18) +
+        "<rect x=\"" +
+        x +
         "\" y=\"" +
-        (point.y + 5) +
+        y +
+        "\" width=\"" +
+        w +
+        "\" height=\"" +
+        d +
+        "\" rx=\"6\" fill=\"#c8ff00\" fill-opacity=\"0.55\" stroke=\"#10181d\" stroke-width=\"4\"/>" +
+        "<text x=\"" +
+        (center.x + 14) +
+        "\" y=\"" +
+        (center.y + 5) +
         "\" class=\"anchor-label\">" +
         escapeXml(object.productName) +
         "</text>"
@@ -752,7 +764,7 @@ async function buildSceneReferenceImage(
       Math.round(scene.camera.rotation) +
       "° · FOV " +
       Math.round(scene.camera.fov) +
-      "° · dark lines = real walls · green = catalog anchor</text>",
+      "° · dark lines = real walls · green rectangles = furniture footprints</text>",
     "<polygon points=\"" +
       roomPolygon +
       "\" fill=\"#edf2f7\" stroke=\"#334155\" stroke-width=\"8\" stroke-linejoin=\"round\"/>",
