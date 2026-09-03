@@ -10,10 +10,10 @@ import { pointInPolygon } from "../../floorplan/geometry";
 import type { ObjectProductAssignment, Product } from "../../lib/types";
 import {
   buildRenderScene,
-  formatRenderScene,
   validateRenderScene,
 } from "../../lib/rendering/scene";
 import type { RenderSceneSpec } from "../../lib/rendering/scene";
+import { buildCanonicalPrompt } from "../../lib/rendering/prompt-builder";
 
 const rules = designerRules as any;
 
@@ -167,21 +167,6 @@ export async function POST(request: Request) {
       .map((id) => findProductById(id))
       .filter(Boolean);
 
-    // 2a. Gli elementi inclusi nel render devono appartenere all'ambiente
-    // selezionato; le associazioni di altre stanze restano salvate nel client.
-    const selectedObjectIds = Array.from(
-      new Set([
-        ...(body.objectIds ?? []),
-        ...objectAssignments.map((assignment) => assignment.objectId),
-      ])
-    ).filter((id) => {
-      const object = model.objects.find((candidate: any) => candidate.id === id);
-      return Boolean(object && (!selectedRoom || object.roomId === selectedRoom.id));
-    });
-    const selectedObjects = selectedObjectIds
-      .map((id) => model.objects.find((object: any) => object.id === id))
-      .filter(Boolean);
-
     // 1b. Pulisci il prompt: rimuovi le mention @ (es. "@Augusto di fianco")
     // Il modello NON deve disegnare il testo "@Augusto"
     const cleanUserPrompt = cleanPrompt(body.prompt, products as any[]);
@@ -215,30 +200,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Costruisci il prompt vincolato (per il log e il riferimento)
-    const generationPrompt = buildGenerationPrompt({
-      prompt: cleanUserPrompt,
-      products: products as any[],
-      floorplan,
-      rules,
-      selectedRoom: selectedRoom ?? null,
-      selectedObjects,
-      objectAssignments,
-      camera: body.camera ?? null,
+    // 2. Costruisci il prompt canonico: UNICO testo effettivamente inviato
+    // a OpenAI. Non esiste più un "prompt per il log" diverso dal provider:
+    // `providerPrompt` È il testo inviato; `debugPrompt` è la versione estesa
+    // diagnostica; `scene` è il contratto strutturato della scena.
+    const canonical = buildCanonicalPrompt({
       scene,
+      designerRules: rules,
+      referenceImages: buildReferenceImageMapping(scene, products as any[], objectAssignments),
     });
-
-    // Prompt compatto per il provider: contiene comunque stanza e camera,
-    // così la visuale scelta nella piantina non resta solo un'indicazione UI.
-    const providerPrompt = buildProviderImagePrompt({
-      prompt: cleanUserPrompt,
-      products: products as any[],
-      selectedRoom: selectedRoom ?? null,
-      selectedObjects,
-      objectAssignments,
-      camera: body.camera ?? null,
-      scene,
-    });
+    const providerPrompt = canonical.providerPrompt;
+    const debugPrompt = canonical.debugPrompt;
 
     // 3. Genera l'immagine
     // Usa OpenAI gpt-image-2 (se configurato) o Pollinations (gratuito)
@@ -289,7 +261,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       imageUrl,
       provider,
-      prompt: generationPrompt,
+      prompt: providerPrompt,
+      providerPrompt,
+      debugPrompt,
       scene,
       warnings: generationWarnings,
     });
@@ -302,241 +276,49 @@ export async function POST(request: Request) {
   }
 }
 
-function buildGenerationPrompt({
-  prompt,
-  products,
-  floorplan,
-  rules,
-  selectedRoom,
-  selectedObjects,
-  objectAssignments,
-  camera,
-  scene,
-}: {
-  prompt: string;
-  products: any[];
-  floorplan: any;
-  rules: any;
-  selectedRoom: any | null;
-  selectedObjects: any[];
-  objectAssignments: ResolvedObjectAssignment[];
-  camera: { x: number; y: number; rotation: number; fov: number } | null;
-  scene: ReturnType<typeof buildRenderScene>;
-}): string {
-  const sections: string[] = [];
+/**
+ * Costruisce la mappa delle immagini di riferimento per la sezione
+ * REFERENCE IMAGE MAPPING del prompt canonico.
+ * La mappa top-down di scena è sempre la prima immagine; le foto prodotto
+ * seguono (deduplicate per prodotto, non per istanza).
+ * I nomi file devono corrispondere ESATTAMENTE a quelli inviati al provider
+ * (vedi loadProductImages: `<anchorIds>-<productId>.png` oppure `<productId>.png`).
+ */
+function buildReferenceImageMapping(
+  scene: RenderSceneSpec,
+  products: any[],
+  objectAssignments: ResolvedObjectAssignment[] = []
+): Array<{ name: string; label: string }> {
+  const mapping: Array<{ name: string; label: string }> = [];
 
-  // Sezione 1: Appartamento (contesto generale)
-  sections.push(`APARTMENT CONTEXT:
-- Property: ${floorplan.name}
-- Total dimensions: ${floorplan.dimensions.width}m × ${floorplan.dimensions.height}m
-- Ceiling height: ${floorplan.ceilingHeight}m
-- Total rooms: ${floorplan.rooms.length}
-- Rooms: ${floorplan.rooms.map((r: any) => `${r.name} (${r.area}m²)`).join(", ")}`);
-
-  // Sezione 1b: Stanza selezionata (geometria dettagliata)
-  if (selectedRoom) {
-    const polygon = selectedRoom.polygon
-      ? selectedRoom.polygon.map(([x, y]: [number, number]) => `(${x}, ${y})`).join(" → ")
-      : `rectangle ${selectedRoom.bounds.width}m × ${selectedRoom.bounds.height}m`;
-
-    const roomOpenings = (selectedRoom.openings ?? [])
-      .map(
-        (o: any) =>
-          `${o.type} ${o.width}m on ${o.wall} wall (${o.exposure} exposure)`
-      )
-      .join("; ");
-
-    // Stanze confinanti (calcolo approssimativo per adiacenza)
-    const adjacent = floorplan.rooms
-      .filter((r: any) => r.id !== selectedRoom.id)
-      .map((r: any) => r.name);
-
-    sections.push(`SELECTED ROOM — THIS IS THE ROOM TO RENDER:
-- Room: ${selectedRoom.name}
-- Area: ${selectedRoom.area} m²
-- Shape: ${polygon}
-- Openings in this room: ${roomOpenings || "none"}
-- Adjacent rooms: ${adjacent.slice(0, 5).join(", ")}
-
-CRITICAL: The render MUST show ONLY this room (${selectedRoom.name}), viewed from the camera position described below. The room shape, proportions and openings MUST match the geometry above.`);
+  if (scene.room && scene.camera) {
+    mapping.push({
+      name: "floorplan-scene-reference.png",
+      label: `authoritative top-down scene map of ${scene.room.name} (room, openings, camera cone, furniture anchors)`,
+    });
   }
 
-  // Sezione 1c: Posizione camera
-  if (camera) {
-    const dirs = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
-    const dirIdx = Math.round(camera.rotation / 45) % 8;
-    const direction = dirs[dirIdx];
-
-    sections.push(`CAMERA POSITION:
-- Position: x=${roundMeters(planUnitsToMeters(camera.x))}m, y=${roundMeters(planUnitsToMeters(camera.y))}m (inside the room)
-- Looking direction: ${direction} (${camera.rotation}°)
-- Field of view: ${camera.fov}°
-- The camera is INSIDE the room, at eye level (~1.5m from floor)
-
-CRITICAL: The image MUST be rendered from THIS camera position, looking in THIS direction. The composition must reflect this point of view.`);
-  }
-
-  if (selectedObjects.length > 0) {
-    sections.push(`SELECTED EXISTING ELEMENTS FROM THE FLOORPLAN:
-${selectedObjects
-  .map((object: any) => {
-    const geometry = object.geometry;
-    const description =
-      geometry?.type === "rectangle"
-        ? `rectangle at (${roundMeters(planUnitsToMeters(geometry.x))}m, ${roundMeters(
-            planUnitsToMeters(geometry.y)
-          )}m), ${roundMeters(planUnitsToMeters(geometry.width))}m wide × ${roundMeters(
-            planUnitsToMeters(geometry.height)
-          )}m deep`
-        : geometry?.type ?? "geometry from floorplan";
-    return `- ${object.name} (${object.type}), ${description}`;
-  })
-  .join("\n")}
-Preserve these existing elements when they fall within the selected camera view.`);
-  }
-
-  if (objectAssignments.length > 0) {
-    sections.push(`EXPLICIT CATALOG ASSOCIATIONS (AUTHORITATIVE):
-${objectAssignments
-  .map((assignment) => {
-    const roomName = assignment.room?.name ?? "stanza non identificata";
-    return `- Floorplan element ${assignment.object.name} [${assignment.object.id}] in ${roomName} → use exactly [${assignment.product.id}] ${assignment.product.name} by ${assignment.product.designer}`;
-  })
-  .join("\n")}
-These associations are explicit placement instructions. Replace the generic CAD anchor with the assigned catalog product at the same position and preserve its scale, orientation and spatial relationship to the room.`);
-  }
-
-  // Sezione 2: Prodotti vincolanti
-  if (products.length > 0) {
-    sections.push(`MANDATORY FURNITURE (DO NOT MODIFY, DO NOT SUBSTITUTE):
-${products
-  .map(
-    (p) => `- [${p.id}] ${p.name} by ${p.designer}
-  Dimensions: ${p.dimensions.width}cm W × ${p.dimensions.depth}cm D × ${p.dimensions.height}cm H
-  Materials: ${p.materials.join(", ")}
-  Finishes: ${p.finishes.join(", ")}
-  Description: ${p.descriptionForAI}`
-  )
-  .join("\n")}
-
-CRITICAL: These products MUST appear exactly as described. Do not invent similar furniture. Do not change colors or materials.`);
-
-    sections.push(`CRITICAL CONSTRAINT: The furniture listed above is from the Molteni&C catalog and MUST be rendered faithfully. Do NOT substitute with generic or similar furniture. Do NOT invent furniture not listed.`);
-  }
-
-  // Sezione 3: Regole designer
-  sections.push(`DESIGNER RULES:
-- Style: ${rules.style.primary} (avoid: ${rules.style.avoid.join(", ")})
-- Preferred materials: ${rules.materials.preferred.join(", ")}
-- Avoid materials: ${rules.materials.avoid.join(", ")}
-- Color palette: ${rules.colorPalette.preferred.join(", ")}
-- Accents allowed: ${rules.colorPalette.accentAllowed.join(", ")}
-- Atmosphere: ${rules.atmosphere.brightness}, ${rules.atmosphere.warmth}, ${rules.atmosphere.formality}
-- ${rules.aiInstructions}`);
-
-  // Sezione 4: Prompt utente
-  sections.push(`USER REQUEST:
-${prompt}`);
-
-  sections.push(formatRenderScene(scene));
-
-  // Sezione 5: Vincoli di rendering
-  sections.push(`RENDERING CONSTRAINTS:
-- Photorealistic interior photography
-- Natural daylight from windows
-- Maintain accurate 1:1 scale proportions
-- Architecturally plausible space
-- Professional interior photography composition
-- DO NOT add non-existent architectural elements
-- DO NOT invent furniture not listed above
-- DO NOT change product colors or materials
-- No cartoon, deformed, or plastic-looking furniture`);
-
-  return sections.join("\n\n");
-}
-
-function buildProviderImagePrompt({
-  prompt,
-  products,
-  selectedRoom,
-  selectedObjects,
-  objectAssignments,
-  camera,
-  scene,
-}: {
-  prompt: string;
-  products: any[];
-  selectedRoom: any | null;
-  selectedObjects: any[];
-  objectAssignments: ResolvedObjectAssignment[];
-  camera: { x: number; y: number; rotation: number; fov: number } | null;
-  scene: ReturnType<typeof buildRenderScene>;
-}): string {
-  const parts: string[] = [prompt.trim()];
-
-  if (selectedRoom) {
-    parts.push(
-      `Render only the room ${selectedRoom.name}; preserve its proportions and architectural openings. ` +
-        `Room shape coordinates in meters: ${selectedRoom.polygon
-          ?.map(([x, y]: [number, number]) => `(${x},${y})`)
-          .join(" ") ?? "not available"}.`
+  for (const product of products) {
+    const instances = scene.furnitureInstances.filter(
+      (instance) => instance.productId === product.id
     );
+    const anchorIds = objectAssignments
+      .filter((assignment) => assignment.product.id === product.id)
+      .map((assignment) => assignment.objectId);
+    const fileName =
+      anchorIds.length > 0
+        ? `${anchorIds.join("-")}-${product.id}.png`
+        : `${product.id}.png`;
+    const label = instances.length
+      ? `${instances.length} instance${instances.length > 1 ? "s" : ""} of ${product.name} (${product.id})`
+      : `${product.name} (${product.id})`;
+    mapping.push({
+      name: fileName,
+      label,
+    });
   }
 
-  if (camera) {
-    const dirs = [
-      "north",
-      "north-east",
-      "east",
-      "south-east",
-      "south",
-      "south-west",
-      "west",
-      "north-west",
-    ];
-    const direction = dirs[Math.round(camera.rotation / 45) % dirs.length];
-    parts.push(
-      `Use an interior camera positioned at ${roundMeters(planUnitsToMeters(camera.x))}m, ${roundMeters(
-        planUnitsToMeters(camera.y)
-      )}m in the floorplan, looking ${direction}; field of view ${camera.fov} degrees. ` +
-        "Keep the composition consistent with this exact viewpoint."
-    );
-  }
-
-  if (selectedObjects.length > 0) {
-    parts.push(
-      `Preserve the selected existing floorplan elements in the scene: ${selectedObjects
-        .map((object) => object.name)
-        .join(", ")}.`
-    );
-  }
-
-  if (objectAssignments.length > 0) {
-    parts.push(
-      `Use these exact catalog assignments at the corresponding floorplan anchors: ${objectAssignments
-        .map(
-          (assignment) =>
-            `${assignment.object.name} in ${assignment.room?.name ?? "the selected room"} → ${assignment.product.name}`
-        )
-        .join(", ")}. Keep each product in the anchor's original position and orientation.`
-    );
-  }
-
-  if (products.length > 0) {
-    parts.push(
-      `Include these exact furniture pieces: ${products
-        .map((product) => `${product.name} (${product.descriptionForAI?.slice(0, 140) ?? ""})`)
-        .join(", ")}.`
-    );
-  }
-
-  parts.push(formatRenderScene(scene));
-
-  parts.push(
-    "Photorealistic interior render, professional architectural photography, natural daylight, realistic materials, accurate room proportions."
-  );
-
-  return parts.filter(Boolean).join(". ");
+  return mapping;
 }
 
 /**
@@ -891,7 +673,7 @@ async function buildSceneReferenceImage(
       width +
       "\" height=\"" +
       height +
-      "\" viewBox=\"0 0 \"" +
+      "\" viewBox=\"0 0 " +
       width +
       " " +
       height +

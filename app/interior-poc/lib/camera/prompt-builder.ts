@@ -1,5 +1,9 @@
 // Prompt Builder: trasforma CameraContext in testo per il prompt di generazione
 // Separazione netta: la camera non conosce l'API, il prompt non conosce la camera
+//
+// Nota: il prompt canonico (lib/rendering/prompt-builder.ts) è l'UNICA fonte
+// del testo inviato a OpenAI. Questo modulo resta come formatter della
+// sezione CAMERA, invocato dal builder canonico.
 
 import type { CameraContext } from "./types";
 
@@ -17,6 +21,25 @@ export function buildCameraPromptSegment(ctx: CameraContext): string {
     `facing ${facing}.`,
     `Field of view: ${ctx.fov} degrees.`,
   ].join(" ");
+}
+
+/**
+ * Formatta la sezione CAMERA del prompt canonico in formato strutturato.
+ * Usata da lib/rendering/prompt-builder.ts.
+ */
+export function formatCameraSection(ctx: CameraContext): string {
+  const direction = describeDirection(ctx.rotation);
+  const facing = describeFacing(ctx.visibilityContext);
+  const position = describePosition(ctx);
+
+  return [
+    `CAMERA:`,
+    `- Position: ${position} of the ${ctx.roomName}`,
+    `- Looking direction: ${direction} (${Math.round(ctx.rotation)}°)`,
+    `- Facing: ${facing}`,
+    `- Field of view: ${Math.round(ctx.fov)}°`,
+    `- Camera height: 1.5m (eye level)`,
+  ].join("\n");
 }
 
 /**
