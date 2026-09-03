@@ -214,6 +214,7 @@ function buildCameraSection(scene: RenderSceneSpec): string {
 function buildFurnitureManifestSection(scene: RenderSceneSpec): string {
   const instances = scene.furnitureInstances;
   const count = instances.length;
+  const camera = scene.camera;
 
   const lines = instances.map((instance, index) => {
     const dims = instance.footprint
@@ -221,11 +222,14 @@ function buildFurnitureManifestSection(scene: RenderSceneSpec): string {
       : "dimensions not available";
     const materials = instance.materials.length ? instance.materials.join(", ") : "not specified";
     const finishes = instance.finishes.length ? instance.finishes.join(", ") : "not specified";
+    const relative = camera
+      ? describeRelativePosition(instance.position, camera)
+      : "";
     return `- [I${index + 1}] ${instance.productId} — ${instance.productName} by ${instance.productDesigner}
   Anchor: ${instance.anchorId} at (${formatMeters(instance.position.x)}m, ${formatMeters(instance.position.y)}m)
   Footprint: ${dims}
   Materials: ${materials}
-  Finishes: ${finishes}`;
+  Finishes: ${finishes}${relative ? `\n  Relative to camera: ${relative}` : ""}`;
   });
 
   return `FURNITURE INSTANCE MANIFEST:
@@ -234,6 +238,39 @@ The scene contains exactly ${count} furniture instances.
 Render exactly ${count} furniture instances.
 Do not duplicate, remove, merge or invent any furniture instance.
 ${lines.length ? lines.join("\n") : "- No furniture instances in this scene."}`;
+}
+
+/**
+ * Descrive la posizione di un mobile rispetto alla camera (distanza e lato).
+ * Aiuta il modello a collocare il mobile correttamente nella prospettiva.
+ */
+function describeRelativePosition(
+  position: { x: number; y: number },
+  camera: { x: number; y: number; rotation: number }
+): string {
+  const dx = position.x - camera.x;
+  const dy = position.y - camera.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Direzione della camera: rotation 0 = nord (y negativo), 90 = est (x positivo)
+  const rad = (camera.rotation * Math.PI) / 180;
+  const forwardX = Math.sin(rad);
+  const forwardY = -Math.cos(rad);
+  const rightX = Math.cos(rad);
+  const rightY = Math.sin(rad);
+
+  const forwardDot = dx * forwardX + dy * forwardY;
+  const rightDot = dx * rightX + dy * rightY;
+
+  const depth = forwardDot >= 0 ? "in front of the camera" : "behind the camera";
+  const side =
+    Math.abs(rightDot) < 0.5
+      ? "centered"
+      : rightDot > 0
+        ? "to the right of the camera view"
+        : "to the left of the camera view";
+
+  return `${depth}, ${side}, approximately ${formatMeters(distance)}m from the camera`;
 }
 
 function buildReferenceImageSection(input: CanonicalPromptInput): string {
@@ -332,10 +369,12 @@ function buildProhibitionsSection(scene: RenderSceneSpec): string {
 - Do NOT add, remove, merge or duplicate furniture instances (exactly ${count} instances).
 - Do NOT substitute any catalog product with generic or similar furniture.
 - Do NOT change colors, materials, proportions or design of the catalog products.
-- Do NOT add furniture, decor, plants, rugs or objects not listed in the manifest.
+- Do NOT add furniture, decor, plants, rugs, curtains, drapes, blinds or objects not listed in the manifest.
+- Do NOT add curtains, drapes or window treatments of any kind unless explicitly listed in ROOM FINISHES or USER RENDER DIRECTION.
 - Do NOT render rooms other than the selected room.
-- Do NOT change the room geometry, proportions or openings.
-- Do NOT move the camera or change the viewpoint.`;
+- Do NOT change the room geometry, proportions, depth or openings.
+- Do NOT move the camera or change the viewpoint.
+- The top-down scene map is authoritative for the room shape, wall positions, furniture footprints and their placement. Match the perspective depth and furniture positions to that map.`;
 }
 
 function buildOutputInstructionSection(scene: RenderSceneSpec): string {
