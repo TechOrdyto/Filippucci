@@ -78,6 +78,7 @@ export interface InterpretedProduct {
     bbox: { x: number; y: number; width: number; height: number };
     verified: boolean;
     pageNumber: number;
+    source?: "embedded-pdf" | "ai" | "content" | "deterministic";
   }>;
 }
 

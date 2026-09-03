@@ -23,6 +23,7 @@ bash scripts/start-ocr-server.sh   # PaddleOCR su localhost:8001
 | `npm run dev` | Dev server |
 | `npm run lint` | Typecheck (`tsc --noEmit`) |
 | `npm run build` | Build di produzione |
+| `node scripts/extract-product-images.mjs <pdf> <output-dir> [max-pages]` | Estrae i ritagli fotografici nativi dalle pagine prodotto |
 | `node scripts/hash-password.mjs <pw>` | Hash bcrypt per `lib/auth/users.ts` |
 
 ## Struttura
@@ -34,6 +35,15 @@ bash scripts/start-ocr-server.sh   # PaddleOCR su localhost:8001
 - `app/interior-poc/pipeline/ocr/` — sidecar FastAPI PaddleOCR.
 - `data/` — sorgenti di verità (DXF, modello, catalogo, regole designer).
 - `scripts/` — utility (import DXF, crop immagini, OCR server, ecc.).
+
+### Estrazione immagini catalogo
+
+`scripts/extract-product-images.mjs` individua le immagini raster incorporate nel
+PDF tramite gli operatori PDF, scarta i compositi a pagina intera che possono
+contenere testo editoriale e ritaglia solo le aree fotografiche. Se il quarto
+argomento viene omesso analizza tutte le pagine del PDF. La stessa verifica viene
+usata dalla saga di ingestione: i bbox AI/euristici restano diagnostici e non
+vengono pubblicati come immagini prodotto non verificate.
 
 ## Documentazione per gli agenti AI
 

@@ -17,6 +17,258 @@ export interface CropResult {
   method: "deterministic" | "fallback";
 }
 
+export interface EmbeddedPdfImageRegion extends CropRegion {
+  imageIndex: number;
+  sourceWidth: number;
+  sourceHeight: number;
+}
+
+type PdfJsModule = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
+type PdfDocument = Awaited<ReturnType<PdfJsModule["getDocument"]>["promise"]>;
+type PdfContext = { pdfjs: PdfJsModule; pdf: PdfDocument };
+
+// La saga analizza molte pagine dello stesso PDF: riaprire il documento PDF.js
+// per ogni pagina è molto costoso. WeakMap evita di trattenere il PDF oltre la
+// durata della richiesta senza duplicare il parsing durante l'ingestione.
+const pdfContextCache = new WeakMap<object, Promise<PdfContext>>();
+
+/**
+ * Estrae le regioni delle immagini raster realmente presenti nel PDF.
+ *
+ * I cataloghi Molteni sono impaginati come spread: testo e foto sono oggetti
+ * distinti nel PDF. Usare le matrici degli operatori PDF consente quindi di
+ * ritagliare la sola area fotografica, senza confondere il testo della pagina
+ * con il mobile come fa un detector basato sulla varianza dei pixel.
+ */
+export async function findEmbeddedPdfImageRegions(
+  pdfData: Buffer | Uint8Array,
+  pageNumber: number
+): Promise<EmbeddedPdfImageRegion[]> {
+  try {
+    const cacheKey = pdfData as object;
+    let contextPromise = pdfContextCache.get(cacheKey);
+    if (!contextPromise) {
+      contextPromise = import("pdfjs-dist/legacy/build/pdf.mjs").then(async (pdfjs) => ({
+        pdfjs,
+        pdf: await pdfjs.getDocument({ data: new Uint8Array(pdfData) }).promise,
+      }));
+      pdfContextCache.set(cacheKey, contextPromise);
+    }
+    const { pdfjs, pdf } = await contextPromise;
+
+    if (pageNumber < 1 || pageNumber > pdf.numPages) return [];
+
+    const page = await pdf.getPage(pageNumber);
+    const [pageX0, pageY0, pageX1, pageY1] = page.view;
+    const pageWidth = pageX1 - pageX0;
+    const pageHeight = pageY1 - pageY0;
+    if (pageWidth <= 0 || pageHeight <= 0) return [];
+
+    const operatorList = await page.getOperatorList();
+    const OPS = pdfjs.OPS;
+    let transform: Matrix = [1, 0, 0, 1, 0, 0];
+    const transformStack: Matrix[] = [];
+    const regions: EmbeddedPdfImageRegion[] = [];
+
+    for (let i = 0; i < operatorList.fnArray.length; i++) {
+      const fn = operatorList.fnArray[i];
+      const args = operatorList.argsArray[i] as unknown;
+
+      if (fn === OPS.save) {
+        transformStack.push(transform);
+        continue;
+      }
+      if (fn === OPS.restore) {
+        transform = transformStack.pop() ?? transform;
+        continue;
+      }
+      if (fn === OPS.transform && isMatrix(args)) {
+        transform = multiplyMatrices(transform, args);
+        continue;
+      }
+      if (fn !== OPS.paintImageXObject || !Array.isArray(args)) continue;
+
+      const sourceWidth = typeof args[1] === "number" ? args[1] : 0;
+      const sourceHeight = typeof args[2] === "number" ? args[2] : 0;
+      const region = matrixToCropRegion(
+        transform,
+        pageX0,
+        pageY0,
+        pageWidth,
+        pageHeight
+      );
+      if (!region || !isUsefulEmbeddedRegion(region, sourceWidth, sourceHeight)) {
+        continue;
+      }
+
+      regions.push({
+        ...region,
+        imageIndex: regions.length + 1,
+        sourceWidth,
+        sourceHeight,
+      });
+    }
+
+    return mergeAdjacentEmbeddedRegions(regions).filter(
+      (region) => !isLikelyFullPageComposite(region)
+    );
+  } catch {
+    // La pipeline può continuare con il fallback per PDF non compatibili.
+    return [];
+  }
+}
+
+/** Verifica un bbox percentuale restituito da un provider esterno. */
+export function isValidCropRegion(region: Partial<CropRegion> | null | undefined): region is CropRegion {
+  if (!region) return false;
+  const { x, y, width, height } = region;
+  const values = [x, y, width, height];
+  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) {
+    return false;
+  }
+  const [safeX, safeY, safeWidth, safeHeight] = values as [number, number, number, number];
+  return (
+    safeX >= 0 &&
+    safeY >= 0 &&
+    safeWidth > 0 &&
+    safeHeight > 0 &&
+    safeX + safeWidth <= 100 &&
+    safeY + safeHeight <= 100
+  );
+}
+
+type Matrix = [number, number, number, number, number, number];
+
+function isMatrix(value: unknown): value is Matrix {
+  return (
+    Array.isArray(value) &&
+    value.length === 6 &&
+    value.every((entry) => typeof entry === "number" && Number.isFinite(entry))
+  );
+}
+
+function multiplyMatrices(left: Matrix, right: Matrix): Matrix {
+  return [
+    left[0] * right[0] + left[2] * right[1],
+    left[1] * right[0] + left[3] * right[1],
+    left[0] * right[2] + left[2] * right[3],
+    left[1] * right[2] + left[3] * right[3],
+    left[0] * right[4] + left[2] * right[5] + left[4],
+    left[1] * right[4] + left[3] * right[5] + left[5],
+  ];
+}
+
+function matrixToCropRegion(
+  matrix: Matrix,
+  pageX0: number,
+  pageY0: number,
+  pageWidth: number,
+  pageHeight: number
+): CropRegion | null {
+  const points = [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [1, 1],
+  ].map(([x, y]) => [
+    matrix[0] * x + matrix[2] * y + matrix[4],
+    matrix[1] * x + matrix[3] * y + matrix[5],
+  ]);
+
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const x0 = Math.min(...xs);
+  const x1 = Math.max(...xs);
+  const y0 = Math.min(...ys);
+  const y1 = Math.max(...ys);
+  const x = ((x0 - pageX0) / pageWidth) * 100;
+  const y = ((pageY0 + pageHeight - y1) / pageHeight) * 100;
+  const width = ((x1 - x0) / pageWidth) * 100;
+  const height = ((y1 - y0) / pageHeight) * 100;
+
+  const region = {
+    x: Math.max(0, x),
+    y: Math.max(0, y),
+    width: Math.min(100, x + width) - Math.max(0, x),
+    height: Math.min(100, y + height) - Math.max(0, y),
+  };
+  return isValidCropRegion(region) ? region : null;
+}
+
+function isUsefulEmbeddedRegion(
+  region: CropRegion,
+  sourceWidth: number,
+  sourceHeight: number
+): boolean {
+  const area = region.width * region.height;
+  const ratio = region.width / region.height;
+  // Esclude loghi, icone e micro-grafici, mantenendo anche le foto verticali.
+  return (
+    sourceWidth >= 300 &&
+    sourceHeight >= 300 &&
+    area >= 5 &&
+    ratio >= 0.2 &&
+    ratio <= 5
+  );
+}
+
+function isLikelyFullPageComposite(region: CropRegion): boolean {
+  // Alcune pagine del catalogo sono a loro volta rasterizzate come spread:
+  // contengono già titoli, descrizioni e numeri pagina. Non sono ritagli
+  // fotografici affidabili, anche se l'operatore PDF li espone come immagine.
+  return region.width >= 98 && region.height >= 75;
+}
+
+function mergeAdjacentEmbeddedRegions(
+  regions: EmbeddedPdfImageRegion[]
+): EmbeddedPdfImageRegion[] {
+  const merged: EmbeddedPdfImageRegion[] = [];
+
+  for (const region of regions) {
+    const adjacent = merged.find((existing) => {
+      const verticalOverlap = Math.min(
+        existing.y + existing.height,
+        region.y + region.height
+      ) - Math.max(existing.y, region.y);
+      const minHeight = Math.min(existing.height, region.height);
+      const horizontalGap = Math.max(
+        0,
+        Math.max(existing.x, region.x) -
+          Math.min(existing.x + existing.width, region.x + region.width)
+      );
+      return (
+        minHeight > 0 &&
+        verticalOverlap / minHeight >= 0.95 &&
+        horizontalGap <= 1 &&
+        Math.abs(existing.height - region.height) <= 3
+      );
+    });
+
+    if (!adjacent) {
+      merged.push({ ...region });
+      continue;
+    }
+
+    const right = Math.max(
+      adjacent.x + adjacent.width,
+      region.x + region.width
+    );
+    const bottom = Math.max(
+      adjacent.y + adjacent.height,
+      region.y + region.height
+    );
+    adjacent.x = Math.min(adjacent.x, region.x);
+    adjacent.y = Math.min(adjacent.y, region.y);
+    adjacent.width = right - adjacent.x;
+    adjacent.height = bottom - adjacent.y;
+    adjacent.imageIndex = Math.min(adjacent.imageIndex, region.imageIndex);
+    adjacent.sourceWidth += region.sourceWidth;
+    adjacent.sourceHeight = Math.max(adjacent.sourceHeight, region.sourceHeight);
+  }
+
+  return merged;
+}
+
 /**
  * Trova la regione immagine (senza testo) in una pagina catalogo
  * @param textBlocks Blocchi testo OCR della pagina
@@ -187,7 +439,7 @@ export async function findAllContentRegions(
     }
     const meanVar = totalVar / totalCount;
     // Soglia: 2.5x la varianza media (foto hanno varianza molto alta)
-    const threshold = Math.max(meanVar * 0.8, 20);
+    const threshold = Math.max(meanVar * 2.5, 20);
 
     // Cella con contenuto = varianza sopra soglia
     const isContent = (row: number, col: number) => variance[row][col] > threshold;
