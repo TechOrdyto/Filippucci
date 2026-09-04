@@ -203,6 +203,7 @@ function buildCameraSection(scene: RenderSceneSpec): string {
 
   const view = describeCameraView(scene);
   const wallOrientation = describeWallOrientation(scene);
+  const depthContract = describeDepthContract(scene);
   const rotationRadians = (camera.rotation * Math.PI) / 180;
   const forwardX = Math.sin(rotationRadians);
   const forwardY = -Math.cos(rotationRadians);
@@ -217,6 +218,7 @@ function buildCameraSection(scene: RenderSceneSpec): string {
 - Room: ${camera.roomId}
 - Camera confirmed inside room: ${camera.insideRoom ? "true" : "false"}
 ${view ? `- What the camera sees (in depth order): ${view}` : ""}
+${depthContract ? `- Depth contract: ${depthContract}` : ""}
 ${wallOrientation ? `- Wall orientation relative to camera:\n${wallOrientation}` : ""}`;
 }
 
@@ -412,7 +414,35 @@ function describeRelativePosition(
         ? "to the right of the camera view"
         : "to the left of the camera view";
 
-  return `${depth}, ${side}, approximately ${formatMeters(distance)}m from the camera`;
+  return `${depth}, ${side}, approximately ${formatMeters(distance)}m from the camera and ${formatMeters(Math.max(forwardDot, 0))}m forward along the viewing direction`;
+}
+
+function describeDepthContract(scene: RenderSceneSpec): string {
+  const camera = scene.camera;
+  const room = scene.room;
+  if (!camera || !room) return "";
+
+  const rad = (camera.rotation * Math.PI) / 180;
+  const forwardX = Math.sin(rad);
+  const forwardY = -Math.cos(rad);
+  const roomDepths = room.polygon.map(([x, y]) =>
+    (x - camera.x) * forwardX + (y - camera.y) * forwardY
+  );
+  const farthestRoomDepth = Math.max(...roomDepths);
+  if (!Number.isFinite(farthestRoomDepth)) return "";
+
+  const furnitureDepths = scene.furnitureInstances.map((instance) => ({
+    name: instance.productName,
+    depth: (instance.position.x - camera.x) * forwardX +
+      (instance.position.y - camera.y) * forwardY,
+  }));
+  const furnitureDescription = furnitureDepths.length
+    ? furnitureDepths
+        .map((item) => `${item.name} is ${formatMeters(Math.max(item.depth, 0))}m forward from the camera`)
+        .join("; ")
+    : "no furniture anchor is present";
+
+  return `${furnitureDescription}; the farthest room boundary is approximately ${formatMeters(Math.max(farthestRoomDepth, 0))}m forward. Preserve visible floor between the camera and the furniture and visible wall/floor depth behind it; never place the furniture directly against a wall unless the measured coordinates require it.`;
 }
 
 function buildReferenceImageSection(input: CanonicalPromptInput): string {

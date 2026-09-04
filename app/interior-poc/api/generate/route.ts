@@ -303,8 +303,12 @@ function buildReferenceImageMapping(
 
   if (scene.room && scene.camera) {
     mapping.push({
+      name: "perspective-scene-reference.png",
+      label: `authoritative perspective blockout of ${scene.room.name} (vanishing point, wall planes, floor depth, camera and furniture placement)`,
+    });
+    mapping.push({
       name: "floorplan-scene-reference.png",
-      label: `authoritative top-down scene map of ${scene.room.name} (room, openings, camera cone, furniture anchors)`,
+      label: `authoritative top-down CAD scene map of ${scene.room.name} (room, openings, camera cone, furniture anchors)`,
     });
   }
 
@@ -429,10 +433,15 @@ async function generateImageWithDalle(
     ? process.env.OPENAI_IMAGE_MODEL_REF ?? "gpt-image-1"
     : process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1-mini";
 
-  // La mappa e le foto catalogo entrano nello stesso set di riferimenti.
-  // L'ordine qui costruito è quello usato anche nei numeri del prompt:
-  // immagine 1 = mappa scena, immagini successive = foto prodotto.
+  // La reference prospettica è la prima immagine perché l'endpoint edits tende
+  // a preservare soprattutto la composizione della prima immagine allegata.
+  // La mappa CAD resta subito dopo come vincolo geometrico autorevole.
   const referenceImages: { buffer: Buffer; mime: string; name: string }[] = [];
+  try {
+    referenceImages.push(await buildPerspectiveSceneReferenceImage(scene));
+  } catch (err) {
+    console.warn("⚠️ Riferimento prospettico non disponibile:", err);
+  }
   try {
     referenceImages.push(await buildSceneReferenceImage(scene));
   } catch (err) {
@@ -481,7 +490,9 @@ async function generateImageWithDalle(
 
   // 3. Stile fotorealistico
   parts.push(
-    "The first reference image is an authoritative top-down scene map with the selected room, openings, camera point, viewing direction and catalog anchors. Convert that map into the requested interior perspective; never output a floorplan or a diagram."
+    referenceImages.some((image) => image.name === "perspective-scene-reference.png")
+      ? "The first reference image is an authoritative perspective blockout. Preserve its vanishing point, wall planes, floor depth, camera-to-furniture distance and furniture placement while converting it into a photorealistic interior. The second reference image is the authoritative top-down CAD map for room shape, openings, camera point and anchor positions. Never output a floorplan, wireframe or diagram."
+      : "The first reference image is an authoritative top-down CAD scene map with the selected room, openings, camera point, viewing direction and catalog anchors. Convert that map into the requested interior perspective; never output a floorplan or a diagram."
   );
 
   parts.push(
@@ -855,6 +866,189 @@ async function buildSceneReferenceImage(
     buffer: await sharp(Buffer.from(svg)).png().toBuffer(),
     mime: "image/png",
     name: "floorplan-scene-reference.png",
+  };
+}
+
+/**
+ * Crea una costruzione prospettica semplificata della stanza.
+ *
+ * La mappa top-down è precisa per la posizione, ma un modello immagini può
+ * leggerla come una planimetria e appiattire la profondità. Questa seconda
+ * reference proietta sul piano immagine le pareti, il pavimento e gli
+ * ingombri CAD dalla stessa camera del contratto di scena.
+ */
+async function buildPerspectiveSceneReferenceImage(
+  scene: RenderSceneSpec
+): Promise<{ buffer: Buffer; mime: string; name: string }> {
+  if (!scene.room || !scene.camera) {
+    throw new Error("Scena incompleta: impossibile creare il blockout prospettico");
+  }
+
+  const { default: sharp } = await import("sharp");
+  const width = 1400;
+  const height = 1000;
+  const horizon = 340;
+  const focalLength = width / (2 * Math.tan((scene.camera.fov * Math.PI) / 360));
+  const cameraHeight = scene.camera.height;
+  const rotation = (scene.camera.rotation * Math.PI) / 180;
+  const forward = { x: Math.sin(rotation), y: -Math.cos(rotation) };
+  const right = { x: Math.cos(rotation), y: Math.sin(rotation) };
+  const nearClip = 0.12;
+
+  type PlanPoint = { x: number; y: number };
+  type ProjectedPoint = { x: number; y: number; depth: number };
+
+  const depthAt = (point: PlanPoint) =>
+    (point.x - scene.camera!.x) * forward.x +
+    (point.y - scene.camera!.y) * forward.y;
+
+  const projectPoint = (point: PlanPoint, z = 0): ProjectedPoint | null => {
+    const depth = depthAt(point);
+    if (depth <= nearClip) return null;
+
+    return {
+      x: width / 2 + ((point.x - scene.camera!.x) * right.x + (point.y - scene.camera!.y) * right.y) * focalLength / depth,
+      y: horizon + (cameraHeight - z) * focalLength / depth,
+      depth,
+    };
+  };
+
+  const projectSegment = (
+    start: PlanPoint,
+    end: PlanPoint,
+    z = 0
+  ): [ProjectedPoint, ProjectedPoint] | null => {
+    const startDepth = depthAt(start);
+    const endDepth = depthAt(end);
+    if (startDepth <= nearClip && endDepth <= nearClip) return null;
+
+    let visibleStart = start;
+    let visibleEnd = end;
+    if (startDepth <= nearClip) {
+      const t = (nearClip - startDepth) / (endDepth - startDepth);
+      visibleStart = {
+        x: start.x + (end.x - start.x) * t,
+        y: start.y + (end.y - start.y) * t,
+      };
+    }
+    if (endDepth <= nearClip) {
+      const t = (nearClip - startDepth) / (endDepth - startDepth);
+      visibleEnd = {
+        x: start.x + (end.x - start.x) * t,
+        y: start.y + (end.y - start.y) * t,
+      };
+    }
+
+    const projectedStart = projectPoint(visibleStart, z);
+    const projectedEnd = projectPoint(visibleEnd, z);
+    return projectedStart && projectedEnd ? [projectedStart, projectedEnd] : null;
+  };
+
+  const pointString = (points: ProjectedPoint[]) =>
+    points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+  const lineString = (start: ProjectedPoint, end: ProjectedPoint, attributes: string) =>
+    `<line x1="${start.x.toFixed(1)}" y1="${start.y.toFixed(1)}" x2="${end.x.toFixed(1)}" y2="${end.y.toFixed(1)}" ${attributes}/>`;
+
+  const roomPlan = scene.room.polygon.map(([x, y]) => ({ x, y }));
+  const roomFloor = roomPlan
+    .map((point) => projectPoint(point))
+    .filter((point): point is ProjectedPoint => point !== null);
+  const floorPolygon = roomFloor.length >= 3
+    ? `<polygon points="${pointString(roomFloor)}" fill="#c9c1b5" fill-opacity="0.92"/>`
+    : `<polygon points="0,${horizon} ${width},${horizon} ${width},${height} 0,${height}" fill="#c9c1b5"/>`;
+
+  const wallSurfaces = roomPlan
+    .map((start, index) => {
+      const end = roomPlan[(index + 1) % roomPlan.length];
+      const bottom = projectSegment(start, end, 0);
+      const top = projectSegment(start, end, scene.room!.ceilingHeight);
+      if (!bottom || !top) return "";
+
+      const points = [bottom[0], bottom[1], top[1], top[0]];
+      const fill = index % 2 === 0 ? "#e4e8e5" : "#d4dcda";
+      return `<polygon points="${pointString(points)}" fill="${fill}" fill-opacity="0.88" stroke="#263238" stroke-width="5" stroke-linejoin="round"/>`;
+    })
+    .join("");
+
+  const wallLines = (scene.room.walls ?? [])
+    .map((wall) => {
+      const segment = projectSegment(
+        { x: wall.start[0], y: wall.start[1] },
+        { x: wall.end[0], y: wall.end[1] },
+        0
+      );
+      return segment ? lineString(segment[0], segment[1], 'stroke="#172027" stroke-width="7"') : "";
+    })
+    .join("");
+
+  const furniture = scene.objects
+    .map((object) => {
+      const dimensions = object.productDimensions;
+      const halfWidth = Math.max((dimensions?.width ?? 50) / 100 / 2, 0.05);
+      const halfDepth = Math.max((dimensions?.depth ?? 55) / 100 / 2, 0.05);
+      const height = Math.min((dimensions?.height ?? 80) / 100, scene.room!.ceilingHeight * 0.92);
+      const center = object.anchorCenter;
+      const footprint: PlanPoint[] = [
+        { x: center.x - halfWidth, y: center.y - halfDepth },
+        { x: center.x + halfWidth, y: center.y - halfDepth },
+        { x: center.x + halfWidth, y: center.y + halfDepth },
+        { x: center.x - halfWidth, y: center.y + halfDepth },
+      ];
+      const floorPoints = footprint.map((point) => projectPoint(point));
+      const topPoints = footprint.map((point) => projectPoint(point, height));
+      if (
+        floorPoints.some((point) => point === null) ||
+        topPoints.some((point) => point === null)
+      ) {
+        return "";
+      }
+
+      const projectedFloor = floorPoints as ProjectedPoint[];
+      const projectedTop = topPoints as ProjectedPoint[];
+      const verticalEdges = projectedFloor
+        .map((point, index) => lineString(point, projectedTop[index], 'stroke="#172027" stroke-width="4"'))
+        .join("");
+      return `${verticalEdges}<polygon points="${pointString(projectedFloor)}" fill="#a6b0ad" stroke="#172027" stroke-width="5" stroke-linejoin="round"/><polygon points="${pointString(projectedTop)}" fill="#c8ff00" fill-opacity="0.8" stroke="#172027" stroke-width="5" stroke-linejoin="round"/><text x="${projectedTop[0].x.toFixed(1)}" y="${Math.max(projectedTop[0].y - 14, 96).toFixed(1)}" class="anchor-label">${escapeXml(object.productName)} · exact CAD position</text>`;
+    })
+    .join("");
+
+  const depthLines = [1, 2, 3, 4, 5]
+    .map((distance) => {
+      const left = projectPoint({
+        x: scene.camera!.x + forward.x * distance - right.x * 4,
+        y: scene.camera!.y + forward.y * distance - right.y * 4,
+      });
+      const rightPoint = projectPoint({
+        x: scene.camera!.x + forward.x * distance + right.x * 4,
+        y: scene.camera!.y + forward.y * distance + right.y * 4,
+      });
+      return left && rightPoint
+        ? lineString(left, rightPoint, 'stroke="#8a8177" stroke-width="2" stroke-opacity="0.45"')
+        : "";
+    })
+    .join("");
+
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
+    "<style>.title { font: 700 30px sans-serif; fill: #f8fafc; }.meta { font: 500 18px sans-serif; fill: #cbd5e1; }.anchor-label { font: 700 17px sans-serif; fill: #172027; }</style>",
+    `<rect width="${width}" height="${height}" fill="#172027"/>`,
+    `<text x="70" y="52" class="title">PERSPECTIVE BLOCKOUT · ${escapeXml(scene.room.name)}</text>`,
+    `<text x="70" y="82" class="meta">Exact camera ${scene.camera.rotation.toFixed(1)}° · FOV ${Math.round(scene.camera.fov)}° · green volume = catalog anchor at measured depth</text>`,
+    `<rect x="0" y="${horizon}" width="${width}" height="${height - horizon}" fill="#c9c1b5"/>`,
+    floorPolygon,
+    depthLines,
+    wallSurfaces,
+    wallLines,
+    furniture,
+    `<line x1="0" y1="${horizon}" x2="${width}" y2="${horizon}" stroke="#7b8a87" stroke-width="3" stroke-dasharray="12 10"/>`,
+    `<text x="70" y="${height - 45}" class="meta">Convert this measured perspective construction into a photorealistic room. Preserve room depth, wall planes and the furniture distance from the camera.</text>`,
+    "</svg>",
+  ].join("");
+
+  return {
+    buffer: await sharp(Buffer.from(svg)).png().toBuffer(),
+    mime: "image/png",
+    name: "perspective-scene-reference.png",
   };
 }
 
