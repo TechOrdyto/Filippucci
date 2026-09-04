@@ -214,6 +214,7 @@ function ObjectLayer({
         const hovered = hoveredObjectId === obj.id;
         const center = geometryCenter(obj.geometry);
         const isFocused = !focusRoomId || obj.roomId === focusRoomId;
+        const showUnassignedObject = Boolean(focusRoomId && isFocused);
         const isHighlighted = selected || hovered;
         const assignmentLabel = objectAssignmentLabels?.[obj.id];
         const isAssigned = Boolean(assignmentLabel);
@@ -229,7 +230,9 @@ function ObjectLayer({
                   ? isFocused
                     ? 0.78
                     : 0.28
-                  : 0
+                  : showUnassignedObject
+                    ? 0.32
+                    : 0
             }
             pointerEvents="all"
             role="button"
@@ -404,7 +407,12 @@ export default function FloorPlanRenderer({
     if (!drag) return;
     dragRef.current = null;
     if (!drag.moved) {
-      onSelect(hitTest(model, drag.planX, drag.planY));
+      onSelect(
+        hitTest(model, drag.planX, drag.planY, {
+          includeObjects: showObjects,
+          focusRoomId,
+        })
+      );
     }
   };
 
@@ -505,7 +513,7 @@ function CameraLayer({
   if (!room) return null;
 
   const roomBounds = geometryBounds(room.geometry);
-  const coneLength = Math.min(280, Math.max(110, Math.min(roomBounds.width, roomBounds.height) * 0.9));
+  const coneLength = Math.min(170, Math.max(70, Math.min(roomBounds.width, roomBounds.height) * 0.45));
   const direction = ((camera.rotation - 90) * Math.PI) / 180;
   const halfFov = (camera.fov * Math.PI) / 360;
   const left = pointAtAngle(camera.x, camera.y, direction - halfFov, coneLength);

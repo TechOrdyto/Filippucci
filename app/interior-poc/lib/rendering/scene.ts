@@ -243,7 +243,7 @@ export function validateRenderScene(scene: RenderSceneSpec): SceneValidation {
   const warnings: string[] = [];
 
   if (!scene.room) {
-    errors.push("Seleziona un ambiente prima di generare il render.");
+    errors.push("Scegli una visuale prima di generare il render.");
   }
 
   if (!scene.camera) {

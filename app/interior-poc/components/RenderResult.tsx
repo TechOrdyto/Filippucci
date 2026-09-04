@@ -448,7 +448,7 @@ export default function RenderResult({
         <div className="flex aspect-[4/3] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-muted)] px-6 text-center">
           <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-strong)] text-xl text-[var(--accent)]">✦</span>
           <p className="max-w-xs text-sm leading-6 text-[var(--text-muted)]">
-            Seleziona un ambiente, imposta la visuale e qui apparirà il render.
+            Scegli una visuale e qui apparirà il render.
           </p>
         </div>
       )}

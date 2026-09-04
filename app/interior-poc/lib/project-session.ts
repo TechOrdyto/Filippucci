@@ -15,7 +15,6 @@ export interface ProjectSessionSnapshot {
   camera: CameraPosition | null;
   viewpoints: Viewpoint[];
   selectedViewpointId: string | null;
-  isCameraConfirmed: boolean;
   imageUrl: string | null;
   renderSignature: string | null;
   updatedAt: string;
@@ -44,7 +43,6 @@ export function readProjectSession(): ProjectSessionSnapshot | null {
       camera: parsed.camera ?? null,
       viewpoints: parsed.viewpoints ?? [],
       selectedViewpointId: parsed.selectedViewpointId ?? null,
-      isCameraConfirmed: Boolean(parsed.isCameraConfirmed),
       imageUrl: parsed.imageUrl ?? null,
       renderSignature: parsed.renderSignature ?? null,
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
