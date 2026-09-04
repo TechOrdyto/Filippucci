@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import MentionInput from "./components/MentionInput";
 import ProductDetail from "./components/ProductDetail";
 import FinishField from "./components/FinishField";
+import ReferenceImagePicker from "./components/ReferenceImagePicker";
 import RenderResult, { type RenderVariant } from "./components/RenderResult";
 import FloorplanViewer from "./components/FloorplanViewer";
 import StudioHeader from "./components/StudioHeader";
@@ -54,7 +55,6 @@ export default function InteriorPocPage() {
   const [camera, setCamera] = useState<CameraPosition | null>(null);
   const [viewpoints, setViewpoints] = useState<Viewpoint[]>([]);
   const [selectedViewpointId, setSelectedViewpointId] = useState<string | null>(null);
-  const [isCameraMode, setIsCameraMode] = useState(false);
   const [isCameraSet, setIsCameraSet] = useState(false);
   const [objectAssignments, setObjectAssignments] = useState<Record<string, string>>({});
   const [objectAssignmentTargetId, setObjectAssignmentTargetId] = useState<string | null>(null);
@@ -115,7 +115,6 @@ export default function InteriorPocPage() {
     doorFinish,
     floorFinish,
     imageUrl,
-    isCameraSet,
     isSessionHydrated,
     model.id,
     objectAssignments,
@@ -150,14 +149,19 @@ export default function InteriorPocPage() {
     [mentions]
   );
 
+  // La stanza è un contesto derivato dalla visuale. La selezione locale serve
+  // solo a mantenere il focus sulla planimetria prima che la camera venga
+  // impostata.
+  const sceneRoomId = camera?.roomId ?? selectedRoomId;
+
   const activeRoomObjectIds = useMemo(() => {
-    if (!selectedRoomId) return null;
+    if (!sceneRoomId) return null;
     return new Set(
       model.objects
-        .filter((object) => object.roomId === selectedRoomId)
+        .filter((object) => object.roomId === sceneRoomId)
         .map((object) => object.id)
     );
-  }, [model, selectedRoomId]);
+  }, [model, sceneRoomId]);
 
   const renderAssignments = useMemo(
     () =>
@@ -181,7 +185,7 @@ export default function InteriorPocPage() {
     () =>
       buildRenderScene({
         model,
-        roomId: selectedRoomId,
+        roomId: sceneRoomId,
         camera,
         assignments: renderAssignments,
         products: renderProducts,
@@ -211,7 +215,7 @@ export default function InteriorPocPage() {
       prompt,
       renderAssignments,
       renderProducts,
-      selectedRoomId,
+      sceneRoomId,
       wallFinish,
       windowFinish,
     ]
@@ -226,7 +230,7 @@ export default function InteriorPocPage() {
     () =>
       JSON.stringify({
         floorplanId: model.id,
-        roomId: selectedRoomId,
+        roomId: sceneRoomId,
         camera,
         objectAssignments: Object.entries(objectAssignments).sort(([left], [right]) =>
           left.localeCompare(right)
@@ -237,15 +241,32 @@ export default function InteriorPocPage() {
         doorFinish: doorFinish.trim(),
         windowFinish: windowFinish.trim(),
       }),
-    [camera, doorFinish, floorFinish, model.id, objectAssignments, prompt, selectedRoomId, wallFinish, windowFinish]
+    [camera, doorFinish, floorFinish, model.id, objectAssignments, prompt, sceneRoomId, wallFinish, windowFinish]
   );
   const isRenderStale = Boolean(
-    imageUrl && (!renderedSceneSignature || renderedSceneSignature !== sceneSignature)
+    imageUrl &&
+      camera &&
+      isCameraSet &&
+      (!renderedSceneSignature || renderedSceneSignature !== sceneSignature)
   );
 
-  const activeRoom = selectedRoomId
-    ? model.rooms.find((room) => room.id === selectedRoomId) ?? null
+  const activeRoom = sceneRoomId
+    ? model.rooms.find((room) => room.id === sceneRoomId) ?? null
     : null;
+  const activeOpeningCounts = useMemo(() => {
+    if (!activeRoom) {
+      return { doors: null, windows: null };
+    }
+
+    const roomOpenings = (geometry.openings ?? []).filter((opening) =>
+      pointInPolygon(opening.position[0], opening.position[1], activeRoom.geometry.points)
+    );
+
+    return {
+      doors: roomOpenings.filter((opening) => opening.type !== "window").length,
+      windows: roomOpenings.filter((opening) => opening.type === "window").length,
+    };
+  }, [activeRoom, geometry.openings]);
   const activeRoomAssignmentCount = activeRoom
     ? renderScene.objects.filter((object) => object.roomId === activeRoom.id).length
     : 0;
@@ -275,12 +296,12 @@ export default function InteriorPocPage() {
   };
 
   const focusRoom = (roomId: string) => {
-    const roomChanged = selectedRoomId !== roomId;
+    const roomChanged = selectedRoomId !== roomId || camera?.roomId !== roomId;
     setSelectedRoomId(roomId);
-    if (roomChanged) {
-      setIsCameraSet(false);
-      setSelectedViewpointId(null);
-    }
+    if (!roomChanged) return;
+
+    setIsCameraSet(false);
+    setSelectedViewpointId(null);
     const room = model.rooms.find((r) => r.id === roomId);
     if (!room) return;
     const center = polygonCenter(room.geometry.points);
@@ -356,11 +377,12 @@ export default function InteriorPocPage() {
     setCamera(null);
     setViewpoints([]);
     setSelectedViewpointId(null);
-    setIsCameraMode(false);
     setIsCameraSet(false);
   };
 
   const handleSelectViewpoint = (vp: Viewpoint) => {
+    selectRoom(vp.roomId);
+    setSelectedRoomId(vp.roomId);
     setIsCameraSet(true);
     setSelectedViewpointId(vp.id);
     setCamera({
@@ -384,28 +406,16 @@ export default function InteriorPocPage() {
     });
   };
 
-  const handleToggleCamera = () => {
-    if (!selectedRoomId) return;
-    const nextCameraMode = !isCameraMode;
-    closeObjectAssignment();
-    setObjectAssignmentTargetId(null);
-    setIsCameraMode(nextCameraMode);
-  };
-
   const focusCameraAction = () => {
-    document.getElementById(selectedRoomId ? "imposta-visuale" : "piantina")?.scrollIntoView({
+    document.getElementById(sceneRoomId ? "imposta-visuale" : "piantina")?.scrollIntoView({
       behavior: "smooth",
       block: "center",
     });
   };
 
   const handleGenerate = async () => {
-    if (!selectedRoomId || !camera || !isCameraSet) {
-      setError(
-        selectedRoomId
-          ? "Imposta la visuale prima di generare il render."
-          : "Seleziona un ambiente e imposta la visuale prima di generare il render."
-      );
+    if (!camera || !isCameraSet) {
+      setError("Scegli una visuale prima di generare il render.");
       focusCameraAction();
       return;
     }
@@ -441,8 +451,7 @@ export default function InteriorPocPage() {
             : []),
         ])
       );
-      const selectedRoom = model.rooms.find((r) => r.id === selectedRoomId);
-      // La visuale resta quella scelta anche se l'utente torna al modo arredi
+      // La visuale resta quella scelta mentre l'utente associa gli arredi
       // prima di premere "Genera render".
       const activeCamera = camera;
       // Il prompt canonico (server) costruisce la sezione CAMERA dal contratto
@@ -458,7 +467,7 @@ export default function InteriorPocPage() {
           productIds: requestProductIds,
           explicitProductIds: explicitProducts.map((product) => (product as Product).id),
           floorplanId: model.id,
-          roomId: selectedRoomId,
+          roomId: sceneRoomId,
           objectIds: requestObjectIds,
           objectAssignments: activeObjectAssignmentEntries,
           finishes: {
@@ -530,38 +539,43 @@ export default function InteriorPocPage() {
     }
   };
 
-  const hasSelectedEnvironment = Boolean(selectedRoomId);
-  const hasSetView = Boolean(selectedRoomId && camera && isCameraSet);
+  const hasSelectedEnvironment = Boolean(sceneRoomId);
+  const hasSetView = Boolean(camera && isCameraSet);
   const hasPendingObjectAssignment = Boolean(
     selection?.type === "object" && !objectAssignments[selection.id]
   );
+  const hasArticleAssignments = Object.keys(objectAssignments).length > 0;
+  const hasFinishDetails = Boolean(
+    prompt.trim() ||
+      wallFinish.trim() ||
+      floorFinish.trim() ||
+      doorFinish.trim() ||
+      windowFinish.trim()
+  );
+  const hasRenderedImage = Boolean(imageUrl && !isRenderStale);
   const currentStep =
     !hasSelectedEnvironment
       ? 1
       : hasPendingObjectAssignment
         ? 2
-        : !isCameraMode && selection?.type !== "object"
-          ? 2
-          : !hasSetView
+        : !hasSetView
           ? 3
-          : imageUrl || isRenderStale
+          : hasRenderedImage
             ? 5
             : 4;
-  const nextAction = !hasSelectedEnvironment
-    ? { label: "Seleziona un ambiente dalla planimetria." }
+  const nextAction = !hasSetView
+    ? hasPendingObjectAssignment
+      ? { label: "Associa l’articolo selezionato oppure scegli una visuale." }
+      : { label: camera ? "Scegli un angolo o ruota la visuale." : "Clicca un ambiente per scegliere la visuale." }
     : hasPendingObjectAssignment
       ? { label: "Associa un articolo all’elemento selezionato." }
-      : !hasSetView
-        ? !isCameraMode && selection?.type !== "object"
-          ? { label: "Seleziona gli elementi e associa gli articoli, oppure imposta la visuale." }
-          : { label: "Scegli una visuale dalla planimetria: la scelta verrà applicata subito." }
-        : sceneValidation.errors.length > 0
-          ? { label: "Controlla la configurazione." }
-          : isRenderStale
-            ? { label: "Aggiorna il render per applicare le modifiche." }
-            : !imageUrl
-              ? { label: "Aggiungi finiture e note facoltative, poi genera il render." }
-              : { label: "Rivedi il render o modifica la configurazione." };
+      : sceneValidation.errors.length > 0
+        ? { label: "Controlla la configurazione." }
+        : isRenderStale
+          ? { label: "Aggiorna il render per applicare le modifiche." }
+          : !imageUrl
+            ? { label: "Aggiungi articoli o dettagli facoltativi, poi genera il render." }
+            : { label: "Rivedi il render o modifica la configurazione." };
   return (
     <main className="studio-shell min-h-screen">
       <StudioHeader active="demo" />
@@ -576,18 +590,18 @@ export default function InteriorPocPage() {
           </div>
         </section>
 
-        <nav aria-label="Passaggi di configurazione" className="panel mb-8 overflow-hidden rounded-2xl">
+        <nav aria-label="Percorso di configurazione" className="panel mb-8 overflow-hidden rounded-2xl">
           <ol className="grid grid-cols-2 divide-x divide-y divide-[var(--border)] sm:grid-cols-5 sm:divide-y-0">
             {[
-              [1, "Ambiente", "Seleziona l’ambiente"],
-              [2, "Articoli", "Seleziona elementi e associa gli articoli"],
-              [3, "Visuale", "Scegli la visuale"],
-              [4, "Finiture e note", "Facoltative · aggiungi dettagli"],
-              [5, "Render", "Genera il risultato"],
-            ].map(([step, title, description]) => {
-              const stepNumber = step as number;
+              { step: 1, title: "Ambiente", description: "Seleziona dalla planimetria", complete: hasSelectedEnvironment },
+              { step: 2, title: "Articoli", description: "Facoltativi · associa gli articoli", complete: hasArticleAssignments, optional: true },
+              { step: 3, title: "Visuale", description: "Scegli la visuale", complete: hasSetView },
+              { step: 4, title: "Finiture e note", description: "Facoltative · aggiungi dettagli", complete: hasFinishDetails, optional: true },
+              { step: 5, title: "Render", description: "Genera il risultato", complete: hasRenderedImage },
+            ].map((timelineStep) => {
+              const stepNumber = timelineStep.step;
               const isActive = currentStep === stepNumber;
-              const isComplete = currentStep > stepNumber;
+              const isComplete = timelineStep.complete;
               return (
                 <li
                   key={stepNumber}
@@ -606,9 +620,9 @@ export default function InteriorPocPage() {
                     {isComplete ? "✓" : stepNumber}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-xs font-semibold text-[var(--text)]">{title}</span>
+                    <span className="block text-xs font-semibold text-[var(--text)]">{timelineStep.title}</span>
                     <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
-                      {description}
+                      {timelineStep.description}
                     </span>
                   </span>
                 </li>
@@ -619,6 +633,43 @@ export default function InteriorPocPage() {
 
         <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
           <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-6 lg:self-stretch">
+            {/* MODULO PLANIMETRIA — il contenuto principale viene prima anche nell’ordine di tastiera */}
+            <div className="order-1">
+              <section id="piantina" className="panel rounded-2xl p-5 sm:p-6">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="eyebrow mb-2">Piantina</p>
+                    <h3 className="display-title text-2xl text-[var(--text)]">Scegli la visuale e gli arredi.</h3>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      Seleziona un ambiente. Porte e finestre vengono riconosciute dal CAD. Poi scegli la visuale e aggiungi gli articoli o i dettagli che vuoi.
+                    </p>
+                  </div>
+                </div>
+
+                <FloorplanViewer
+                  geometry={geometry}
+                  model={model}
+                  selection={selection}
+                  focusRoomId={selectedRoomId}
+                  camera={camera}
+                  viewpoints={viewpoints}
+                  selectedViewpointId={selectedViewpointId}
+                  isCameraSet={isCameraSet}
+                  catalog={catalog}
+                  objectAssignments={objectAssignments}
+                  objectAssignmentTargetId={objectAssignmentTargetId}
+                  isObjectAssignmentOpen={isObjectAssignmentOpen}
+                  onSelect={handleSelect}
+                  onAssignObjectProduct={handleAssignObjectProduct}
+                  onRemoveObjectProduct={handleRemoveObjectProduct}
+                  onCloseObjectAssignment={closeObjectAssignment}
+                  onSelectViewpoint={handleSelectViewpoint}
+                  onRotateCamera={handleRotateCamera}
+                />
+
+              </section>
+            </div>
+
             <div className="order-3">
             <section id="indicazioni" className="panel rounded-2xl p-5 sm:p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
@@ -626,7 +677,7 @@ export default function InteriorPocPage() {
                   <p className="eyebrow mb-2">Indicazioni</p>
                   <h3 className="display-title text-2xl text-[var(--text)]">Imposta finiture e indicazioni.</h3>
                   <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                    Inserisci colori, materiali, note e riferimenti agli articoli da usare nel render.
+                    Inserisci colori, materiali, note e riferimenti agli articoli da usare nel render. Puoi aggiungere anche immagini di esempio direttamente qui.
                   </p>
                 </div>
               </div>
@@ -635,6 +686,7 @@ export default function InteriorPocPage() {
                 value={prompt}
                 onChange={setPrompt}
                 onMentionsChange={setMentions}
+                footer={<ReferenceImagePicker />}
               />
 
               <div className="mt-5 border-t border-[var(--border)] pt-4">
@@ -703,7 +755,7 @@ export default function InteriorPocPage() {
                 </div>
               )}
 
-              {sceneValidation.errors.length > 0 && (
+              {hasSetView && sceneValidation.errors.length > 0 && (
                 <p className="mt-5 rounded-xl border border-[color-mix(in_srgb,var(--accent-strong)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] px-3 py-2.5 text-xs leading-5 text-[var(--text-muted)]">
                   {sceneValidation.errors[0]}
                 </p>
@@ -712,12 +764,18 @@ export default function InteriorPocPage() {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={isGenerating || !hasSetView}
+                aria-describedby={!hasSetView ? "generate-render-hint" : undefined}
                 className="primary-action mt-6 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
               >
                 <span aria-hidden="true">{isGenerating ? "···" : "→"}</span>
                 {isGenerating ? "Generazione in corso…" : "Genera render"}
               </button>
+              {!hasSetView && (
+                <p id="generate-render-hint" className="mt-2 text-center text-xs text-[var(--text-muted)]">
+                  Scegli una visuale dalla planimetria per abilitare il render.
+                </p>
+              )}
               <Link
                 href="/listini"
                 className="ghost-action mt-3 flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold"
@@ -727,44 +785,6 @@ export default function InteriorPocPage() {
             </section>
             </div>
 
-            {/* MODULO PLANIMETRIA — solo piantina centrale */}
-            <div className="order-1">
-              <section id="piantina" className="panel rounded-2xl p-5 sm:p-6">
-                <div className="mb-5 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="eyebrow mb-2">Piantina</p>
-                <h3 className="display-title text-2xl text-[var(--text)]">Seleziona ambiente e arredi.</h3>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  Seleziona prima un ambiente. Poi scegli gli elementi, associa gli articoli dal catalogo e imposta la visuale nel blocco dedicato sotto la planimetria.
-                </p>
-                  </div>
-                </div>
-
-                <FloorplanViewer
-                  geometry={geometry}
-                  model={model}
-                  selection={selection}
-                  focusRoomId={selectedRoomId}
-                  camera={camera}
-                  viewpoints={viewpoints}
-                  selectedViewpointId={selectedViewpointId}
-                  isCameraSet={isCameraSet}
-                  isCameraMode={isCameraMode}
-                  catalog={catalog}
-                  objectAssignments={objectAssignments}
-                  objectAssignmentTargetId={objectAssignmentTargetId}
-                  isObjectAssignmentOpen={isObjectAssignmentOpen}
-                  onSelect={handleSelect}
-                  onAssignObjectProduct={handleAssignObjectProduct}
-                  onRemoveObjectProduct={handleRemoveObjectProduct}
-                  onCloseObjectAssignment={closeObjectAssignment}
-                  onSelectViewpoint={handleSelectViewpoint}
-                  onRotateCamera={handleRotateCamera}
-                  onToggleCamera={handleToggleCamera}
-                />
-
-              </section>
-            </div>
           </div>
 
           <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6 lg:self-start lg:sticky lg:top-24">
@@ -787,9 +807,11 @@ export default function InteriorPocPage() {
                 floorFinish={floorFinish}
                 doorFinish={doorFinish}
                 windowFinish={windowFinish}
+                doorCount={activeOpeningCounts.doors}
+                windowCount={activeOpeningCounts.windows}
                 prompt={prompt}
                 renderStale={isRenderStale}
-                errors={sceneValidation.errors}
+                errors={hasSetView ? sceneValidation.errors : []}
                 nextAction={nextAction}
               />
             </div>

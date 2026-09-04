@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { catalog, parseMentions } from "../lib/catalog";
 import type { Product, ProductMention } from "../lib/types";
 
@@ -9,6 +9,7 @@ interface MentionInputProps {
   onChange: (value: string) => void;
   onMentionsChange?: (mentions: ProductMention[]) => void;
   placeholder?: string;
+  footer?: ReactNode;
 }
 
 export default function MentionInput({
@@ -16,6 +17,7 @@ export default function MentionInput({
   onChange,
   onMentionsChange,
   placeholder = "Inserisci note per il render. Per citare un articolo del catalogo, usa @",
+  footer,
 }: MentionInputProps) {
   const categoryLabels: Record<string, string> = {
     Sofas: "Divani",
@@ -154,24 +156,39 @@ export default function MentionInput({
     }
   };
 
+  const textarea = (
+    <textarea
+      id="design-brief"
+      ref={textareaRef}
+      value={value}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      placeholder={placeholder}
+      rows={4}
+      aria-label="Note per il render"
+      aria-autocomplete="list"
+      aria-expanded={isOpen && suggestions.length > 0}
+      className={
+        footer
+          ? "min-h-32 w-full resize-y border-0 bg-transparent px-4 py-4 text-sm leading-6 text-[var(--text)] placeholder:text-[var(--text-soft)] focus:outline-none"
+          : "field-shell min-h-32 w-full resize-y rounded-xl px-4 py-4 text-sm leading-6 text-[var(--text)] placeholder:text-[var(--text-soft)] focus:outline-none"
+      }
+    />
+  );
+
   return (
     <div className="relative">
       <label htmlFor="design-brief" className="sr-only">
         Note per il render
       </label>
-      <textarea
-        id="design-brief"
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        rows={4}
-        aria-label="Note per il render"
-        aria-autocomplete="list"
-        aria-expanded={isOpen && suggestions.length > 0}
-        className="field-shell min-h-32 w-full resize-y rounded-xl px-4 py-4 text-sm leading-6 text-[var(--text)] placeholder:text-[var(--text-soft)] focus:outline-none"
-      />
+      {footer ? (
+        <div className="field-shell overflow-hidden rounded-xl">
+          {textarea}
+          <div className="border-t border-[var(--border)] px-4 py-2.5">{footer}</div>
+        </div>
+      ) : (
+        textarea
+      )}
 
       {isOpen && (
         <div className="panel absolute left-0 top-0 z-30 mt-2 w-full overflow-hidden rounded-xl lg:left-[calc(100%+0.75rem)] lg:mt-0 lg:w-80" role="dialog" aria-label="Scegli un articolo">

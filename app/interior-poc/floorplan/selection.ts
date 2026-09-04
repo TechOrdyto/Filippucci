@@ -19,14 +19,18 @@ function polygonArea(points: [number, number][]): number {
 export function hitTest(
   model: FloorPlan,
   x: number,
-  y: number
+  y: number,
+  options: { includeObjects?: boolean; focusRoomId?: string | null } = {}
 ): Selection | null {
   // Gli elementi sono tutti interattivi. In caso di sovrapposizione, l'ultimo
   // elemento del modello (quello disegnato sopra) riceve il click.
-  for (let i = model.objects.length - 1; i >= 0; i--) {
-    const obj = model.objects[i];
-    if (pointInGeometry(x, y, obj.geometry)) {
-      return { type: "object", id: obj.id };
+  if (options.includeObjects !== false) {
+    for (let i = model.objects.length - 1; i >= 0; i--) {
+      const obj = model.objects[i];
+      if (options.focusRoomId && obj.roomId !== options.focusRoomId) continue;
+      if (pointInGeometry(x, y, obj.geometry)) {
+        return { type: "object", id: obj.id };
+      }
     }
   }
 

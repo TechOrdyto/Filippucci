@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { CameraPosition } from "../lib/camera/types";
 
 interface SceneStatusProps {
@@ -10,6 +11,8 @@ interface SceneStatusProps {
   floorFinish: string;
   doorFinish: string;
   windowFinish: string;
+  doorCount: number | null;
+  windowCount: number | null;
   prompt: string;
   renderStale: boolean;
   errors: string[];
@@ -18,7 +21,7 @@ interface SceneStatusProps {
   };
 }
 
-function StatusValue({ value, ready = false }: { value: string; ready?: boolean }) {
+function StatusValue({ value, ready = false }: { value: ReactNode; ready?: boolean }) {
   return (
     <span
       className={`mt-1 block text-sm font-semibold ${
@@ -28,6 +31,14 @@ function StatusValue({ value, ready = false }: { value: string; ready?: boolean 
       {value}
     </span>
   );
+}
+
+function OpeningValue({ count, finish }: { count: number | null; finish: string }) {
+  if (count === null) return "Seleziona un ambiente";
+  if (count === 0) return "Nessuna rilevata";
+
+  const detectedLabel = count === 1 ? "1 rilevata" : `${count} rilevate`;
+  return `${detectedLabel} · ${finish.trim() || "finitura da definire"}`;
 }
 
 export default function SceneStatus({
@@ -40,6 +51,8 @@ export default function SceneStatus({
   floorFinish,
   doorFinish,
   windowFinish,
+  doorCount,
+  windowCount,
   prompt,
   renderStale,
   errors,
@@ -52,8 +65,18 @@ export default function SceneStatus({
     ? "Aggiorna il render."
     : isReady
       ? "Scena pronta per il render."
-      : "Configurazione incompleta.";
-  const statusLabel = renderStale ? "Da aggiornare" : isReady ? "Pronta" : "Da completare";
+      : roomName && camera && !isCameraSet
+        ? "Scegli la visuale."
+        : !roomName
+          ? "Scegli un ambiente."
+          : "Completa la configurazione.";
+  const statusLabel = renderStale
+    ? "Da aggiornare"
+    : isReady
+      ? "Pronta"
+      : !roomName || !isCameraSet
+        ? "Da impostare"
+        : "Da completare";
 
   return (
     <section className="panel rounded-2xl p-5 sm:p-6">
@@ -76,7 +99,7 @@ export default function SceneStatus({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
           <span className="eyebrow">Ambiente</span>
-          <StatusValue value={roomName ?? "Da selezionare"} ready={Boolean(roomName)} />
+          <StatusValue value={roomName ?? "Seleziona dalla planimetria"} ready={Boolean(roomName)} />
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
           <span className="eyebrow">Visuale</span>
@@ -114,11 +137,17 @@ export default function SceneStatus({
         </div>
         <div>
           <span className="block text-[var(--text-soft)]">Porte</span>
-          <span className="mt-1 block font-semibold text-[var(--text)]">{doorFinish.trim() || "Da definire"}</span>
+          <StatusValue
+            value={<OpeningValue count={doorCount} finish={doorFinish} />}
+            ready={Boolean(doorCount)}
+          />
         </div>
         <div>
           <span className="block text-[var(--text-soft)]">Finestre</span>
-          <span className="mt-1 block font-semibold text-[var(--text)]">{windowFinish.trim() || "Da definire"}</span>
+          <StatusValue
+            value={<OpeningValue count={windowCount} finish={windowFinish} />}
+            ready={Boolean(windowCount)}
+          />
         </div>
       </div>
 
@@ -134,7 +163,10 @@ export default function SceneStatus({
       </div>
 
       {errors.length > 0 && (
-        <p className="mt-4 rounded-xl border border-[var(--danger)] bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-[var(--text)]">
+        <p
+          className="mt-4 rounded-xl border border-[var(--danger)] bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-[var(--text)]"
+          role="alert"
+        >
           {errors[0]}
         </p>
       )}
