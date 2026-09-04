@@ -22,7 +22,7 @@ import { generateViewpoints, DEFAULT_CAMERA_CONFIG } from "./lib/camera/viewpoin
 import { CadFloorPlanSource, type FloorPlanOpeningHint } from "./floorplan/source";
 import { useFloorPlan } from "./floorplan/use-floor-plan";
 import { getObject } from "./floorplan/model";
-import { boundsFromPolygon, pointInPolygon, polygonCenter } from "./floorplan/geometry";
+import { boundsFromPolygon, geometryCenter, pointInPolygon, polygonCenter } from "./floorplan/geometry";
 import { planAreaToSquareMeters } from "./floorplan/units";
 import type { Selection } from "./floorplan/types";
 import {
@@ -156,9 +156,17 @@ export default function InteriorPocPage() {
 
   const activeRoomObjectIds = useMemo(() => {
     if (!selectedRoomId) return null;
+
+    const selectedRoom = model.rooms.find((room) => room.id === selectedRoomId);
+    if (!selectedRoom) return new Set<string>();
+
     return new Set(
       model.objects
-        .filter((object) => object.roomId === selectedRoomId)
+        .filter((object) => {
+          if (object.roomId !== selectedRoomId) return false;
+          const center = geometryCenter(object.geometry);
+          return pointInPolygon(center.x, center.y, selectedRoom.geometry.points);
+        })
         .map((object) => object.id)
     );
   }, [model, selectedRoomId]);

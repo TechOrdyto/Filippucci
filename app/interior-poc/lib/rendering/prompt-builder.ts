@@ -203,10 +203,14 @@ function buildCameraSection(scene: RenderSceneSpec): string {
 
   const view = describeCameraView(scene);
   const wallOrientation = describeWallOrientation(scene);
+  const rotationRadians = (camera.rotation * Math.PI) / 180;
+  const forwardX = Math.sin(rotationRadians);
+  const forwardY = -Math.cos(rotationRadians);
 
   return `CAMERA:
 - Position: x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m
-- Rotation: ${Math.round(camera.rotation)}° (0 = north, 90 = east, 180 = south, 270 = west)
+- Rotation: ${formatDegrees(camera.rotation)}° (0 = north, 90 = east, 180 = south, 270 = west)
+- Forward vector on plan: x=${forwardX.toFixed(3)}, y=${forwardY.toFixed(3)} (north is negative Y, east is positive X)
 - Direction: ${camera.direction}
 - Field of view: ${Math.round(camera.fov)}°
 - Camera height: ${formatMeters(camera.height)}m (eye level)
@@ -524,7 +528,7 @@ function buildOutputInstructionSection(scene: RenderSceneSpec): string {
   const camera = scene.camera;
   const room = scene.room;
   const viewpoint = camera
-    ? `Render the interior from the exact camera position and direction described in CAMERA (x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m, rotation ${Math.round(camera.rotation)}°, FOV ${Math.round(camera.fov)}°).`
+    ? `Render the interior from the exact camera position and direction described in CAMERA (x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m, rotation ${formatDegrees(camera.rotation)}°, FOV ${Math.round(camera.fov)}°).`
     : "Render the interior from a natural eye-level viewpoint inside the room.";
 
   const depth = room
@@ -547,7 +551,7 @@ function buildDebugPrompt(providerPrompt: string, input: CanonicalPromptInput): 
   debugLines.push(`Scene version: ${scene.version}`);
   debugLines.push(`Floorplan: ${scene.floorplanId}`);
   debugLines.push(`Room: ${scene.room?.name ?? "none"} [${scene.room?.id ?? "none"}]`);
-  debugLines.push(`Camera: ${scene.camera ? `${formatMeters(scene.camera.x)}m, ${formatMeters(scene.camera.y)}m, ${Math.round(scene.camera.rotation)}°` : "none"}`);
+  debugLines.push(`Camera: ${scene.camera ? `${formatMeters(scene.camera.x)}m, ${formatMeters(scene.camera.y)}m, ${formatDegrees(scene.camera.rotation)}°` : "none"}`);
   debugLines.push(`Furniture instances: ${scene.furnitureInstances.length}`);
   debugLines.push(`Unresolved assignments: ${scene.unresolvedAssignments.length}`);
   debugLines.push(`Reference images: ${(input.referenceImages ?? []).map((image) => image.name).join(", ") || "none"}`);
@@ -558,4 +562,8 @@ function buildDebugPrompt(providerPrompt: string, input: CanonicalPromptInput): 
 function formatMeters(value: number | undefined | null): string {
   if (value === undefined || value === null || Number.isNaN(value)) return "0";
   return (Math.round(value * 100) / 100).toFixed(2);
+}
+
+function formatDegrees(value: number): string {
+  return value.toFixed(1);
 }

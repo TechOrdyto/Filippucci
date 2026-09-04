@@ -6,7 +6,7 @@ import floorplanModel from "../../data/floorplan-model-casa-enri.json";
 import floorplanDxf from "../../data/floorplan-dxf-casa-enri.json";
 import designerRules from "../../data/designer-rules.json";
 import { planAreaToSquareMeters, planUnitsToMeters, roundMeters } from "../../floorplan/units";
-import { pointInPolygon } from "../../floorplan/geometry";
+import { geometryCenter, pointInPolygon } from "../../floorplan/geometry";
 import type { ObjectProductAssignment, Product } from "../../lib/types";
 import {
   buildRenderScene,
@@ -149,7 +149,10 @@ export async function POST(request: Request) {
       })
       .filter((assignment): assignment is ResolvedObjectAssignment => assignment !== null);
     const objectAssignments = allObjectAssignments.filter(
-      (assignment) => !selectedRoom || assignment.room?.id === selectedRoom.id
+      (assignment) =>
+        !selectedRoom ||
+        (assignment.room?.id === selectedRoom.id &&
+          isObjectCenterInsideRoom(assignment.object, selectedModelRoom))
     );
 
     // I prodotti associati agli oggetti entrano nello stesso vincolo catalogo
@@ -231,7 +234,8 @@ export async function POST(request: Request) {
           providerPrompt,
           products as any[],
           objectAssignments,
-          scene
+          scene,
+          request.url
         );
         provider = process.env.OPENAI_IMAGE_MODEL_REF ?? "gpt-image-1";
       } else {
@@ -242,15 +246,20 @@ export async function POST(request: Request) {
         provider = "pollinations";
       }
     } catch (err) {
-      // Fallback: placeholder SVG se la generazione fallisce
-      console.warn("Generazione immagine fallita, uso placeholder:", err);
-      const placeholder = buildPlaceholderSvg({
-        prompt: body.prompt,
-        products: products as any[],
-        floorplan,
-      });
-      imageUrl = `data:image/svg+xml;base64,${Buffer.from(placeholder).toString("base64")}`;
-      provider = "placeholder";
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Generazione immagine fallita:", err);
+
+      const userMessage = /credit|billing|quota|insufficient/i.test(errorMessage)
+        ? "Generazione non disponibile: il progetto OpenAI non ha crediti disponibili."
+        : "Generazione immagine non riuscita. Riprova tra poco.";
+
+      return NextResponse.json(
+        {
+          error: userMessage,
+          warnings: sceneValidation.warnings,
+        },
+        { status: 502 }
+      );
     }
 
     const generationWarnings = [...sceneValidation.warnings];
@@ -259,12 +268,6 @@ export async function POST(request: Request) {
         "Anteprima senza chiave API: il provider non riceve le foto catalogo né la mappa di scena come immagini di riferimento. Per la demo fedele attiva OPENAI_API_KEY."
       );
     }
-    if (provider === "placeholder") {
-      generationWarnings.push(
-        "È stata mostrata un'anteprima locale di riserva: la generazione immagini non è andata a buon fine."
-      );
-    }
-
     return NextResponse.json({
       imageUrl,
       provider,
@@ -359,6 +362,13 @@ function extractRoomWalls(dxf: any, room: any): Array<{ id: string; start: [numb
     }));
 }
 
+function isObjectCenterInsideRoom(object: any, room: any | null): boolean {
+  if (!room) return true;
+
+  const center = geometryCenter(object.geometry);
+  return pointInPolygon(center.x, center.y, room.geometry.points);
+}
+
 /**
  * Costruisce l'URL Pollinations per la generazione dell'immagine
  * Usa il prompt UTENTE semplice (non il prompt vincolato completo)
@@ -404,7 +414,8 @@ async function generateImageWithDalle(
   userPrompt: string,
   products: any[],
   objectAssignments: ResolvedObjectAssignment[],
-  scene: RenderSceneSpec
+  scene: RenderSceneSpec,
+  requestUrl: string
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -418,8 +429,20 @@ async function generateImageWithDalle(
     ? process.env.OPENAI_IMAGE_MODEL_REF ?? "gpt-image-1"
     : process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1-mini";
 
-  // Carica le immagini dei prodotti come riferimento
-  const productImages = await loadProductImages(products);
+  // La mappa e le foto catalogo entrano nello stesso set di riferimenti.
+  // L'ordine qui costruito è quello usato anche nei numeri del prompt:
+  // immagine 1 = mappa scena, immagini successive = foto prodotto.
+  const referenceImages: { buffer: Buffer; mime: string; name: string }[] = [];
+  try {
+    referenceImages.push(await buildSceneReferenceImage(scene));
+  } catch (err) {
+    console.warn("⚠️ Riferimento planimetrico non disponibile:", err);
+  }
+  referenceImages.push(...(await loadProductImages(products, objectAssignments, requestUrl)));
+
+  const referenceImageNumbers = new Map(
+    referenceImages.map((image, index) => [image.name, index + 1])
+  );
 
   // Prompt RIGIDO: i prodotti devono essere riprodotti ESATTAMENTE
   // come nelle foto di riferimento allegate. Nessuna sostituzione.
@@ -435,7 +458,13 @@ async function generateImageWithDalle(
         const dims = p.dimensions
           ? `${p.dimensions.width}cm W × ${p.dimensions.depth}cm D × ${p.dimensions.height}cm H`
           : "";
-        return `- Product ${i + 1}: ${p.name} by ${p.designer} (${dims}). Reference photo: image ${i + 1}.`;
+        const referenceImageNumber = referenceImageNumbers.get(
+          getProductReferenceName(p, objectAssignments)
+        );
+        const referenceLabel = referenceImageNumber
+          ? `Reference photo: image ${referenceImageNumber}.`
+          : "Reference photo: not available.";
+        return `- Product ${i + 1}: ${p.name} by ${p.designer} (${dims}). ${referenceLabel}`;
       })
       .join("\n");
 
@@ -460,18 +489,6 @@ async function generateImageWithDalle(
   );
 
   const imagePrompt = parts.join(". ");
-
-  // La mappa di scena rende visibile al modello la relazione spaziale che il
-  // solo testo (coordinate e angoli) non riesce a rispettare con precisione.
-  const referenceImages: { buffer: Buffer; mime: string; name: string }[] = [];
-  try {
-    referenceImages.push(await buildSceneReferenceImage(scene));
-  } catch (err) {
-    console.warn("⚠️ Riferimento planimetrico non disponibile:", err);
-  }
-
-  // Carica le immagini dei prodotti come riferimento
-  referenceImages.push(...(await loadProductImages(products, objectAssignments)));
 
   // La mappa e le foto catalogo entrano nello stesso set di riferimenti.
   if (referenceImages.length > 0) {
@@ -566,11 +583,12 @@ async function editImageWithReferences(
  */
 async function loadProductImages(
   products: any[],
-  objectAssignments: ResolvedObjectAssignment[] = []
+  objectAssignments: ResolvedObjectAssignment[] = [],
+  requestUrl?: string
 ): Promise<
   { buffer: Buffer; mime: string; name: string }[]
 > {
-  const { readFileSync } = await import("node:fs");
+  const { existsSync, readFileSync } = await import("node:fs");
   const { join } = await import("node:path");
 
   const images: { buffer: Buffer; mime: string; name: string }[] = [];
@@ -584,26 +602,51 @@ async function loadProductImages(
     const imagePath = imagePaths[0];
     // Il path è relativo a /public (es. /products/sofas/augusto.png)
     const filePath = join(process.cwd(), "public", imagePath.replace(/^\//, ""));
+    let buffer: Buffer;
     try {
-      const buffer = readFileSync(filePath);
-      const mime = filePath.endsWith(".png") ? "image/png" : "image/jpeg";
-      const anchorIds = objectAssignments
-        .filter((assignment) => assignment.product.id === product.id)
-        .map((assignment) => assignment.objectId);
-      const referenceName = anchorIds.length > 0
-        ? `${anchorIds.join("-")}-${product.id}.png`
-        : `${product.id}.png`;
-      images.push({
-        buffer,
-        mime,
-        name: referenceName,
-      });
-      console.log(`📷 Immagine prodotto caricata: ${product.name}`);
+      if (existsSync(filePath)) {
+        buffer = readFileSync(filePath);
+      } else if (requestUrl) {
+        const response = await fetch(new URL(imagePath, requestUrl));
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        buffer = Buffer.from(await response.arrayBuffer());
+      } else {
+        throw new Error("file non presente nel bundle");
+      }
     } catch (err) {
-      console.warn(`⚠️ Immagine non trovata per ${product.name}: ${filePath}`);
+      console.warn(`⚠️ Immagine non trovata per ${product.name}: ${imagePath}`, err);
+      continue;
     }
+
+    const mime = imagePath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+    const anchorIds = objectAssignments
+      .filter((assignment) => assignment.product.id === product.id)
+      .map((assignment) => assignment.objectId);
+    const referenceName = anchorIds.length > 0
+      ? `${anchorIds.join("-")}-${product.id}.png`
+      : `${product.id}.png`;
+    images.push({
+      buffer,
+      mime,
+      name: referenceName,
+    });
+    console.log(`📷 Immagine prodotto caricata: ${product.name}`);
   }
   return images;
+}
+
+function getProductReferenceName(
+  product: any,
+  objectAssignments: ResolvedObjectAssignment[]
+): string {
+  const anchorIds = objectAssignments
+    .filter((assignment) => assignment.product.id === product.id)
+    .map((assignment) => assignment.objectId);
+  return anchorIds.length > 0
+    ? `${anchorIds.join("-")}-${product.id}.png`
+    : `${product.id}.png`;
 }
 
 /**
@@ -763,7 +806,7 @@ async function buildSceneReferenceImage(
     "<text x=\"" +
       padding +
       "\" y=\"84\" class=\"meta\">Top-down map · camera " +
-      Math.round(scene.camera.rotation) +
+      scene.camera.rotation.toFixed(1) +
       "° · FOV " +
       Math.round(scene.camera.fov) +
       "° · dark lines = real walls · green rectangles = furniture footprints</text>",
