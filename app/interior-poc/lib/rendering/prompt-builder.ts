@@ -207,11 +207,14 @@ function buildCameraSection(scene: RenderSceneSpec): string {
   const rotationRadians = (camera.rotation * Math.PI) / 180;
   const forwardX = Math.sin(rotationRadians);
   const forwardY = -Math.cos(rotationRadians);
+  const rightX = Math.cos(rotationRadians);
+  const rightY = Math.sin(rotationRadians);
 
   return `CAMERA:
 - Position: x=${formatMeters(camera.x)}m, y=${formatMeters(camera.y)}m
 - Rotation: ${formatDegrees(camera.rotation)}° (0 = north, 90 = east, 180 = south, 270 = west)
 - Forward vector on plan: x=${forwardX.toFixed(3)}, y=${forwardY.toFixed(3)} (north is negative Y, east is positive X)
+- Screen-right vector on plan: x=${rightX.toFixed(3)}, y=${rightY.toFixed(3)}; screen-left is its exact inverse. Never horizontally mirror the room.
 - Direction: ${camera.direction}
 - Field of view: ${Math.round(camera.fov)}°
 - Camera height: ${formatMeters(camera.height)}m (eye level)
@@ -454,7 +457,7 @@ function buildReferenceImageSection(input: CanonicalPromptInput): string {
   const lines = images.map((image, index) => `- Image ${index + 1} (${image.name}) → ${image.label}`);
   return `REFERENCE IMAGE MAPPING:
 ${lines.join("\n")}
-The reference images are authoritative for the identity of the furniture and the spatial layout. Reproduce them faithfully.`;
+The perspective blockout and top-down CAD map are authoritative for composition, room orientation, depth and placement. Product photos are authoritative only for furniture identity, silhouette, materials and details: ignore their background, floor, walls, lighting, framing, camera angle and furniture placement.`;
 }
 
 function buildFinishesSection(scene: RenderSceneSpec): string {
@@ -550,6 +553,7 @@ function buildProhibitionsSection(scene: RenderSceneSpec): string {
 - Do NOT render rooms other than the selected room.
 - Do NOT change the room geometry, proportions, depth or openings.
 - Do NOT move the camera or change the viewpoint.
+- Do NOT horizontally mirror or flip the room, wall corner, openings or furniture placement. Preserve the screen-left/screen-right relationship defined by CAMERA and the perspective blockout.
 - The top-down scene map is authoritative for the room shape, wall positions, furniture footprints and their placement. Match the perspective depth, camera angle and furniture positions to that map.
 - The furniture dimensions in FURNITURE INSTANCE MANIFEST are authoritative. Scale each piece to fit the room: a ${count > 0 ? "sofa" : "piece"} must not exceed the room width or depth.`;
 }

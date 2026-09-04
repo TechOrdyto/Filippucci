@@ -483,7 +483,9 @@ async function generateImageWithDalle(
         `- Each product MUST be identical to its reference photo: same design, silhouette, proportions, colors, materials, legs, upholstery.\n` +
         `- DO NOT substitute, replace, redesign, or invent similar furniture.\n` +
         `- DO NOT change colors, materials, or proportions.\n` +
+        `- Product photos define furniture identity only. Ignore their background, floor, walls, lighting, framing, camera angle, composition and furniture placement.\n` +
         `- DO NOT add furniture that is not listed above.\n` +
+        `- DO NOT horizontally mirror or flip the room, wall corner, openings or furniture placement.\n` +
         `- If a product appears in the scene, it MUST be the exact product from the photo.`
     );
   }
@@ -1033,7 +1035,7 @@ async function buildPerspectiveSceneReferenceImage(
     "<style>.title { font: 700 30px sans-serif; fill: #f8fafc; }.meta { font: 500 18px sans-serif; fill: #cbd5e1; }.anchor-label { font: 700 17px sans-serif; fill: #172027; }</style>",
     `<rect width="${width}" height="${height}" fill="#172027"/>`,
     `<text x="70" y="52" class="title">PERSPECTIVE BLOCKOUT · ${escapeXml(scene.room.name)}</text>`,
-    `<text x="70" y="82" class="meta">Exact camera ${scene.camera.rotation.toFixed(1)}° · FOV ${Math.round(scene.camera.fov)}° · green volume = catalog anchor at measured depth</text>`,
+    `<text x="70" y="82" class="meta">Exact camera ${scene.camera.rotation.toFixed(1)}° · FOV ${Math.round(scene.camera.fov)}° · screen-right plan vector (${right.x.toFixed(2)}, ${right.y.toFixed(2)}) · green volume = catalog anchor at measured depth</text>`,
     `<rect x="0" y="${horizon}" width="${width}" height="${height - horizon}" fill="#c9c1b5"/>`,
     floorPolygon,
     depthLines,
@@ -1041,6 +1043,8 @@ async function buildPerspectiveSceneReferenceImage(
     wallLines,
     furniture,
     `<line x1="0" y1="${horizon}" x2="${width}" y2="${horizon}" stroke="#7b8a87" stroke-width="3" stroke-dasharray="12 10"/>`,
+    `<text x="70" y="${horizon + 42}" class="meta">SCREEN LEFT</text>`,
+    `<text x="${width - 220}" y="${horizon + 42}" class="meta">SCREEN RIGHT</text>`,
     `<text x="70" y="${height - 45}" class="meta">Convert this measured perspective construction into a photorealistic room. Preserve room depth, wall planes and the furniture distance from the camera.</text>`,
     "</svg>",
   ].join("");
