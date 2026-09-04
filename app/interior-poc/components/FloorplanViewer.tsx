@@ -31,7 +31,7 @@ interface FloorPlanViewerProps {
   onSelectViewpoint: (viewpoint: Viewpoint) => void;
   onRotateCamera: (delta: number) => void;
   onToggleCamera: () => void;
-  onConfirmCamera: () => void;
+  cameraAttentionTarget: "toggle" | "confirm" | null;
 }
 
 export default function FloorPlanViewer({
@@ -55,7 +55,7 @@ export default function FloorPlanViewer({
   onSelectViewpoint,
   onRotateCamera,
   onToggleCamera,
-  onConfirmCamera,
+  cameraAttentionTarget,
 }: FloorPlanViewerProps) {
   const [viewport, setViewport] = useState<Viewport>(DEFAULT_VIEWPORT);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,7 +72,21 @@ export default function FloorPlanViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ESC esce dalla modalità camera oppure rimuove la selezione dell’elemento.
+  // Un click fuori dall'area della mappa annulla la selezione corrente,
+  // senza cancellare il contesto della scena già impostato.
+  useEffect(() => {
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node) || containerRef.current?.contains(target)) return;
+      if (!selection && !isObjectAssignmentOpen) return;
+      onSelect(null);
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
+  }, [isObjectAssignmentOpen, onSelect, selection]);
+
+  // ESC esce dalla modalità camera oppure rimuove la selezione dell'elemento.
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -118,25 +132,12 @@ export default function FloorPlanViewer({
   const assignmentRoom = assignmentObject
     ? model.rooms.find((room) => room.id === assignmentObject.roomId)
     : null;
-  const selectedObject =
-    selection?.type === "object"
-      ? model.objects.find((object) => object.id === selection.id)
-      : null;
-  const selectedObjectProduct = selectedObject
-    ? findProductById(objectAssignments[selectedObject.id])
-    : null;
-  const assignmentCount = Object.keys(objectAssignments).length;
   const objectAssignmentLabels = Object.fromEntries(
     Object.entries(objectAssignments).flatMap(([objectId, productId]) => {
       const product = findProductById(productId);
       return product ? [[objectId, product.name]] : [];
     })
   );
-  const focusedRoomAssignmentCount = focusedRoom
-    ? model.objects.filter(
-        (object) => object.roomId === focusedRoom.id && Boolean(objectAssignments[object.id])
-      ).length
-    : assignmentCount;
 
   return (
     <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-none">
@@ -156,6 +157,7 @@ export default function FloorPlanViewer({
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
+            id="imposta-visuale"
             onClick={onToggleCamera}
             disabled={!focusedRoom}
             aria-pressed={isCameraMode}
@@ -166,7 +168,7 @@ export default function FloorPlanViewer({
                 : isCameraMode
                   ? "ghost-action"
                   : "primary-action"
-            }`}
+            } ${cameraAttentionTarget === "toggle" ? "camera-action-attention" : ""}`}
           >
             {isCameraMode ? "← Torna agli arredi" : "Imposta visuale"}
           </button>
@@ -202,35 +204,6 @@ export default function FloorPlanViewer({
           </span>
         </div>
       </div>
-
-      {!isCameraMode && (selectedObject || assignmentCount > 0) && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-soft)]">
-              Elemento selezionato
-            </p>
-            {selectedObject ? (
-              <>
-                <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">
-                  {selectedObject.name}
-                </p>
-                <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">
-                  {selectedObjectProduct
-                    ? `Associato a ${selectedObjectProduct.name}`
-                    : "Nessun articolo associato · seleziona dal catalogo"}
-                </p>
-              </>
-            ) : (
-              <p className="mt-0.5 text-xs font-semibold text-[var(--text)]">
-                {focusedRoom ? `Articoli in ${focusedRoom.name}` : "Articoli associati"}
-              </p>
-            )}
-          </div>
-          <span className="soft-badge shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold">
-            {focusedRoomAssignmentCount} {focusedRoomAssignmentCount === 1 ? "elemento associato" : "elementi associati"}
-          </span>
-        </div>
-      )}
 
       {!isCameraMode && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
@@ -284,8 +257,8 @@ export default function FloorPlanViewer({
         <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">02 · Vista</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text)]">Imposta il punto di vista</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Vista</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--text)]">Imposta la visuale</p>
             </div>
             <span className="soft-badge rounded-full px-2.5 py-1 text-xs font-semibold">
               {focusedRoom.name}
@@ -299,22 +272,13 @@ export default function FloorPlanViewer({
           }`}>
             <span>
               {isCameraConfirmed
-                ? "✓ Punto di vista confermato: puoi tornare agli arredi o generare il render."
+                ? "✓ Visuale confermata: puoi tornare agli arredi o generare il render."
                 : selectedViewpointId && selectedViewpointId === viewpoints[0]?.id
-                  ? "Punto di vista consigliato selezionato: controllalo e confermalo."
+                  ? "Visuale consigliata selezionata: controllala e confermala nello stato scena."
                   : viewpoints.length > 0
-                    ? "Punto di vista selezionato: controllalo e confermalo."
-                    : "Punto di vista impostato: controllalo e confermalo."}
+                    ? "Visuale selezionata: controllala e confermala nello stato scena."
+                    : "Visuale impostata: controllala e confermala nello stato scena."}
             </span>
-            {!isCameraConfirmed && (
-              <button
-                type="button"
-                onClick={onConfirmCamera}
-                className="primary-action rounded-md px-3 py-1.5 text-[11px] font-bold"
-              >
-                Conferma visuale
-              </button>
-            )}
           </div>
 
           {viewpoints.length > 0 ? (
@@ -327,21 +291,18 @@ export default function FloorPlanViewer({
                     type="button"
                     aria-pressed={selected}
                     onClick={() => onSelectViewpoint(viewpoint)}
-                    className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                    className={`flex h-full flex-col rounded-lg border px-3 py-2.5 text-left transition-colors ${
                       selected
                         ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--text)]"
                         : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-muted)]"
                     }`}
                   >
-                    <span className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.1em]">
+                    <span className="flex min-h-4 items-center whitespace-nowrap text-[10px] font-bold uppercase leading-4 tracking-[0.08em]">
                       <span className={selected ? "text-[var(--accent-strong)]" : "text-[var(--text-soft)]"}>
                         {viewpoint.kind === "recommended" ? "Consigliata" : `Visuale ${index + 1}`}
                       </span>
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-current text-[10px]">
-                        {index + 1}
-                      </span>
                     </span>
-                    <span className="mt-1 block text-xs font-medium leading-5">
+                    <span className="mt-1 block min-h-8 overflow-hidden text-[11px] font-medium leading-4">
                       {viewpoint.label.replace(" → centro", "").replace(" → interno", "")}
                     </span>
                   </button>
@@ -362,29 +323,31 @@ export default function FloorPlanViewer({
               <button
                 type="button"
                 onClick={() => onRotateCamera(-15)}
-                className="ghost-action rounded-md px-2 py-1 text-xs font-semibold"
+                className="ghost-action inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold"
                 aria-label="Ruota visuale a sinistra"
               >
-                ↺ 15°
+                <span aria-hidden="true" className="text-xl leading-none">↺</span>
+                <span>15°</span>
               </button>
               <button
                 type="button"
                 onClick={() => onRotateCamera(15)}
-                className="ghost-action rounded-md px-2 py-1 text-xs font-semibold"
+                className="ghost-action inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold"
                 aria-label="Ruota visuale a destra"
               >
-                15° ↻
+                <span>15°</span>
+                <span aria-hidden="true" className="text-xl leading-none">↻</span>
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
+        <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
           {!focusedRoom
             ? "Seleziona un ambiente o un elemento per iniziare."
             : isCameraMode
               ? "Carico i punti di vista disponibili per questo ambiente."
-              : "Quando hai finito di associare gli articoli, seleziona «Imposta visuale»."}
+              : "Seleziona un elemento e associa un articolo, poi imposta la visuale."}
         </p>
       )}
     </div>

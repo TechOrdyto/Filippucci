@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import MentionInput from "./components/MentionInput";
 import ProductDetail from "./components/ProductDetail";
+import FinishField from "./components/FinishField";
 import RenderResult, { type RenderVariant } from "./components/RenderResult";
 import FloorplanViewer from "./components/FloorplanViewer";
 import StudioHeader from "./components/StudioHeader";
@@ -41,12 +43,11 @@ export default function InteriorPocPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [renderedSceneSignature, setRenderedSceneSignature] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<RenderVariant[]>([]);
-  const [catalogQuery, setCatalogQuery] = useState("");
-  const [catalogCategory, setCatalogCategory] = useState("Tutti");
   const [wallFinish, setWallFinish] = useState("");
   const [floorFinish, setFloorFinish] = useState("");
+  const [doorFinish, setDoorFinish] = useState("");
+  const [windowFinish, setWindowFinish] = useState("");
   const [generationWarnings, setGenerationWarnings] = useState<string[]>([]);
-  const [catalogActionMessage, setCatalogActionMessage] = useState<string | null>(null);
 
   // Camera 2D state
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -55,6 +56,9 @@ export default function InteriorPocPage() {
   const [selectedViewpointId, setSelectedViewpointId] = useState<string | null>(null);
   const [isCameraMode, setIsCameraMode] = useState(false);
   const [isCameraConfirmed, setIsCameraConfirmed] = useState(false);
+  const [cameraAttentionTarget, setCameraAttentionTarget] = useState<
+    "toggle" | "confirm" | null
+  >(null);
   const [objectAssignments, setObjectAssignments] = useState<Record<string, string>>({});
   const [objectAssignmentTargetId, setObjectAssignmentTargetId] = useState<string | null>(null);
   const [isObjectAssignmentOpen, setIsObjectAssignmentOpen] = useState(false);
@@ -77,16 +81,13 @@ export default function InteriorPocPage() {
   useEffect(() => {
     const savedSession = readProjectSession();
     if (savedSession?.floorplanId === model.id) {
-      setSelectedRoomId(savedSession.selectedRoomId);
       setObjectAssignments(savedSession.objectAssignments);
       setPrompt(savedSession.prompt);
       setMentions(parseMentions(savedSession.prompt));
       setWallFinish(savedSession.wallFinish);
       setFloorFinish(savedSession.floorFinish);
-      setCamera(savedSession.camera);
-      setViewpoints(savedSession.viewpoints);
-      setSelectedViewpointId(savedSession.selectedViewpointId);
-      setIsCameraConfirmed(Boolean(savedSession.isCameraConfirmed && savedSession.camera));
+      setDoorFinish(savedSession.doorFinish);
+      setWindowFinish(savedSession.windowFinish);
       setImageUrl(savedSession.imageUrl);
       setRenderedSceneSignature(savedSession.renderSignature);
     }
@@ -103,6 +104,8 @@ export default function InteriorPocPage() {
       prompt,
       wallFinish,
       floorFinish,
+      doorFinish,
+      windowFinish,
       camera,
       viewpoints,
       selectedViewpointId,
@@ -113,6 +116,7 @@ export default function InteriorPocPage() {
     });
   }, [
     camera,
+    doorFinish,
     floorFinish,
     imageUrl,
     isCameraConfirmed,
@@ -124,6 +128,7 @@ export default function InteriorPocPage() {
     selectedRoomId,
     selectedViewpointId,
     viewpoints,
+    windowFinish,
     wallFinish,
   ]);
 
@@ -185,7 +190,12 @@ export default function InteriorPocPage() {
         assignments: renderAssignments,
         products: renderProducts,
         prompt,
-        finishes: { walls: wallFinish, floor: floorFinish },
+        finishes: {
+          walls: wallFinish,
+          floor: floorFinish,
+          doors: doorFinish,
+          windows: windowFinish,
+        },
         openings: (geometry.openings ?? []).map((opening) => ({
           id: opening.id,
           type: opening.type,
@@ -198,6 +208,7 @@ export default function InteriorPocPage() {
       }),
     [
       camera,
+      doorFinish,
       floorFinish,
       geometry.openings,
       model,
@@ -206,6 +217,7 @@ export default function InteriorPocPage() {
       renderProducts,
       selectedRoomId,
       wallFinish,
+      windowFinish,
     ]
   );
 
@@ -226,8 +238,10 @@ export default function InteriorPocPage() {
         prompt: prompt.trim(),
         wallFinish: wallFinish.trim(),
         floorFinish: floorFinish.trim(),
+        doorFinish: doorFinish.trim(),
+        windowFinish: windowFinish.trim(),
       }),
-    [camera, floorFinish, model.id, objectAssignments, prompt, selectedRoomId, wallFinish]
+    [camera, doorFinish, floorFinish, model.id, objectAssignments, prompt, selectedRoomId, wallFinish, windowFinish]
   );
   const isRenderStale = Boolean(
     imageUrl && (!renderedSceneSignature || renderedSceneSignature !== sceneSignature)
@@ -335,8 +349,23 @@ export default function InteriorPocPage() {
       }
     }
   };
+
+  const resetActiveEnvironment = () => {
+    clearSelection();
+    closeObjectAssignment();
+    setObjectAssignmentTargetId(null);
+    setSelectedRoomId(null);
+    setCamera(null);
+    setViewpoints([]);
+    setSelectedViewpointId(null);
+    setIsCameraMode(false);
+    setIsCameraConfirmed(false);
+    setCameraAttentionTarget(null);
+  };
+
   const handleSelectViewpoint = (vp: Viewpoint) => {
     setIsCameraConfirmed(false);
+    setCameraAttentionTarget("confirm");
     setSelectedViewpointId(vp.id);
     setCamera({
       x: vp.position.x,
@@ -349,6 +378,7 @@ export default function InteriorPocPage() {
 
   const handleRotateCamera = (delta: number) => {
     setIsCameraConfirmed(false);
+    setCameraAttentionTarget("confirm");
     setSelectedViewpointId(null);
     setCamera((current) => {
       if (!current) return current;
@@ -361,22 +391,38 @@ export default function InteriorPocPage() {
 
   const handleToggleCamera = () => {
     if (!selectedRoomId) return;
+    const nextCameraMode = !isCameraMode;
+    setCameraAttentionTarget(nextCameraMode && camera ? "confirm" : null);
     closeObjectAssignment();
     setObjectAssignmentTargetId(null);
-    setIsCameraMode((active) => !active);
+    setIsCameraMode(nextCameraMode);
   };
 
   const handleConfirmCamera = () => {
     if (!camera || !selectedRoomId) return;
+    setCameraAttentionTarget(null);
     setIsCameraConfirmed(true);
     setError(null);
   };
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+  const focusCameraAction = (target: "toggle" | "confirm") => {
+    setCameraAttentionTarget(target);
 
-    if (!isCameraConfirmed) {
-      setError("Conferma il punto di vista prima di generare il render.");
+    const actionId = target === "confirm" ? "conferma-visuale" : "imposta-visuale";
+    document.getElementById(actionId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedRoomId || !camera || !isCameraConfirmed) {
+      setError(
+        selectedRoomId
+          ? "Imposta e conferma la visuale prima di generare il render."
+          : "Seleziona un ambiente e imposta la visuale prima di generare il render."
+      );
+      focusCameraAction(isCameraMode && Boolean(camera) ? "confirm" : "toggle");
       return;
     }
 
@@ -434,6 +480,8 @@ export default function InteriorPocPage() {
           finishes: {
             walls: wallFinish.trim() || null,
             floor: floorFinish.trim() || null,
+            doors: doorFinish.trim() || null,
+            windows: windowFinish.trim() || null,
           },
           camera: activeCamera
             ? {
@@ -463,6 +511,7 @@ export default function InteriorPocPage() {
       setImageUrl(data.imageUrl);
       setRenderedSceneSignature(sceneSignature);
       setGeneratedImages((previous) => [generatedImage, ...previous].slice(0, 8));
+      resetActiveEnvironment();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante la generazione del render.");
     } finally {
@@ -499,67 +548,46 @@ export default function InteriorPocPage() {
 
   const hasSelectedEnvironment = Boolean(selectedRoomId);
   const hasConfirmedView = Boolean(selectedRoomId && camera && isCameraConfirmed);
-  const hasIndications = Boolean(prompt.trim());
+  const hasPendingObjectAssignment = Boolean(
+    selection?.type === "object" && !objectAssignments[selection.id]
+  );
   const currentStep =
     !hasSelectedEnvironment
       ? 1
-      : !hasConfirmedView
+      : hasPendingObjectAssignment
         ? 2
-        : !hasIndications
+        : !isCameraMode && selection?.type !== "object"
+          ? 2
+        : !hasConfirmedView
           ? 3
-          : 4;
+          : imageUrl || isRenderStale
+            ? 5
+            : 4;
   const nextAction = !hasSelectedEnvironment
-    ? { label: "Seleziona un ambiente", href: "#piantina" }
-    : sceneValidation.errors.length > 0 || !hasConfirmedView
-      ? { label: "Imposta e conferma il punto di vista", href: "#piantina" }
-      : !hasIndications
-        ? { label: "Inserisci finiture e note", href: "#indicazioni" }
-        : isRenderStale
-          ? { label: "Aggiorna il render", href: "#risultato" }
-          : !imageUrl
-            ? { label: "Genera il render", href: "#indicazioni" }
-            : { label: "Rivedi il render", href: "#risultato" };
-  const catalogCategories = [
-    "Tutti",
-    ...Array.from(new Set(catalog.map((product) => product.category))),
-  ];
-  const filteredCatalog = catalog.filter((product) => {
-    const query = catalogQuery.trim().toLowerCase();
-    const matchesCategory = catalogCategory === "Tutti" || product.category === catalogCategory;
-    const matchesQuery =
-      !query ||
-      [product.name, product.collection, product.category, product.designer]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    return matchesCategory && matchesQuery;
-  });
-
-  const handleUseProduct = (productName: string) => {
-    const nextPrompt = `${prompt.trim()}${prompt.trim() ? " " : ""}@${productName} `;
-    setPrompt(nextPrompt);
-    setMentions(parseMentions(nextPrompt));
-    setCatalogActionMessage(`${productName} aggiunto alle indicazioni.`);
-  };
-
+    ? { label: "Seleziona un ambiente dalla planimetria." }
+    : hasPendingObjectAssignment
+      ? { label: "Associa un articolo all’elemento selezionato." }
+      : !hasConfirmedView
+        ? !isCameraMode && selection?.type !== "object"
+          ? { label: "Seleziona un elemento e associa un articolo, oppure imposta la visuale." }
+          : !isCameraMode
+            ? { label: "Imposta la visuale dalla planimetria." }
+            : { label: "Controlla e conferma la visuale." }
+        : sceneValidation.errors.length > 0
+          ? { label: "Controlla la configurazione." }
+          : isRenderStale
+            ? { label: "Aggiorna il render per applicare le modifiche." }
+            : !imageUrl
+              ? { label: "Aggiungi finiture e note facoltative, poi genera il render." }
+              : { label: "Rivedi il render o modifica la configurazione." };
   return (
     <main className="studio-shell min-h-screen">
       <StudioHeader active="demo" />
 
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pt-10">
         <section className="mb-8">
-          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start md:gap-8">
-            <div className="max-w-3xl">
-              <p className="eyebrow mb-3">Configurazione della scena</p>
-              <h1 className="display-title text-4xl leading-[0.98] text-[var(--text)] sm:text-5xl">
-                Configura la scena del progetto.
-              </h1>
-              <p className="mt-4 max-w-xl text-base leading-7 text-[var(--text-muted)]">
-                Seleziona l’ambiente, associa gli articoli, imposta il punto di vista e inserisci
-                le indicazioni necessarie per generare il render.
-              </p>
-            </div>
-            <div className="shrink-0 text-left md:pt-0 md:text-right">
+          <div className="flex justify-start">
+            <div className="shrink-0 text-left">
               <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-soft)]">Progetto</p>
               <p className="mt-1 text-sm font-medium text-[var(--text)]">{model.name}</p>
             </div>
@@ -567,12 +595,13 @@ export default function InteriorPocPage() {
         </section>
 
         <nav aria-label="Passaggi di configurazione" className="panel mb-8 overflow-hidden rounded-2xl">
-          <ol className="grid grid-cols-2 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
+          <ol className="grid grid-cols-2 divide-x divide-y divide-[var(--border)] sm:grid-cols-5 sm:divide-y-0">
             {[
-              [1, "Ambiente e articoli", "Seleziona l’ambiente e associa gli articoli"],
-              [2, "Punto di vista", "Imposta e conferma la visuale"],
-              [3, "Finiture e note", "Definisci materiali e indicazioni"],
-              [4, "Render", "Visualizza il risultato"],
+              [1, "Ambiente", "Seleziona l’ambiente"],
+              [2, "Articoli", "Seleziona elementi e associa gli articoli"],
+              [3, "Visuale", "Imposta e conferma la visuale"],
+              [4, "Finiture e note", "Facoltative · aggiungi dettagli"],
+              [5, "Render", "Genera il risultato"],
             ].map(([step, title, description]) => {
               const stepNumber = step as number;
               const isActive = currentStep === stepNumber;
@@ -612,19 +641,12 @@ export default function InteriorPocPage() {
             <section id="indicazioni" className="panel rounded-2xl p-5 sm:p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <p className="eyebrow mb-2">03 · Indicazioni</p>
+                  <p className="eyebrow mb-2">Indicazioni</p>
                   <h3 className="display-title text-2xl text-[var(--text)]">Imposta finiture e indicazioni.</h3>
                   <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                     Inserisci colori, materiali, note e riferimenti agli articoli da usare nel render.
                   </p>
                 </div>
-              </div>
-
-              <div className="mb-2">
-                <p className="text-xs font-semibold text-[var(--text)]">Indicazioni per il render</p>
-                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                  Inserisci almeno una nota per abilitare la generazione.
-                </p>
               </div>
 
               <MentionInput
@@ -641,54 +663,34 @@ export default function InteriorPocPage() {
                   </p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-[var(--text)]">
-                      Pareti
-                    </span>
-                    <input
-                      value={wallFinish}
-                      onChange={(event) => setWallFinish(event.target.value)}
-                      className="field-shell w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text)] outline-none"
-                      placeholder="es. bianco caldo opaco"
-                      aria-label="Finitura pareti"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-[var(--text)]">
-                      Pavimento
-                    </span>
-                    <input
-                      value={floorFinish}
-                      onChange={(event) => setFloorFinish(event.target.value)}
-                      className="field-shell w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text)] outline-none"
-                      placeholder="es. rovere naturale"
-                      aria-label="Finitura pavimento"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <p className="eyebrow mb-2">Esempi rapidi</p>
-                <div className="flex flex-wrap gap-2" aria-label="Esempi di indicazioni">
-                  {[
-                    "Soggiorno luminoso e minimale",
-                    "Toni caldi e legno naturale",
-                    "Immagine elegante e ordinata",
-                    "Colori neutri e materiali naturali",
-                  ].map((example) => (
-                    <button
-                      key={example}
-                      type="button"
-                      onClick={() => {
-                        setPrompt(example);
-                        setMentions(parseMentions(example));
-                      }}
-                      className="ghost-action rounded-full px-3 py-1.5 text-xs"
-                    >
-                      {example}
-                    </button>
-                  ))}
+                  <FinishField
+                    id="finitura-pareti"
+                    label="Pareti"
+                    value={wallFinish}
+                    onChange={setWallFinish}
+                    placeholder="es. bianco caldo opaco"
+                  />
+                  <FinishField
+                    id="finitura-pavimento"
+                    label="Pavimento"
+                    value={floorFinish}
+                    onChange={setFloorFinish}
+                    placeholder="es. rovere naturale"
+                  />
+                  <FinishField
+                    id="finitura-porte"
+                    label="Porte"
+                    value={doorFinish}
+                    onChange={setDoorFinish}
+                    placeholder="es. porte laccate bianche"
+                  />
+                  <FinishField
+                    id="finitura-finestre"
+                    label="Finestre"
+                    value={windowFinish}
+                    onChange={setWindowFinish}
+                    placeholder="es. infissi in legno naturale"
+                  />
                 </div>
               </div>
 
@@ -725,37 +727,21 @@ export default function InteriorPocPage() {
                 </p>
               )}
 
-              {sceneValidation.errors.length === 0 && sceneValidation.warnings.length > 0 && (
-                <p className="mt-5 text-xs leading-5 text-[var(--text-soft)]">
-                  {sceneValidation.warnings[0]}
-                </p>
-              )}
-
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={
-                  !prompt.trim() ||
-                  isGenerating ||
-                  sceneValidation.errors.length > 0 ||
-                  !isCameraConfirmed
-                }
+                disabled={isGenerating}
                 className="primary-action mt-6 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
               >
                 <span aria-hidden="true">{isGenerating ? "···" : "→"}</span>
                 {isGenerating ? "Generazione in corso…" : "Genera render"}
               </button>
-              <p className="mt-3 text-center text-xs text-[var(--text-soft)]">
-                {isGenerating
-                  ? "La generazione richiede normalmente 20–40 secondi."
-                  : !selectedRoomId
-                    ? "Seleziona prima un ambiente dalla planimetria."
-                    : !isCameraConfirmed
-                      ? "Imposta e conferma il punto di vista dalla planimetria."
-                      : !prompt.trim()
-                        ? "Inserisci almeno una indicazione per generare il render."
-                        : "La generazione richiede normalmente 20–40 secondi."}
-              </p>
+              <Link
+                href="/listini"
+                className="ghost-action mt-3 flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold"
+              >
+                Preventivo
+              </Link>
             </section>
             </div>
 
@@ -764,10 +750,10 @@ export default function InteriorPocPage() {
               <section id="piantina" className="panel rounded-2xl p-5 sm:p-6">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
-                    <p className="eyebrow mb-2">01 · Piantina</p>
+                    <p className="eyebrow mb-2">Piantina</p>
                 <h3 className="display-title text-2xl text-[var(--text)]">Seleziona ambiente e arredi.</h3>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  Seleziona un ambiente o un elemento. Associa gli articoli dal catalogo, poi imposta il punto di vista.
+                  Seleziona prima un ambiente. Poi scegli gli elementi, associa gli articoli dal catalogo e imposta la visuale.
                 </p>
                   </div>
                 </div>
@@ -793,31 +779,34 @@ export default function InteriorPocPage() {
                   onSelectViewpoint={handleSelectViewpoint}
                   onRotateCamera={handleRotateCamera}
                   onToggleCamera={handleToggleCamera}
-                  onConfirmCamera={handleConfirmCamera}
+                  cameraAttentionTarget={cameraAttentionTarget}
                 />
 
               </section>
             </div>
           </div>
 
-          <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6 lg:self-stretch">
+          <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6 lg:self-start lg:sticky lg:top-24">
             <div className="order-4">
               <SceneStatus
                 roomName={activeRoom?.name ?? null}
                 camera={camera}
                 isCameraConfirmed={isCameraConfirmed}
+                isCameraMode={isCameraMode}
                 assignedCount={activeRoomAssignmentCount}
                 wallFinish={wallFinish}
                 floorFinish={floorFinish}
+                doorFinish={doorFinish}
+                windowFinish={windowFinish}
                 prompt={prompt}
-                hasImage={Boolean(imageUrl)}
                 renderStale={isRenderStale}
                 errors={sceneValidation.errors}
-                warnings={sceneValidation.warnings}
+                onConfirmCamera={handleConfirmCamera}
+                cameraAttentionTarget={cameraAttentionTarget}
                 nextAction={nextAction}
               />
             </div>
-            <aside id="risultato" className="order-5 lg:sticky lg:top-24 lg:self-stretch">
+            <aside id="risultato" className="order-5">
               <RenderResult
                 imageUrl={imageUrl}
                 generatedImages={generatedImages}
@@ -833,108 +822,21 @@ export default function InteriorPocPage() {
           </div>
         </div>
 
-        <section className="mt-12 border-t border-[var(--border)] pt-8">
-          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-            <div>
-              <p className="eyebrow mb-2">Arredi</p>
-              <h2 className="display-title text-3xl text-[var(--text)]">Associa un articolo alla scena.</h2>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-[var(--text-muted)]">{filteredCatalog.length} di {catalog.length} prodotti</p>
-              {catalogActionMessage && (
-                <p className="mt-1 text-xs text-[var(--success)]" role="status">
-                  {catalogActionMessage}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <label className="field-shell flex min-h-11 w-full items-center gap-3 rounded-xl px-4 lg:max-w-sm">
-              <span aria-hidden="true" className="text-sm text-[var(--accent)]">⌕</span>
-              <span className="sr-only">Cerca negli articoli</span>
-              <input
-                type="search"
-                value={catalogQuery}
-                onChange={(event) => setCatalogQuery(event.target.value)}
-                placeholder="Cerca articolo o collezione"
-                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-soft)]"
-              />
-            </label>
-            <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtra per categoria">
-              {catalogCategories.map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setCatalogCategory(category)}
-                    aria-pressed={catalogCategory === category}
-                    className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
-                    catalogCategory === category
-                      ? "bg-[var(--accent-strong)] text-white"
-                      : "ghost-action"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {filteredCatalog.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredCatalog.map((product) => (
-              <article key={product.id} className="catalog-card rounded-2xl p-3">
-                <div className="flex gap-4">
-                  {product.images?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="h-24 w-24 shrink-0 rounded-xl object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-xs font-semibold uppercase tracking-widest text-[var(--text-soft)]">
-                      {product.category.slice(0, 3)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1 py-1">
-                    <p className="eyebrow truncate">{product.category}</p>
-                    <h3 className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{product.name}</h3>
-                    <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{product.designer}</p>
-                    <p className="mt-2 text-xs text-[var(--text-soft)]">
-                      {product.dimensions
-                        ? `${product.dimensions.width} × ${product.dimensions.depth} × ${product.dimensions.height} cm`
-                        : "Dimensioni su richiesta"}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleUseProduct(product.name)}
-                  className="ghost-action mt-3 w-full rounded-xl px-3 py-2 text-xs font-semibold"
-                >
-                  Aggiungi alle indicazioni
-                </button>
-              </article>
-            ))}
-            </div>
-          ) : (
-            <div className="panel-muted rounded-2xl border border-dashed border-[var(--border-strong)] p-8 text-center">
-              <p className="text-sm text-[var(--text-muted)]">Nessun elemento corrisponde alla ricerca.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setCatalogQuery("");
-                  setCatalogCategory("Tutti");
-                }}
-                className="mt-3 text-xs font-semibold text-[var(--accent-strong)] underline underline-offset-4"
-              >
-                Azzera filtri
-              </button>
-            </div>
-          )}
-        </section>
       </div>
+
+      <footer className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-2 border-t border-[var(--border)] py-6 text-xs text-[var(--text-soft)] sm:flex-row sm:items-center sm:justify-between">
+          <p>Progetto demo · Casa privata</p>
+          <a
+            href="https://www.ordyto.it"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold transition-colors hover:text-[var(--text)]"
+          >
+            Powered by Ordyto
+          </a>
+        </div>
+      </footer>
     </main>
   );
 }

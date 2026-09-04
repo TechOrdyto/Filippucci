@@ -10,6 +10,8 @@ export interface ProjectSessionSnapshot {
   prompt: string;
   wallFinish: string;
   floorFinish: string;
+  doorFinish: string;
+  windowFinish: string;
   camera: CameraPosition | null;
   viewpoints: Viewpoint[];
   selectedViewpointId: string | null;
@@ -37,6 +39,8 @@ export function readProjectSession(): ProjectSessionSnapshot | null {
       prompt: parsed.prompt ?? "",
       wallFinish: parsed.wallFinish ?? "",
       floorFinish: parsed.floorFinish ?? "",
+      doorFinish: parsed.doorFinish ?? "",
+      windowFinish: parsed.windowFinish ?? "",
       camera: parsed.camera ?? null,
       viewpoints: parsed.viewpoints ?? [],
       selectedViewpointId: parsed.selectedViewpointId ?? null,

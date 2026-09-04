@@ -60,6 +60,8 @@ export function normalizeRenderFinishes(
   return {
     walls: normalizeFinish(finishes?.walls),
     floor: normalizeFinish(finishes?.floor),
+    doors: normalizeFinish(finishes?.doors),
+    windows: normalizeFinish(finishes?.windows),
   };
 }
 

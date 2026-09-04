@@ -226,11 +226,8 @@ export default function ObjectAssignmentPopover({
         >
           {assignedProductId ? "Aggiorna articolo" : "Associa articolo"}
         </button>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-[10px] leading-4 text-[var(--text-soft)]">
-            L’elemento resta generico: seleziona l’articolo catalogo da usare nel render.
-          </p>
-          {assignedProductId && (
+        {assignedProductId && (
+          <div className="mt-2 flex justify-center">
             <button
               type="button"
               onClick={onRemove}
@@ -238,8 +235,8 @@ export default function ObjectAssignmentPopover({
             >
               Rimuovi
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -72,6 +72,8 @@ interface GenerateRequest {
   finishes?: {
     walls?: string | null;
     floor?: string | null;
+    doors?: string | null;
+    windows?: string | null;
   } | null;
   camera?: {
     x: number;
@@ -100,10 +102,6 @@ export async function POST(request: Request) {
     }
 
     const body: GenerateRequest = await request.json();
-
-    if (!body.prompt?.trim()) {
-      return NextResponse.json({ error: "Prompt mancante" }, { status: 400 });
-    }
 
     // 1. Trova la stanza selezionata: tutte le associazioni vengono poi
     // filtrate su questo ambiente, così un render non porta dentro mobili di

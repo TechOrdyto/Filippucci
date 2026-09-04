@@ -203,7 +203,7 @@ export default function RenderResult({
   const getFileName = () => {
     const extension = imageUrl?.startsWith("data:image/svg") ? "svg" : "png";
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    return `render-filippucci-${timestamp}.${extension}`;
+    return `render-filipucci-${timestamp}.${extension}`;
   };
 
   const handleExport = () => {
@@ -220,10 +220,10 @@ export default function RenderResult({
   const handleShare = async () => {
     if (!imageUrl) return;
 
-    const title = "Render della scena Filippucci";
+    const title = "Render della scena Filipucci";
     const text = selectedVariant?.prompt
       ? `Render creato con queste indicazioni: ${selectedVariant.prompt}`
-      : "Render della scena Filippucci";
+      : "Render della scena Filipucci";
     const shareUrl = imageUrl.startsWith("data:") ? window.location.href : imageUrl;
 
     try {
@@ -301,7 +301,7 @@ export default function RenderResult({
     <section className="panel w-full rounded-2xl p-5 sm:p-6">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <p className="eyebrow mb-2">04 · Risultato</p>
+          <p className="eyebrow mb-2">Risultato</p>
           <h3 className="display-title text-2xl text-[var(--text)]">Render della scena.</h3>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1">
@@ -369,7 +369,7 @@ export default function RenderResult({
         <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] p-4" role="alert">
           <p className="text-sm font-semibold text-[var(--danger)]">Impossibile generare il render.</p>
           <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">{error}</p>
-          <p className="mt-3 text-xs text-[var(--text-soft)]">Controlla le indicazioni o il punto di vista e riprova.</p>
+          <p className="mt-3 text-xs text-[var(--text-soft)]">Controlla la configurazione o la visuale e riprova.</p>
         </div>
       )}
 
@@ -448,7 +448,7 @@ export default function RenderResult({
         <div className="flex aspect-[4/3] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-muted)] px-6 text-center">
           <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-strong)] text-xl text-[var(--accent)]">✦</span>
           <p className="max-w-xs text-sm leading-6 text-[var(--text-muted)]">
-            Seleziona un ambiente, inserisci le indicazioni e qui apparirà il render.
+            Seleziona un ambiente, imposta la visuale e qui apparirà il render.
           </p>
         </div>
       )}
