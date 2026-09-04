@@ -3,8 +3,8 @@ import type { CameraPosition } from "../lib/camera/types";
 interface SceneStatusProps {
   roomName: string | null;
   camera: CameraPosition | null;
-  isCameraConfirmed: boolean;
-  isCameraMode: boolean;
+  isCameraSet: boolean;
+  viewpointLabel: string | null;
   assignedCount: number;
   wallFinish: string;
   floorFinish: string;
@@ -13,8 +13,6 @@ interface SceneStatusProps {
   prompt: string;
   renderStale: boolean;
   errors: string[];
-  onConfirmCamera: () => void;
-  cameraAttentionTarget: "toggle" | "confirm" | null;
   nextAction: {
     label: string;
   };
@@ -35,8 +33,8 @@ function StatusValue({ value, ready = false }: { value: string; ready?: boolean 
 export default function SceneStatus({
   roomName,
   camera,
-  isCameraConfirmed,
-  isCameraMode,
+  isCameraSet,
+  viewpointLabel,
   assignedCount,
   wallFinish,
   floorFinish,
@@ -45,12 +43,10 @@ export default function SceneStatus({
   prompt,
   renderStale,
   errors,
-  onConfirmCamera,
-  cameraAttentionTarget,
   nextAction,
 }: SceneStatusProps) {
   const isReady = Boolean(
-    roomName && camera && isCameraConfirmed && errors.length === 0
+    roomName && camera && isCameraSet && errors.length === 0
   );
   const statusTitle = renderStale
     ? "Aggiorna il render."
@@ -58,7 +54,6 @@ export default function SceneStatus({
       ? "Scena pronta per il render."
       : "Configurazione incompleta.";
   const statusLabel = renderStale ? "Da aggiornare" : isReady ? "Pronta" : "Da completare";
-  const canConfirmCamera = Boolean(isCameraMode && camera && !isCameraConfirmed);
 
   return (
     <section className="panel rounded-2xl p-5 sm:p-6">
@@ -83,29 +78,14 @@ export default function SceneStatus({
           <span className="eyebrow">Ambiente</span>
           <StatusValue value={roomName ?? "Da selezionare"} ready={Boolean(roomName)} />
         </div>
-        <div
-          id={canConfirmCamera ? "conferma-visuale" : undefined}
-          className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3"
-        >
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
           <span className="eyebrow">Visuale</span>
           <StatusValue
-            value={!isCameraMode ? "Da impostare" : camera ? (isCameraConfirmed ? "Confermata" : "Da confermare") : "Da impostare"}
-            ready={Boolean(camera && isCameraConfirmed)}
+            value={isCameraSet && camera
+              ? `${viewpointLabel ?? "Visuale personalizzata"} · ${Math.round(camera.rotation)}°`
+              : "Da impostare"}
+            ready={Boolean(camera && isCameraSet)}
           />
-          {camera && !isCameraConfirmed && (
-            <button
-              type="button"
-              onClick={onConfirmCamera}
-              disabled={!canConfirmCamera}
-              className={`primary-action mt-3 flex w-full items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
-                cameraAttentionTarget === "confirm" && canConfirmCamera
-                  ? "camera-confirm-attention"
-                  : ""
-              }`}
-            >
-              Conferma visuale
-            </button>
-          )}
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
           <span className="eyebrow">Articoli assegnati</span>

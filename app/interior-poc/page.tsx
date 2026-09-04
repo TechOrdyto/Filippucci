@@ -55,10 +55,7 @@ export default function InteriorPocPage() {
   const [viewpoints, setViewpoints] = useState<Viewpoint[]>([]);
   const [selectedViewpointId, setSelectedViewpointId] = useState<string | null>(null);
   const [isCameraMode, setIsCameraMode] = useState(false);
-  const [isCameraConfirmed, setIsCameraConfirmed] = useState(false);
-  const [cameraAttentionTarget, setCameraAttentionTarget] = useState<
-    "toggle" | "confirm" | null
-  >(null);
+  const [isCameraSet, setIsCameraSet] = useState(false);
   const [objectAssignments, setObjectAssignments] = useState<Record<string, string>>({});
   const [objectAssignmentTargetId, setObjectAssignmentTargetId] = useState<string | null>(null);
   const [isObjectAssignmentOpen, setIsObjectAssignmentOpen] = useState(false);
@@ -109,7 +106,6 @@ export default function InteriorPocPage() {
       camera,
       viewpoints,
       selectedViewpointId,
-      isCameraConfirmed,
       imageUrl,
       renderSignature: renderedSceneSignature,
       updatedAt: new Date().toISOString(),
@@ -119,7 +115,7 @@ export default function InteriorPocPage() {
     doorFinish,
     floorFinish,
     imageUrl,
-    isCameraConfirmed,
+    isCameraSet,
     isSessionHydrated,
     model.id,
     objectAssignments,
@@ -281,14 +277,16 @@ export default function InteriorPocPage() {
   const focusRoom = (roomId: string) => {
     const roomChanged = selectedRoomId !== roomId;
     setSelectedRoomId(roomId);
-    if (roomChanged) setIsCameraConfirmed(false);
+    if (roomChanged) {
+      setIsCameraSet(false);
+      setSelectedViewpointId(null);
+    }
     const room = model.rooms.find((r) => r.id === roomId);
     if (!room) return;
     const center = polygonCenter(room.geometry.points);
     const nextViewpoints = generateViewpoints(toCameraRoom(room), cameraWalls);
     const recommended = nextViewpoints[0];
     setViewpoints(nextViewpoints);
-    setSelectedViewpointId(recommended?.id ?? null);
     setCamera(
       recommended
         ? {
@@ -359,13 +357,11 @@ export default function InteriorPocPage() {
     setViewpoints([]);
     setSelectedViewpointId(null);
     setIsCameraMode(false);
-    setIsCameraConfirmed(false);
-    setCameraAttentionTarget(null);
+    setIsCameraSet(false);
   };
 
   const handleSelectViewpoint = (vp: Viewpoint) => {
-    setIsCameraConfirmed(false);
-    setCameraAttentionTarget("confirm");
+    setIsCameraSet(true);
     setSelectedViewpointId(vp.id);
     setCamera({
       x: vp.position.x,
@@ -377,8 +373,7 @@ export default function InteriorPocPage() {
   };
 
   const handleRotateCamera = (delta: number) => {
-    setIsCameraConfirmed(false);
-    setCameraAttentionTarget("confirm");
+    setIsCameraSet(true);
     setSelectedViewpointId(null);
     setCamera((current) => {
       if (!current) return current;
@@ -392,37 +387,26 @@ export default function InteriorPocPage() {
   const handleToggleCamera = () => {
     if (!selectedRoomId) return;
     const nextCameraMode = !isCameraMode;
-    setCameraAttentionTarget(nextCameraMode && camera ? "confirm" : null);
     closeObjectAssignment();
     setObjectAssignmentTargetId(null);
     setIsCameraMode(nextCameraMode);
   };
 
-  const handleConfirmCamera = () => {
-    if (!camera || !selectedRoomId) return;
-    setCameraAttentionTarget(null);
-    setIsCameraConfirmed(true);
-    setError(null);
-  };
-
-  const focusCameraAction = (target: "toggle" | "confirm") => {
-    setCameraAttentionTarget(target);
-
-    const actionId = target === "confirm" ? "conferma-visuale" : "imposta-visuale";
-    document.getElementById(actionId)?.scrollIntoView({
+  const focusCameraAction = () => {
+    document.getElementById(selectedRoomId ? "imposta-visuale" : "piantina")?.scrollIntoView({
       behavior: "smooth",
       block: "center",
     });
   };
 
   const handleGenerate = async () => {
-    if (!selectedRoomId || !camera || !isCameraConfirmed) {
+    if (!selectedRoomId || !camera || !isCameraSet) {
       setError(
         selectedRoomId
-          ? "Imposta e conferma la visuale prima di generare il render."
+          ? "Imposta la visuale prima di generare il render."
           : "Seleziona un ambiente e imposta la visuale prima di generare il render."
       );
-      focusCameraAction(isCameraMode && Boolean(camera) ? "confirm" : "toggle");
+      focusCameraAction();
       return;
     }
 
@@ -547,7 +531,7 @@ export default function InteriorPocPage() {
   };
 
   const hasSelectedEnvironment = Boolean(selectedRoomId);
-  const hasConfirmedView = Boolean(selectedRoomId && camera && isCameraConfirmed);
+  const hasSetView = Boolean(selectedRoomId && camera && isCameraSet);
   const hasPendingObjectAssignment = Boolean(
     selection?.type === "object" && !objectAssignments[selection.id]
   );
@@ -558,7 +542,7 @@ export default function InteriorPocPage() {
         ? 2
         : !isCameraMode && selection?.type !== "object"
           ? 2
-        : !hasConfirmedView
+          : !hasSetView
           ? 3
           : imageUrl || isRenderStale
             ? 5
@@ -567,12 +551,10 @@ export default function InteriorPocPage() {
     ? { label: "Seleziona un ambiente dalla planimetria." }
     : hasPendingObjectAssignment
       ? { label: "Associa un articolo all’elemento selezionato." }
-      : !hasConfirmedView
+      : !hasSetView
         ? !isCameraMode && selection?.type !== "object"
-          ? { label: "Seleziona un elemento e associa un articolo, oppure imposta la visuale." }
-          : !isCameraMode
-            ? { label: "Imposta la visuale dalla planimetria." }
-            : { label: "Controlla e conferma la visuale." }
+          ? { label: "Seleziona gli elementi e associa gli articoli, oppure imposta la visuale." }
+          : { label: "Scegli una visuale dalla planimetria: la scelta verrà applicata subito." }
         : sceneValidation.errors.length > 0
           ? { label: "Controlla la configurazione." }
           : isRenderStale
@@ -599,7 +581,7 @@ export default function InteriorPocPage() {
             {[
               [1, "Ambiente", "Seleziona l’ambiente"],
               [2, "Articoli", "Seleziona elementi e associa gli articoli"],
-              [3, "Visuale", "Imposta e conferma la visuale"],
+              [3, "Visuale", "Scegli la visuale"],
               [4, "Finiture e note", "Facoltative · aggiungi dettagli"],
               [5, "Render", "Genera il risultato"],
             ].map(([step, title, description]) => {
@@ -753,7 +735,7 @@ export default function InteriorPocPage() {
                     <p className="eyebrow mb-2">Piantina</p>
                 <h3 className="display-title text-2xl text-[var(--text)]">Seleziona ambiente e arredi.</h3>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  Seleziona prima un ambiente. Poi scegli gli elementi, associa gli articoli dal catalogo e imposta la visuale.
+                  Seleziona prima un ambiente. Poi scegli gli elementi, associa gli articoli dal catalogo e imposta la visuale nel blocco dedicato sotto la planimetria.
                 </p>
                   </div>
                 </div>
@@ -766,7 +748,7 @@ export default function InteriorPocPage() {
                   camera={camera}
                   viewpoints={viewpoints}
                   selectedViewpointId={selectedViewpointId}
-                  isCameraConfirmed={isCameraConfirmed}
+                  isCameraSet={isCameraSet}
                   isCameraMode={isCameraMode}
                   catalog={catalog}
                   objectAssignments={objectAssignments}
@@ -779,7 +761,6 @@ export default function InteriorPocPage() {
                   onSelectViewpoint={handleSelectViewpoint}
                   onRotateCamera={handleRotateCamera}
                   onToggleCamera={handleToggleCamera}
-                  cameraAttentionTarget={cameraAttentionTarget}
                 />
 
               </section>
@@ -791,8 +772,16 @@ export default function InteriorPocPage() {
               <SceneStatus
                 roomName={activeRoom?.name ?? null}
                 camera={camera}
-                isCameraConfirmed={isCameraConfirmed}
-                isCameraMode={isCameraMode}
+                isCameraSet={isCameraSet}
+                viewpointLabel={
+                  selectedViewpointId
+                    ? viewpoints
+                        .find((viewpoint) => viewpoint.id === selectedViewpointId)
+                        ?.label.replace(" → centro", "").replace(" → interno", "") ?? null
+                    : isCameraSet
+                      ? "Visuale personalizzata"
+                      : null
+                }
                 assignedCount={activeRoomAssignmentCount}
                 wallFinish={wallFinish}
                 floorFinish={floorFinish}
@@ -801,8 +790,6 @@ export default function InteriorPocPage() {
                 prompt={prompt}
                 renderStale={isRenderStale}
                 errors={sceneValidation.errors}
-                onConfirmCamera={handleConfirmCamera}
-                cameraAttentionTarget={cameraAttentionTarget}
                 nextAction={nextAction}
               />
             </div>

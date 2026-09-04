@@ -18,7 +18,7 @@ interface FloorPlanViewerProps {
   camera: CameraPosition | null;
   viewpoints: Viewpoint[];
   selectedViewpointId: string | null;
-  isCameraConfirmed: boolean;
+  isCameraSet: boolean;
   isCameraMode: boolean;
   catalog: Product[];
   objectAssignments: Record<string, string>;
@@ -31,7 +31,6 @@ interface FloorPlanViewerProps {
   onSelectViewpoint: (viewpoint: Viewpoint) => void;
   onRotateCamera: (delta: number) => void;
   onToggleCamera: () => void;
-  cameraAttentionTarget: "toggle" | "confirm" | null;
 }
 
 export default function FloorPlanViewer({
@@ -42,7 +41,7 @@ export default function FloorPlanViewer({
   camera,
   viewpoints,
   selectedViewpointId,
-  isCameraConfirmed,
+  isCameraSet,
   isCameraMode,
   catalog,
   objectAssignments,
@@ -55,7 +54,6 @@ export default function FloorPlanViewer({
   onSelectViewpoint,
   onRotateCamera,
   onToggleCamera,
-  cameraAttentionTarget,
 }: FloorPlanViewerProps) {
   const [viewport, setViewport] = useState<Viewport>(DEFAULT_VIEWPORT);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,32 +144,17 @@ export default function FloorPlanViewer({
           <h3 className="truncate text-sm font-semibold text-[var(--text)]">{model.name}</h3>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             {isCameraMode
-              ? isCameraConfirmed
-                ? "Visuale confermata"
-                : "Modalità camera · conferma la visuale"
+              ? isCameraSet
+                ? "Visuale impostata · puoi cambiarla in qualsiasi momento"
+                : "Scegli una visuale per questo ambiente"
               : focusedRoom
-                ? `Ambiente attivo: ${focusedRoom.name}`
+                ? isCameraSet
+                  ? `Visuale impostata · ${focusedRoom.name}`
+                  : `Ambiente attivo: ${focusedRoom.name} · imposta la visuale`
                 : "Seleziona un ambiente o un elemento"}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            id="imposta-visuale"
-            onClick={onToggleCamera}
-            disabled={!focusedRoom}
-            aria-pressed={isCameraMode}
-            title={focusedRoom ? undefined : "Seleziona prima un ambiente"}
-            className={`mr-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-              !focusedRoom
-                ? "cursor-not-allowed border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-soft)]"
-                : isCameraMode
-                  ? "ghost-action"
-                  : "primary-action"
-            } ${cameraAttentionTarget === "toggle" ? "camera-action-attention" : ""}`}
-          >
-            {isCameraMode ? "← Torna agli arredi" : "Imposta visuale"}
-          </button>
           <button
             type="button"
             onClick={zoomIn}
@@ -254,31 +237,34 @@ export default function FloorPlanViewer({
       </div>
 
       {isCameraMode && focusedRoom && camera ? (
-        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+        <div
+          id="imposta-visuale"
+          className="mt-3 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] p-3"
+        >
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Vista</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text)]">Imposta la visuale</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Visuale</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--text)]">Scegli la visuale</p>
             </div>
-            <span className="soft-badge rounded-full px-2.5 py-1 text-xs font-semibold">
-              {focusedRoom.name}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="soft-badge rounded-full px-2.5 py-1 text-xs font-semibold">
+                {focusedRoom.name}
+              </span>
+              <button
+                type="button"
+                onClick={onToggleCamera}
+                className="ghost-action rounded-md px-3 py-1.5 text-xs font-semibold"
+              >
+                ← Torna agli arredi
+              </button>
+            </div>
           </div>
 
-          <div className={`mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs ${
-            isCameraConfirmed
-              ? "border-[var(--success)] bg-[var(--success-soft)] text-[var(--text)]"
-              : "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-muted)]"
-          }`}>
-            <span>
-              {isCameraConfirmed
-                ? "✓ Visuale confermata: puoi tornare agli arredi o generare il render."
-                : selectedViewpointId && selectedViewpointId === viewpoints[0]?.id
-                  ? "Visuale consigliata selezionata: controllala e confermala nello stato scena."
-                  : viewpoints.length > 0
-                    ? "Visuale selezionata: controllala e confermala nello stato scena."
-                    : "Visuale impostata: controllala e confermala nello stato scena."}
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
+            <span className="font-semibold text-[var(--text)]">
+              {isCameraSet ? "✓ Visuale impostata." : "Seleziona una scheda o ruota la visuale per impostarla."}
             </span>
+            <span>La scelta viene applicata subito.</span>
           </div>
 
           {viewpoints.length > 0 ? (
@@ -299,7 +285,11 @@ export default function FloorPlanViewer({
                   >
                     <span className="flex min-h-4 items-center whitespace-nowrap text-[10px] font-bold uppercase leading-4 tracking-[0.08em]">
                       <span className={selected ? "text-[var(--accent-strong)]" : "text-[var(--text-soft)]"}>
-                        {viewpoint.kind === "recommended" ? "Consigliata" : `Visuale ${index + 1}`}
+                        {selected
+                          ? "Selezionata"
+                          : viewpoint.kind === "recommended"
+                            ? "Consigliata"
+                            : `Visuale ${index + 1}`}
                       </span>
                     </span>
                     <span className="mt-1 block min-h-8 overflow-hidden text-[11px] font-medium leading-4">
@@ -311,12 +301,13 @@ export default function FloorPlanViewer({
             </div>
           ) : (
             <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-              Non ci sono visuali alternative: è impostata una posizione interna automatica. Controllala e confermala.
+              Non ci sono visuali alternative: ruota la posizione automatica per impostare la visuale.
             </p>
           )}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
             <span className="text-xs text-[var(--text-muted)]">
+              {isCameraSet ? "Visuale impostata · " : "Anteprima · "}
               Direzione {Math.round(camera.rotation)}° · campo visivo {camera.fov}°
             </span>
             <div className="flex items-center gap-1">
@@ -342,13 +333,46 @@ export default function FloorPlanViewer({
           </div>
         </div>
       ) : (
-        <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
-          {!focusedRoom
-            ? "Seleziona un ambiente o un elemento per iniziare."
-            : isCameraMode
-              ? "Carico i punti di vista disponibili per questo ambiente."
-              : "Seleziona un elemento e associa un articolo, poi imposta la visuale."}
-        </p>
+        <>
+          {focusedRoom && (
+            <div
+              id="imposta-visuale"
+              className={`mt-3 rounded-xl border p-3 ${
+                isCameraSet
+                  ? "border-[var(--border)] bg-[var(--surface-muted)]"
+                  : "border-[var(--accent)] bg-[var(--accent-soft)] camera-setup-attention"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="eyebrow">Visuale</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--text)]">
+                    {isCameraSet ? "Visuale impostata" : "Scegli la visuale dell’ambiente"}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                    {isCameraSet
+                      ? "Puoi cambiarla in qualsiasi momento."
+                      : "Seleziona un angolo o ruota la visuale: la scelta verrà applicata subito."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onToggleCamera}
+                  className={`${isCameraSet ? "ghost-action" : "primary-action"} shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold`}
+                >
+                  {isCameraSet ? "Cambia visuale" : "Imposta visuale"}
+                </button>
+              </div>
+            </div>
+          )}
+          <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
+            {!focusedRoom
+              ? "Seleziona un ambiente o un elemento per iniziare."
+              : isCameraSet
+                ? "Visuale impostata. Puoi continuare con finiture e note."
+                : "Imposta la visuale per continuare."}
+          </p>
+        </>
       )}
     </div>
   );

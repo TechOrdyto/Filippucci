@@ -196,19 +196,13 @@ a:focus-visible {
   box-shadow: none;
 }
 
-.camera-action-attention {
-  outline: 3px solid var(--danger);
-  outline-offset: 3px;
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 18%, transparent);
-}
-
-.camera-confirm-attention {
-  animation: camera-confirm-pulse 1.8s ease-in-out infinite;
+.camera-setup-attention {
+  animation: camera-setup-pulse 1.8s ease-in-out infinite;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
     0 0 20px color-mix(in srgb, var(--accent) 48%, transparent);
 }
 
-@keyframes camera-confirm-pulse {
+@keyframes camera-setup-pulse {
   0%,
   100% {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent),
@@ -221,7 +215,7 @@ a:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .camera-confirm-attention {
+  .camera-setup-attention {
     animation: none;
   }
 }
