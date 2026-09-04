@@ -176,7 +176,7 @@ function buildRoomSection(scene: RenderSceneSpec): string {
   // deve inventare muri fantasma dietro i mobili.
   const wallsDescription =
     room.walls.length > 0
-      ? `${room.walls.length} wall segments (see the top-down scene map for exact positions)`
+      ? `${room.walls.length} measured DXF wall segments forming the room perimeter and its openings (see the top-down scene map for exact positions); breaks between segments are not interior walls`
       : "no internal walls — the room is a single open space delimited only by its perimeter";
 
   return `ROOM:
@@ -552,6 +552,7 @@ function buildProhibitionsSection(scene: RenderSceneSpec): string {
 - Do NOT add curtains, drapes or window treatments of any kind unless explicitly listed in ROOM FINISHES or USER RENDER DIRECTION.
 - Do NOT render rooms other than the selected room.
 - Do NOT change the room geometry, proportions, depth or openings.
+- Do NOT turn a short wall segment, a door jamb, or a technical wall continuation into a new internal wall, column, pilaster or corner. Add internal partitions only when they are explicitly present inside the room perimeter in the scene map.
 - Do NOT move the camera or change the viewpoint.
 - Do NOT horizontally mirror or flip the room, wall corner, openings or furniture placement. Preserve the screen-left/screen-right relationship defined by CAMERA and the perspective blockout.
 - The top-down scene map is authoritative for the room shape, wall positions, furniture footprints and their placement. Match the perspective depth, camera angle and furniture positions to that map.

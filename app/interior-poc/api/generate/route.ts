@@ -337,33 +337,62 @@ function buildReferenceImageMapping(
 
 /**
  * Estrae le linee walls del DXF che delimitano la stanza selezionata.
- * Filtro per bbox estesa della stanza (perimetro + pareti interne/nicchie).
+ * Mantiene i segmenti sul perimetro reale e gli eventuali segmenti interni
+ * completamente contenuti nella stanza, scartando i prolungamenti tecnici
+ * delle pareti delle stanze adiacenti.
  * Le linee restano in unità piano (cm): la conversione in metri avviene in
  * buildRenderScene.
  */
 function extractRoomWalls(dxf: any, room: any): Array<{ id: string; start: [number, number]; end: [number, number] }> {
   const pts = room.geometry.points as [number, number][];
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
-  const minX = Math.min(...xs) - 15;
-  const maxX = Math.max(...xs) + 15;
-  const minY = Math.min(...ys) - 15;
-  const maxY = Math.max(...ys) + 15;
+  const perimeterTolerance = 16;
 
   return (dxf.lines ?? [])
     .filter((line: any) => line.layer === "walls")
     .filter((line: any) => {
       const [x1, y1] = line.start;
       const [x2, y2] = line.end;
-      const nearX = (x: number) => x >= minX && x <= maxX;
-      const nearY = (y: number) => y >= minY && y <= maxY;
-      return (nearX(x1) && nearY(y1)) || (nearX(x2) && nearY(y2));
+      const midpoint = { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+      const nearPerimeter = pts.some(([startX, startY], index) => {
+        const [endX, endY] = pts[(index + 1) % pts.length];
+        return distancePointToSegment(
+          midpoint.x,
+          midpoint.y,
+          startX,
+          startY,
+          endX,
+          endY
+        ) <= perimeterTolerance;
+      });
+      const endpointsInside =
+        pointInPolygon(x1, y1, pts) && pointInPolygon(x2, y2, pts);
+      return nearPerimeter || endpointsInside;
     })
     .map((line: any, index: number) => ({
       id: line.id ?? `wall-${index}`,
       start: line.start,
       end: line.end,
     }));
+}
+
+function distancePointToSegment(
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): number {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) return Math.hypot(px - x1, py - y1);
+
+  const t = Math.max(
+    0,
+    Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lengthSquared)
+  );
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
 }
 
 function isObjectCenterInsideRoom(object: any, room: any | null): boolean {
