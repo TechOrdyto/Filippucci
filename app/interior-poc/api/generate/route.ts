@@ -512,7 +512,8 @@ async function generateImageWithDalle(
         `- Each product MUST be identical to its reference photo: same design, silhouette, proportions, colors, materials, legs, upholstery.\n` +
         `- DO NOT substitute, replace, redesign, or invent similar furniture.\n` +
         `- DO NOT change colors, materials, or proportions.\n` +
-        `- Product photos define furniture identity only. Ignore their background, floor, walls, lighting, framing, camera angle, composition and furniture placement.\n` +
+        `- USE ONLY THE LISTED PRODUCT from each reference photo: use its silhouette, materials and details; treat every pixel outside the product silhouette as irrelevant.\n` +
+        `- NEVER reproduce, infer or borrow any other visible object or any product-photo background, floor, walls, lighting, framing, camera angle, composition or furniture placement.\n` +
         `- DO NOT add furniture that is not listed above.\n` +
         `- DO NOT horizontally mirror or flip the room, wall corner, openings or furniture placement.\n` +
         `- If a product appears in the scene, it MUST be the exact product from the photo.`

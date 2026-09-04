@@ -457,7 +457,7 @@ function buildReferenceImageSection(input: CanonicalPromptInput): string {
   const lines = images.map((image, index) => `- Image ${index + 1} (${image.name}) → ${image.label}`);
   return `REFERENCE IMAGE MAPPING:
 ${lines.join("\n")}
-The perspective blockout and top-down CAD map are authoritative for composition, room orientation, depth and placement. Product photos are authoritative only for furniture identity, silhouette, materials and details: ignore their background, floor, walls, lighting, framing, camera angle and furniture placement.`;
+The perspective blockout and top-down CAD map are authoritative for composition, room orientation, depth and placement. Product photos are authoritative only for the listed furniture item: use its silhouette, materials and details, and treat every pixel outside that product silhouette as irrelevant. Ignore and do not reproduce any other visible object or any product-photo background, floor, walls, lighting, framing, camera angle and furniture placement.`;
 }
 
 function buildFinishesSection(scene: RenderSceneSpec): string {
