@@ -169,17 +169,6 @@ export default function ListiniPageClient() {
                   </button>
                 </div>
 
-                {session?.imageUrl && (
-                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={session.imageUrl}
-                      alt="Render del progetto selezionato"
-                      className="max-h-[320px] w-full object-cover"
-                    />
-                  </div>
-                )}
-
                 <div className="mt-5 overflow-x-auto">
                   <table className="w-full min-w-[680px] border-collapse text-left">
                     <thead>

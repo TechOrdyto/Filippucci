@@ -153,43 +153,73 @@ export default function CatalogoPageClient() {
               <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-soft)]">
                 Marca
               </span>
-              <select
-                value={brand}
-                onChange={(event) => setBrand(event.target.value)}
-                aria-label="Filtra per marca"
-                className="field-shell w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text)] outline-none"
-              >
-                <option>Tutte</option>
-                <option>{catalogBrand}</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={brand}
+                  onChange={(event) => setBrand(event.target.value)}
+                  aria-label="Filtra per marca"
+                  className="field-shell w-full appearance-none rounded-xl px-3 py-2.5 pr-10 text-sm text-[var(--text)] outline-none"
+                >
+                  <option>Tutte</option>
+                  <option>{catalogBrand}</option>
+                </select>
+                <span
+                  className="pointer-events-none absolute right-3 top-1/2 flex h-3 w-3 -translate-y-1/2 items-center justify-center text-[var(--text-muted)]"
+                  aria-hidden="true"
+                >
+                  <svg className="h-2.5 w-2.5" viewBox="0 0 12 8" fill="none">
+                    <path d="m1 1 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </div>
             </label>
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-soft)]">
                 Sottocategoria
               </span>
-              <select
-                value={subcategory}
-                onChange={(event) => setSubcategory(event.target.value)}
-                aria-label="Filtra per sottocategoria"
-                className="field-shell w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text)] outline-none"
-              >
-                <option>Tutte</option>
-                {subcategories.map((item) => <option key={item}>{item}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  value={subcategory}
+                  onChange={(event) => setSubcategory(event.target.value)}
+                  aria-label="Filtra per sottocategoria"
+                  className="field-shell w-full appearance-none rounded-xl px-3 py-2.5 pr-10 text-sm text-[var(--text)] outline-none"
+                >
+                  <option>Tutte</option>
+                  {subcategories.map((item) => <option key={item}>{item}</option>)}
+                </select>
+                <span
+                  className="pointer-events-none absolute right-3 top-1/2 flex h-3 w-3 -translate-y-1/2 items-center justify-center text-[var(--text-muted)]"
+                  aria-hidden="true"
+                >
+                  <svg className="h-2.5 w-2.5" viewBox="0 0 12 8" fill="none">
+                    <path d="m1 1 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </div>
             </label>
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-soft)]">
                 Designer
               </span>
-              <select
-                value={designer}
-                onChange={(event) => setDesigner(event.target.value)}
-                aria-label="Filtra per designer"
-                className="field-shell w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text)] outline-none"
-              >
-                <option>Tutti</option>
-                {designers.map((item) => <option key={item}>{item}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  value={designer}
+                  onChange={(event) => setDesigner(event.target.value)}
+                  aria-label="Filtra per designer"
+                  className="field-shell w-full appearance-none rounded-xl px-3 py-2.5 pr-10 text-sm text-[var(--text)] outline-none"
+                >
+                  <option>Tutti</option>
+                  {designers.map((item) => <option key={item}>{item}</option>)}
+                </select>
+                <span
+                  className="pointer-events-none absolute right-3 top-1/2 flex h-3 w-3 -translate-y-1/2 items-center justify-center text-[var(--text-muted)]"
+                  aria-hidden="true"
+                >
+                  <svg className="h-2.5 w-2.5" viewBox="0 0 12 8" fill="none">
+                    <path d="m1 1 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </div>
             </label>
           </div>
         </section>

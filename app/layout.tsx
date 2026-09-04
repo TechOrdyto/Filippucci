@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthSessionProvider from "./components/AuthSessionProvider";
 
 export const metadata: Metadata = {
-  title: "Filippucci Interior Studio",
+  title: "Filipucci Interior Studio",
   description: "Dalla planimetria a una proposta d'interni fotorealistica.",
 };
 
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="it">
-      <body>{children}</body>
+      <body>
+        <AuthSessionProvider>{children}</AuthSessionProvider>
+      </body>
     </html>
   );
 }

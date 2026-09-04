@@ -426,14 +426,18 @@ The reference images are authoritative for the identity of the furniture and the
 function buildFinishesSection(scene: RenderSceneSpec): string {
   const walls = scene.finishes.walls?.trim();
   const floor = scene.finishes.floor?.trim();
+  const doors = scene.finishes.doors?.trim();
+  const windows = scene.finishes.windows?.trim();
 
-  if (!walls && !floor) {
+  if (!walls && !floor && !doors && !windows) {
     return "ROOM FINISHES:\nNo finishes specified by the user. Keep the room neutral and do not invent finishes.";
   }
 
   return `ROOM FINISHES:
 - Wall finish: ${walls || "not specified"}
 - Floor finish: ${floor || "not specified"}
+- Door finish: ${doors || "not specified"}
+- Window finish: ${windows || "not specified"}
 These finishes come from the user fields and are authoritative.`;
 }
 

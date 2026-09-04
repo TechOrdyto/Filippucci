@@ -16,6 +16,8 @@ import type { ObjectProductAssignment, Product } from "../types";
 export interface RenderFinishes {
   walls: string | null;
   floor: string | null;
+  doors: string | null;
+  windows: string | null;
 }
 
 export interface RenderSceneOpening {

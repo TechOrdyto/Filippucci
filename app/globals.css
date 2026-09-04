@@ -13,6 +13,7 @@
   --border: #d1dce1;
   --border-strong: #b7c5cc;
   --text: #25333a;
+  --logo-ink: #25333a;
   --text-muted: #617078;
   --text-soft: #64767d;
   --accent: #5d7883;
@@ -23,7 +24,7 @@
   --success: #55796d;
   --success-soft: #e3ece8;
   --success-fill: rgba(85, 121, 109, 0.16);
-  --danger: #a85d58;
+  --danger: #e20613;
   --shadow: 0 16px 40px rgba(42, 61, 70, 0.08);
   --room-living: #dfe9ed;
   --room-one: #e2eaed;
@@ -46,6 +47,7 @@
   --border: #3b4a51;
   --border-strong: #52636c;
   --text: #edf3f5;
+  --logo-ink: #edf3f5;
   --text-muted: #b2c0c5;
   --text-soft: #84949b;
   --accent: #9ab7c1;
@@ -56,7 +58,7 @@
   --success: #9abcae;
   --success-soft: #2d4039;
   --success-fill: rgba(154, 188, 174, 0.18);
-  --danger: #e19a91;
+  --danger: #e20613;
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
   --room-living: #405158;
   --room-one: #3d4a50;
@@ -117,6 +119,12 @@ a:focus-visible {
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--page-bg) 88%, transparent);
   backdrop-filter: blur(16px);
+}
+
+:root:not([data-theme="dark"]) .studio-nav-active {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent-strong);
 }
 
 .eyebrow {
@@ -186,6 +194,36 @@ a:focus-visible {
   cursor: not-allowed;
   opacity: 0.48;
   box-shadow: none;
+}
+
+.camera-action-attention {
+  outline: 3px solid var(--danger);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.camera-confirm-attention {
+  animation: camera-confirm-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 20px color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+@keyframes camera-confirm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent),
+      0 0 12px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent),
+      0 0 24px color-mix(in srgb, var(--accent) 58%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera-confirm-attention {
+    animation: none;
+  }
 }
 
 .ghost-action {

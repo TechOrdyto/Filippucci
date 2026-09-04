@@ -158,9 +158,9 @@ export default function ExtractPage() {
 
         {/* Errore */}
         {error && (
-          <div className="mb-6 rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">Errore</p>
-            <p className="mt-1 text-sm text-red-600">{error}</p>
+          <div className="mb-6 rounded-md border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] p-4">
+            <p className="text-sm font-medium text-[var(--danger)]">Errore</p>
+            <p className="mt-1 text-sm text-[var(--danger)]">{error}</p>
           </div>
         )}
 

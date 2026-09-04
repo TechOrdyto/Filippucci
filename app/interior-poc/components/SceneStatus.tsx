@@ -1,21 +1,22 @@
-import Link from "next/link";
 import type { CameraPosition } from "../lib/camera/types";
 
 interface SceneStatusProps {
   roomName: string | null;
   camera: CameraPosition | null;
   isCameraConfirmed: boolean;
+  isCameraMode: boolean;
   assignedCount: number;
   wallFinish: string;
   floorFinish: string;
+  doorFinish: string;
+  windowFinish: string;
   prompt: string;
-  hasImage: boolean;
   renderStale: boolean;
   errors: string[];
-  warnings: string[];
+  onConfirmCamera: () => void;
+  cameraAttentionTarget: "toggle" | "confirm" | null;
   nextAction: {
     label: string;
-    href: string;
   };
 }
 
@@ -35,18 +36,21 @@ export default function SceneStatus({
   roomName,
   camera,
   isCameraConfirmed,
+  isCameraMode,
   assignedCount,
   wallFinish,
   floorFinish,
+  doorFinish,
+  windowFinish,
   prompt,
-  hasImage,
   renderStale,
   errors,
-  warnings,
+  onConfirmCamera,
+  cameraAttentionTarget,
   nextAction,
 }: SceneStatusProps) {
   const isReady = Boolean(
-    roomName && camera && isCameraConfirmed && prompt.trim() && errors.length === 0
+    roomName && camera && isCameraConfirmed && errors.length === 0
   );
   const statusTitle = renderStale
     ? "Aggiorna il render."
@@ -54,6 +58,7 @@ export default function SceneStatus({
       ? "Scena pronta per il render."
       : "Configurazione incompleta.";
   const statusLabel = renderStale ? "Da aggiornare" : isReady ? "Pronta" : "Da completare";
+  const canConfirmCamera = Boolean(isCameraMode && camera && !isCameraConfirmed);
 
   return (
     <section className="panel rounded-2xl p-5 sm:p-6">
@@ -78,16 +83,29 @@ export default function SceneStatus({
           <span className="eyebrow">Ambiente</span>
           <StatusValue value={roomName ?? "Da selezionare"} ready={Boolean(roomName)} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
+        <div
+          id={canConfirmCamera ? "conferma-visuale" : undefined}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3"
+        >
           <span className="eyebrow">Visuale</span>
           <StatusValue
-            value={
-              camera
-                ? `${Math.round(camera.rotation)}° · ${isCameraConfirmed ? "confermata" : "da confermare"}`
-                : "Da impostare"
-            }
+            value={!isCameraMode ? "Da impostare" : camera ? (isCameraConfirmed ? "Confermata" : "Da confermare") : "Da impostare"}
             ready={Boolean(camera && isCameraConfirmed)}
           />
+          {camera && !isCameraConfirmed && (
+            <button
+              type="button"
+              onClick={onConfirmCamera}
+              disabled={!canConfirmCamera}
+              className={`primary-action mt-3 flex w-full items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+                cameraAttentionTarget === "confirm" && canConfirmCamera
+                  ? "camera-confirm-attention"
+                  : ""
+              }`}
+            >
+              Conferma visuale
+            </button>
+          )}
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
           <span className="eyebrow">Articoli assegnati</span>
@@ -99,7 +117,7 @@ export default function SceneStatus({
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-3">
           <span className="eyebrow">Indicazioni</span>
           <StatusValue
-            value={prompt.trim() ? "Inserite" : "Da inserire"}
+            value={prompt.trim() ? "Inserite" : "Facoltative"}
             ready={Boolean(prompt.trim())}
           />
         </div>
@@ -114,10 +132,18 @@ export default function SceneStatus({
           <span className="block text-[var(--text-soft)]">Pavimento</span>
           <span className="mt-1 block font-semibold text-[var(--text)]">{floorFinish.trim() || "Da definire"}</span>
         </div>
+        <div>
+          <span className="block text-[var(--text-soft)]">Porte</span>
+          <span className="mt-1 block font-semibold text-[var(--text)]">{doorFinish.trim() || "Da definire"}</span>
+        </div>
+        <div>
+          <span className="block text-[var(--text-soft)]">Finestre</span>
+          <span className="mt-1 block font-semibold text-[var(--text)]">{windowFinish.trim() || "Da definire"}</span>
+        </div>
       </div>
 
       <div
-        className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-3"
+        className="mt-3 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-3"
         role="status"
         aria-live="polite"
       >
@@ -125,12 +151,6 @@ export default function SceneStatus({
           <span className="eyebrow">Prossimo passo</span>
           <p className="mt-1 text-sm font-semibold text-[var(--text)]">{nextAction.label}</p>
         </div>
-        <a
-          href={nextAction.href}
-          className="primary-action inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold"
-        >
-          Vai al passaggio <span className="ml-2" aria-hidden="true">→</span>
-        </a>
       </div>
 
       {errors.length > 0 && (
@@ -138,29 +158,6 @@ export default function SceneStatus({
           {errors[0]}
         </p>
       )}
-      {errors.length === 0 && warnings.length > 0 && (
-        <p className="mt-4 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-[var(--text-muted)]">
-          {warnings[0]}
-        </p>
-      )}
-
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
-        <span className="text-xs text-[var(--text-soft)]">
-          {renderStale
-            ? "Render da aggiornare"
-            : hasImage
-              ? "Render disponibile"
-              : "Render non ancora generato"}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          <a href="#piantina" className="ghost-action rounded-xl px-3 py-2 text-xs font-semibold">
-            Modifica piantina
-          </a>
-          <Link href="/listini" className="ghost-action rounded-xl px-3 py-2 text-xs font-semibold">
-            Apri listino
-          </Link>
-        </div>
-      </div>
     </section>
   );
 }
