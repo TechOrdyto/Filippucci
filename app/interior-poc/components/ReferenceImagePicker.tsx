@@ -54,54 +54,49 @@ export default function ReferenceImagePicker({ onChange }: ReferenceImagePickerP
   };
 
   return (
-    <div className="mt-4">
-      <div className="mb-2 flex items-center gap-2">
-        <p className="eyebrow">Foto di riferimento</p>
-        <span className="text-[11px] text-[var(--text-soft)]">Facoltativa</span>
-      </div>
-
+    <div>
       {previewUrl && fileName ? (
-        <div className="flex items-center gap-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-2.5">
+        <div className="flex min-w-0 items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
             alt="Anteprima della foto di riferimento"
-            className="h-20 w-28 shrink-0 rounded-lg object-cover"
+            className="h-12 w-16 shrink-0 rounded-lg object-cover"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[var(--text)]">Foto caricata</p>
+            <p className="text-xs font-semibold text-[var(--text)]">Immagine di esempio</p>
             <p className="mt-1 truncate text-[11px] text-[var(--text-muted)]">{fileName}</p>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="mt-2 text-[11px] font-semibold text-[var(--accent-strong)] underline underline-offset-4"
-            >
-              Rimuovi foto
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="shrink-0 text-[11px] font-semibold text-[var(--accent-strong)] underline underline-offset-4"
+          >
+            Rimuovi
+          </button>
         </div>
       ) : (
         <label
-          htmlFor="room-reference-image"
+          htmlFor="design-brief-reference-image"
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
-          className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-3 transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-strong)]"
+          className="flex cursor-pointer items-center gap-2.5 text-xs transition-colors hover:text-[var(--text)]"
         >
           <input
             ref={inputRef}
-            id="room-reference-image"
+            id="design-brief-reference-image"
             type="file"
             accept={ACCEPTED_TYPES.join(",")}
             onChange={(event) => handleFile(event.target.files?.[0])}
             className="sr-only"
           />
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border-strong)] text-lg text-[var(--accent)]">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--border-strong)] text-base text-[var(--accent)]">
             +
           </span>
-          <span className="min-w-0">
-            <span className="block text-xs font-semibold text-[var(--text)]">Aggiungi una foto di riferimento</span>
-            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">Clicca o trascina qui una foto dell’ambiente · JPG, PNG o WEBP</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[11px] text-[var(--text-muted)]">Clicca o trascina per aggiungere immagini · materiali, porte, finestre o stile · JPG, PNG o WEBP</span>
           </span>
+          <span className="shrink-0 text-[11px] text-[var(--text-soft)]">Facoltativa</span>
         </label>
       )}
 

@@ -12,7 +12,6 @@ interface StudioHeaderProps {
 const navItems: Array<{ href: string; label: string; section: StudioSection }> = [
   { href: "/interior-poc", label: "Demo", section: "demo" },
   { href: "/catalogo", label: "Catalogo", section: "catalogo" },
-  { href: "/listini", label: "Preventivo", section: "listini" },
 ];
 
 export default function StudioHeader({ active }: StudioHeaderProps) {

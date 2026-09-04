@@ -18,8 +18,7 @@ interface FloorPlanViewerProps {
   camera: CameraPosition | null;
   viewpoints: Viewpoint[];
   selectedViewpointId: string | null;
-  isCameraConfirmed: boolean;
-  isCameraMode: boolean;
+  isCameraSet: boolean;
   catalog: Product[];
   objectAssignments: Record<string, string>;
   objectAssignmentTargetId: string | null;
@@ -30,8 +29,6 @@ interface FloorPlanViewerProps {
   onCloseObjectAssignment: () => void;
   onSelectViewpoint: (viewpoint: Viewpoint) => void;
   onRotateCamera: (delta: number) => void;
-  onToggleCamera: () => void;
-  cameraAttentionTarget: "toggle" | "confirm" | null;
 }
 
 export default function FloorPlanViewer({
@@ -42,8 +39,7 @@ export default function FloorPlanViewer({
   camera,
   viewpoints,
   selectedViewpointId,
-  isCameraConfirmed,
-  isCameraMode,
+  isCameraSet,
   catalog,
   objectAssignments,
   objectAssignmentTargetId,
@@ -54,8 +50,6 @@ export default function FloorPlanViewer({
   onCloseObjectAssignment,
   onSelectViewpoint,
   onRotateCamera,
-  onToggleCamera,
-  cameraAttentionTarget,
 }: FloorPlanViewerProps) {
   const [viewport, setViewport] = useState<Viewport>(DEFAULT_VIEWPORT);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,19 +80,15 @@ export default function FloorPlanViewer({
     return () => document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
   }, [isObjectAssignmentOpen, onSelect, selection]);
 
-  // ESC esce dalla modalità camera oppure rimuove la selezione dell'elemento.
+  // ESC rimuove la selezione senza perdere il contesto della visuale.
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (isCameraMode) {
-        onToggleCamera();
-      } else {
-        onSelect(null);
-      }
+      onSelect(null);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isCameraMode, onSelect, onToggleCamera]);
+  }, [onSelect]);
 
   const zoomIn = () => {
     setViewport((value) => {
@@ -139,39 +129,24 @@ export default function FloorPlanViewer({
     })
   );
 
+  const handlePlanSelection = (nextSelection: Selection | null) => {
+    onSelect(nextSelection);
+  };
+
   return (
     <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-none">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-[var(--text)]">{model.name}</h3>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            {isCameraMode
-              ? isCameraConfirmed
-                ? "Visuale confermata"
-                : "Modalità camera · conferma la visuale"
-              : focusedRoom
-                ? `Ambiente attivo: ${focusedRoom.name}`
-                : "Seleziona un ambiente o un elemento"}
+            {focusedRoom
+              ? isCameraSet
+                ? `Visuale impostata · ${focusedRoom.name}. Clicca un arredo per associarlo.`
+                : `Scegli la visuale di ${focusedRoom.name}, oppure clicca un arredo.`
+              : "Clicca un ambiente per scegliere la visuale, oppure un elemento per associarlo"}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            id="imposta-visuale"
-            onClick={onToggleCamera}
-            disabled={!focusedRoom}
-            aria-pressed={isCameraMode}
-            title={focusedRoom ? undefined : "Seleziona prima un ambiente"}
-            className={`mr-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-              !focusedRoom
-                ? "cursor-not-allowed border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-soft)]"
-                : isCameraMode
-                  ? "ghost-action"
-                  : "primary-action"
-            } ${cameraAttentionTarget === "toggle" ? "camera-action-attention" : ""}`}
-          >
-            {isCameraMode ? "← Torna agli arredi" : "Imposta visuale"}
-          </button>
           <button
             type="button"
             onClick={zoomIn}
@@ -205,23 +180,21 @@ export default function FloorPlanViewer({
         </div>
       </div>
 
-      {!isCameraMode && (
-        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
-          <span className="font-semibold uppercase tracking-[0.1em] text-[var(--text-soft)]">Legenda</span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--accent)] bg-[var(--selection-fill)]" aria-hidden="true" />
-            Passaggio mouse
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--accent-strong)] bg-[var(--accent-soft)]" aria-hidden="true" />
-            Selezionato
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="flex h-3 w-3 items-center justify-center rounded-full border border-[var(--success)] bg-[var(--success-soft)] text-[8px] font-bold text-[var(--success)]" aria-hidden="true">✓</span>
-            Associato
-          </span>
-        </div>
-      )}
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
+        <span className="font-semibold uppercase tracking-[0.1em] text-[var(--text-soft)]">Legenda</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--accent)] bg-[var(--selection-fill)]" aria-hidden="true" />
+          Passaggio mouse
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--accent-strong)] bg-[var(--accent-soft)]" aria-hidden="true" />
+          Selezionato
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="flex h-3 w-3 items-center justify-center rounded-full border border-[var(--success)] bg-[var(--success-soft)] text-[8px] font-bold text-[var(--success)]" aria-hidden="true">✓</span>
+          Associato
+        </span>
+      </div>
 
       <div ref={containerRef} className="relative min-h-0 min-w-0 overflow-hidden rounded-md bg-[var(--surface-strong)]">
         <FloorPlanRenderer
@@ -229,18 +202,18 @@ export default function FloorPlanViewer({
           model={model}
           selection={selection}
           focusRoomId={focusRoomId}
-          camera={isCameraMode ? camera : null}
-          viewpoints={isCameraMode ? viewpoints : []}
+          camera={camera}
+          viewpoints={viewpoints}
           selectedViewpointId={selectedViewpointId}
           objectAssignmentLabels={objectAssignmentLabels}
           viewport={viewport}
           onViewportChange={setViewport}
-          onSelect={isCameraMode ? () => undefined : onSelect}
+          onSelect={handlePlanSelection}
           onSelectViewpoint={onSelectViewpoint}
-          showObjects={!isCameraMode}
+          showObjects
         />
 
-        {!isCameraMode && isObjectAssignmentOpen && assignmentObject && (
+        {isObjectAssignmentOpen && assignmentObject && (
           <ObjectAssignmentPopover
             object={assignmentObject}
             roomName={assignmentRoom?.name}
@@ -253,31 +226,30 @@ export default function FloorPlanViewer({
         )}
       </div>
 
-      {isCameraMode && focusedRoom && camera ? (
-        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+      {focusedRoom && camera ? (
+        <div
+          id="imposta-visuale"
+          className={`mt-3 rounded-xl border p-3 ${
+            isCameraSet
+              ? "border-[var(--border)] bg-[var(--surface-muted)]"
+              : "border-[var(--accent)] bg-[var(--accent-soft)] camera-setup-attention"
+          }`}
+        >
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Vista</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text)]">Imposta la visuale</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Visuale</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--text)]">
+                {isCameraSet ? "Visuale impostata" : "Scegli la visuale"}
+              </p>
             </div>
             <span className="soft-badge rounded-full px-2.5 py-1 text-xs font-semibold">
               {focusedRoom.name}
             </span>
           </div>
 
-          <div className={`mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs ${
-            isCameraConfirmed
-              ? "border-[var(--success)] bg-[var(--success-soft)] text-[var(--text)]"
-              : "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-muted)]"
-          }`}>
-            <span>
-              {isCameraConfirmed
-                ? "✓ Visuale confermata: puoi tornare agli arredi o generare il render."
-                : selectedViewpointId && selectedViewpointId === viewpoints[0]?.id
-                  ? "Visuale consigliata selezionata: controllala e confermala nello stato scena."
-                  : viewpoints.length > 0
-                    ? "Visuale selezionata: controllala e confermala nello stato scena."
-                    : "Visuale impostata: controllala e confermala nello stato scena."}
+          <div className="mb-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
+            <span className="font-semibold text-[var(--text)]">
+              {isCameraSet ? "✓ Visuale impostata." : "Scegli una scheda o ruota la visuale."}
             </span>
           </div>
 
@@ -299,7 +271,11 @@ export default function FloorPlanViewer({
                   >
                     <span className="flex min-h-4 items-center whitespace-nowrap text-[10px] font-bold uppercase leading-4 tracking-[0.08em]">
                       <span className={selected ? "text-[var(--accent-strong)]" : "text-[var(--text-soft)]"}>
-                        {viewpoint.kind === "recommended" ? "Consigliata" : `Visuale ${index + 1}`}
+                        {selected
+                          ? "Selezionata"
+                          : viewpoint.kind === "recommended"
+                            ? "Consigliata"
+                            : `Visuale ${index + 1}`}
                       </span>
                     </span>
                     <span className="mt-1 block min-h-8 overflow-hidden text-[11px] font-medium leading-4">
@@ -311,12 +287,13 @@ export default function FloorPlanViewer({
             </div>
           ) : (
             <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-              Non ci sono visuali alternative: è impostata una posizione interna automatica. Controllala e confermala.
+              Non ci sono visuali alternative: ruota la posizione automatica per impostare la visuale.
             </p>
           )}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
             <span className="text-xs text-[var(--text-muted)]">
+              {isCameraSet ? "Visuale impostata · " : "Anteprima · "}
               Direzione {Math.round(camera.rotation)}° · campo visivo {camera.fov}°
             </span>
             <div className="flex items-center gap-1">
@@ -326,7 +303,7 @@ export default function FloorPlanViewer({
                 className="ghost-action inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold"
                 aria-label="Ruota visuale a sinistra"
               >
-                <span aria-hidden="true" className="text-xl leading-none">↺</span>
+                <span aria-hidden="true" className="text-xl font-normal leading-none">↺</span>
                 <span>15°</span>
               </button>
               <button
@@ -336,19 +313,21 @@ export default function FloorPlanViewer({
                 aria-label="Ruota visuale a destra"
               >
                 <span>15°</span>
-                <span aria-hidden="true" className="text-xl leading-none">↻</span>
+                <span aria-hidden="true" className="text-xl font-normal leading-none">↻</span>
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
-          {!focusedRoom
-            ? "Seleziona un ambiente o un elemento per iniziare."
-            : isCameraMode
-              ? "Carico i punti di vista disponibili per questo ambiente."
-              : "Seleziona un elemento e associa un articolo, poi imposta la visuale."}
-        </p>
+        <div
+          id="imposta-visuale"
+          className="mt-3 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] p-3 camera-setup-attention"
+        >
+          <p className="eyebrow">Visuale</p>
+          <p className="mt-1 text-sm font-semibold text-[var(--text)]">
+            Clicca un ambiente sulla planimetria per scegliere la visuale.
+          </p>
+        </div>
       )}
     </div>
   );
