@@ -98,7 +98,10 @@ export async function extractImagesFromPdf(
 
   try {
     // Converti le pagine in PNG con pdftoppm
-    const tmpPrefix = join(tmpdir(), `ordyto-img-${Date.now()}`);
+    // Conserva il token: richiamare Date.now() nel filtro successivo può
+    // produrre un prefisso diverso e far risultare l'estrazione vuota.
+    const tmpPrefixToken = `ordyto-img-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const tmpPrefix = join(tmpdir(), tmpPrefixToken);
     await execFileAsync("pdftoppm", [
       "-png",
       "-r",
@@ -114,8 +117,12 @@ export async function extractImagesFromPdf(
     // Leggi i file generati
     const { readdirSync } = await import("node:fs");
     const files = readdirSync(tmpdir())
-      .filter((f) => f.startsWith(`ordyto-img-${Date.now()}`) && f.endsWith(".png"))
-      .sort();
+      .filter((f) => f.startsWith(tmpPrefixToken) && f.endsWith(".png"))
+      .sort((a, b) => {
+        const pageA = parseInt(a.match(/-(\d+)\.png$/)?.[1] ?? "0", 10);
+        const pageB = parseInt(b.match(/-(\d+)\.png$/)?.[1] ?? "0", 10);
+        return pageA - pageB;
+      });
 
     const images = files.map((f, i) => ({
       pageNumber: i + 1,
