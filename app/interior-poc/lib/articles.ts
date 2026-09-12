@@ -7,6 +7,7 @@ import gloveData from "../data/articles/glove.json";
 import portaVoltaData from "../data/articles/porta-volta.json";
 import emileData from "../data/articles/emile.json";
 import augustoData from "../data/articles/augusto.json";
+import monkData from "../data/articles/monk.json";
 import devonData from "../data/devon.json";
 
 export interface ArticleVariant {
@@ -50,6 +51,7 @@ const articlesMap: Record<string, ArticleData> = {
   "porta volta": portaVoltaData as ArticleData,
   "emile": emileData as ArticleData,
   "augusto": augustoData as ArticleData,
+  "monk": monkData as ArticleData,
   "devon": devonData as unknown as ArticleData,
 };
 

@@ -52,7 +52,7 @@
         "legno"
       ],
       "images": [
-        "/products/arc/arc-1.png"
+        "/catalogo/Arc.png"
       ],
       "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=92",
       "price": null
@@ -176,7 +176,7 @@
         "Whim WL313"
       ],
       "images": [
-        "/products/emile/emile-1.png"
+        "/catalogo/Emile.png"
       ],
       "catalogRef": "2025_CT_Sofas_IT-EN.pdf#page=14",
       "price": null
@@ -212,9 +212,43 @@
         "Kolo KI142"
       ],
       "images": [
-        "/products/augusto/augusto-1.png"
+        "/catalogo/Augusto.png"
       ],
       "catalogRef": "2025_CT_Sofas_IT-EN.pdf#page=48",
+      "price": null
+    },
+    {
+      "id": "MOL-CHA-MSD1",
+      "sku": "MSD1",
+      "name": "Monk",
+      "nameForAI": "Monk chair by Afra and Tobia Scarpa",
+      "collection": "Heritage Collection",
+      "category": "Chairs",
+      "subcategory": "Chair",
+      "designer": "Afra e Tobia Scarpa",
+      "description": "Sedia in legno massello e cuoio, disegnata da Afra e Tobia Scarpa nel 1973 e riproposta da Molteni&C nella Heritage Collection.",
+      "descriptionForAI": "Monk chair by Afra and Tobia Scarpa, originally designed in 1973 and reissued by Molteni&C for the Heritage Collection. Solid wood base, painted steel frame and shaped hide leather seat and backrest. The design is defined by its essential construction and burnished steel details.",
+      "dimensions": {
+        "width": 51.5,
+        "depth": 43.5,
+        "height": 76
+      },
+      "seatHeight": 43.5,
+      "materials": [
+        "cuoio",
+        "legno massello",
+        "acciaio verniciato"
+      ],
+      "finishes": [
+        "rovere caffè",
+        "rovere nero",
+        "noce canaletto",
+        "cuoio nei colori della gamma Molteni&C"
+      ],
+      "images": [
+        "/catalogo/Monk.png"
+      ],
+      "catalogRef": "2025_CT_Dining_IT-EN.pdf#page=170",
       "price": null
     }
   ]

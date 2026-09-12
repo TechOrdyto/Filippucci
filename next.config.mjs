@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingIncludes: {
-    "/interior-poc/api/generate": ["./public/products/**/*"],
+    "/interior-poc/api/generate": [
+      "./public/products/**/*",
+      "./public/catalogo/**/*",
+    ],
   },
 };
 

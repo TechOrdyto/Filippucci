@@ -183,7 +183,7 @@ export default function ObjectAssignmentPopover({
                     <img
                       src={product.images[0]}
                       alt=""
-                      className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                      className="h-11 w-11 shrink-0 rounded-lg object-contain"
                     />
                   ) : (
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-strong)] text-[10px] font-semibold uppercase tracking-wider text-[var(--text-soft)]">

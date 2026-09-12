@@ -1,0 +1,63 @@
+{
+  "id": "monk",
+  "name": "MONK",
+  "designer": "Afra e Tobia Scarpa",
+  "year": 2025,
+  "category": "Chairs",
+  "collection": "Heritage Collection",
+  "description": "Nel 2025 Molteni&C propone una riedizione dell'iconica sedia Monk, disegnata da Afra e Tobia Scarpa nel 1973, preservandone il carattere originale. Monk presenta una struttura in legno massello composta da due cavalletti fissati a tubolari metallici che creano un unico elemento per la seduta e lo schienale. Le parti strutturali sono unite da viti con un tocco decorativo dato da anelli speciali in acciaio brunito. La struttura della seduta è composta da due parti in cuoio preformato, disponibili nei colori della collezione Molteni&C. È disponibile anche in una versione poltrona, più bassa e larga, progettata per valorizzare gli ambienti living.",
+  "materials": {
+    "basamento": "Massello di legno di frassino e noce canaletto",
+    "struttura": "Telaio in acciaio verniciato",
+    "seduta e schienale": "Cuoio nei colori della gamma Molteni&C",
+    "piedini": "Materiale plastico"
+  },
+  "finishes": {
+    "basamento": [
+      "rovere caffè",
+      "rovere nero",
+      "noce canaletto"
+    ],
+    "seduta e schienale": [
+      "bianco",
+      "avorio",
+      "nocciola",
+      "naturale",
+      "tortora",
+      "tabacco",
+      "verde fango",
+      "rosso",
+      "testa di moro",
+      "nero"
+    ]
+  },
+  "variants": [
+    {
+      "code": "MSD1",
+      "type": "sedia",
+      "dimensions": {
+        "width": 51.5,
+        "depth": 43.5,
+        "height": 76
+      }
+    },
+    {
+      "code": "MPL1",
+      "type": "poltrona",
+      "dimensions": {
+        "width": 66.5,
+        "depth": 53.5,
+        "height": 70.9
+      }
+    }
+  ],
+  "images": [
+    "/catalogo/Monk.png"
+  ],
+  "source": {
+    "catalog": "2025_CT_Dining_IT-EN.pdf",
+    "pages": [170, 171],
+    "priceList": null,
+    "priceListPages": []
+  }
+}

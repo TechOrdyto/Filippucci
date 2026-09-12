@@ -252,7 +252,7 @@ export default function CatalogoPageClient() {
                     <img
                       src={product.images[0]}
                       alt={`Foto ${product.name}`}
-                      className="h-28 w-28 shrink-0 rounded-xl object-cover"
+                      className="h-28 w-28 shrink-0 rounded-xl object-contain"
                     />
                   ) : (
                     <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-xs font-semibold uppercase tracking-widest text-[var(--text-soft)]">

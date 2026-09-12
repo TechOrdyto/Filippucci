@@ -40,6 +40,7 @@ export default function InteriorPocPage() {
   const [prompt, setPrompt] = useState("");
   const [mentions, setMentions] = useState<ProductMention[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [renderedSceneSignature, setRenderedSceneSignature] = useState<string | null>(null);
@@ -126,6 +127,22 @@ export default function InteriorPocPage() {
     windowFinish,
     wallFinish,
   ]);
+
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    setGenerationProgress(8);
+    const progressTimer = window.setInterval(() => {
+      setGenerationProgress((current) => {
+        if (current >= 92) return current;
+
+        const increment = current < 35 ? 3 : current < 70 ? 1 : 0.5;
+        return Math.min(92, current + increment);
+      });
+    }, 350);
+
+    return () => window.clearInterval(progressTimer);
+  }, [isGenerating]);
 
   // Adattatore semantico: le linee walls restano quelle grezze del DXF,
   // qui vengono solo esposte al calcolo delle visuali per evitare camere
@@ -434,6 +451,7 @@ export default function InteriorPocPage() {
     }
 
     setIsGenerating(true);
+    setGenerationProgress(8);
     setError(null);
     setGenerationWarnings([]);
 
@@ -502,6 +520,7 @@ export default function InteriorPocPage() {
       }
 
       const data = await res.json();
+      setGenerationProgress(100);
       const generatedImage: RenderVariant = {
         id: crypto.randomUUID(),
         imageUrl: data.imageUrl,
@@ -774,10 +793,45 @@ export default function InteriorPocPage() {
                 onClick={handleGenerate}
                 disabled={isGenerating || !hasSetView}
                 aria-describedby={!hasSetView ? "generate-render-hint" : undefined}
-                className="primary-action mt-6 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
+                aria-label={
+                  isGenerating
+                    ? `Generazione del render in corso: ${Math.round(generationProgress)}%`
+                    : "Genera render"
+                }
+                className={`primary-action mt-6 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
+                  isGenerating ? "render-progress-action" : ""
+                }`}
               >
-                <span aria-hidden="true">{isGenerating ? "···" : "→"}</span>
-                {isGenerating ? "Generazione in corso…" : "Genera render"}
+                {isGenerating ? (
+                  <span
+                    className="render-progress-indicator"
+                    role="img"
+                    aria-label={`Avanzamento stimato ${Math.round(generationProgress)}%`}
+                  >
+                    <span className="render-progress-indicator__orbit" aria-hidden="true">
+                      {generationProgress >= 20 && (
+                        <span className="render-progress-indicator__diamond render-progress-indicator__diamond--top" />
+                      )}
+                      {generationProgress >= 45 && (
+                        <span className="render-progress-indicator__diamond render-progress-indicator__diamond--right" />
+                      )}
+                      {generationProgress >= 70 && (
+                        <span className="render-progress-indicator__diamond render-progress-indicator__diamond--bottom" />
+                      )}
+                      {generationProgress >= 90 && (
+                        <span className="render-progress-indicator__diamond render-progress-indicator__diamond--left" />
+                      )}
+                    </span>
+                    <span className="render-progress-indicator__percentage" aria-hidden="true">
+                      {Math.round(generationProgress)}%
+                    </span>
+                  </span>
+                ) : (
+                  <span>Genera render</span>
+                )}
+                <span className="sr-only">
+                  {isGenerating ? "Generazione del render in corso" : "Genera render"}
+                </span>
               </button>
               {!hasSetView && (
                 <p id="generate-render-hint" className="mt-2 text-center text-xs text-[var(--text-muted)]">

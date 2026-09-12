@@ -29,7 +29,7 @@ function ProductRow({
           <img
             src={product.images[0]}
             alt={product.name}
-            className="h-12 w-12 rounded-lg object-cover"
+            className="h-12 w-12 rounded-lg object-contain"
           />
         ) : (
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--surface-strong)] text-[10px] font-semibold uppercase tracking-wider text-[var(--text-soft)]">

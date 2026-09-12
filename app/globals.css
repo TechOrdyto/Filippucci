@@ -196,6 +196,94 @@ a:focus-visible {
   box-shadow: none;
 }
 
+.render-progress-action:disabled {
+  cursor: wait;
+  opacity: 1;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-strong) 28%, transparent);
+}
+
+.render-progress-indicator {
+  position: relative;
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.render-progress-indicator__orbit {
+  position: absolute;
+  inset: 0.18rem;
+  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: 9999px;
+  animation: render-progress-spin 1.4s linear infinite;
+}
+
+.render-progress-indicator__diamond {
+  position: absolute;
+  height: 0.28rem;
+  width: 0.28rem;
+  border: 1px solid currentColor;
+  border-radius: 0.06rem;
+  background: var(--accent);
+  animation: render-progress-diamond-in 240ms ease-out both;
+  transform: rotate(45deg);
+}
+
+.render-progress-indicator__diamond--top {
+  top: -0.16rem;
+  left: 50%;
+  margin-left: -0.14rem;
+}
+
+.render-progress-indicator__diamond--right {
+  top: 50%;
+  right: -0.16rem;
+  margin-top: -0.14rem;
+}
+
+.render-progress-indicator__diamond--bottom {
+  bottom: -0.16rem;
+  left: 50%;
+  margin-left: -0.14rem;
+}
+
+.render-progress-indicator__diamond--left {
+  top: 50%;
+  left: -0.16rem;
+  margin-top: -0.14rem;
+}
+
+.render-progress-indicator__percentage {
+  position: relative;
+  z-index: 1;
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+}
+
+@keyframes render-progress-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes render-progress-diamond-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(45deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(45deg);
+  }
+}
+
 .camera-setup-attention {
   animation: camera-setup-pulse 1.8s ease-in-out infinite;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
@@ -215,7 +303,9 @@ a:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .camera-setup-attention {
+  .camera-setup-attention,
+  .render-progress-indicator__orbit,
+  .render-progress-indicator__diamond {
     animation: none;
   }
 }
