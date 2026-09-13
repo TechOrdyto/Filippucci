@@ -17,12 +17,15 @@ interface FloorPlanRendererProps {
   camera: CameraPosition | null;
   viewpoints: Viewpoint[];
   selectedViewpointId: string | null;
+  isCameraSet: boolean;
   showObjects: boolean;
   objectAssignmentLabels?: Record<string, string>;
+  assignedObjectIds?: string[];
   viewport: Viewport;
   onViewportChange: (v: Viewport) => void;
   onSelect: (s: Selection | null) => void;
-  onSelectViewpoint: (viewpoint: Viewpoint) => void;
+  onSelectViewpoint: (viewpoint: Viewpoint | null) => void;
+  onRotateCamera: (delta: number) => void;
 }
 
 function renderGeometryShape(
@@ -133,26 +136,10 @@ function RoomLayer({
             <title>{`Seleziona ${room.name}`}</title>
             <polygon
               points={room.geometry.points.map(([x, y]) => `${x},${y}`).join(" ")}
-              fill={
-                isSelected
-                  ? "transparent"
-                : isHovered
-                    ? "var(--selection-fill)"
-                    : isFocused
-                      ? "var(--camera-fill)"
-                      : "transparent"
-              }
-              stroke={
-                isSelected
-                  ? "var(--accent-strong)"
-                  : isHovered
-                    ? "var(--accent)"
-                    : isFocused
-                      ? "var(--accent)"
-                      : "transparent"
-              }
-              strokeWidth={isSelected ? 6 : isHovered ? 4 : isFocused ? 3 : 0}
-              strokeDasharray={isSelected || isHovered ? undefined : isFocused ? "8 4" : undefined}
+              fill="transparent"
+              stroke="transparent"
+              strokeWidth={0}
+              strokeDasharray={undefined}
               pointerEvents="all"
               role="button"
               tabIndex={0}
@@ -168,16 +155,16 @@ function RoomLayer({
                 onSelectRoom(room.id);
               }}
             />
-            {!isSelected && (
+            {!isFocused && (
               <text
                 x={center.x}
                 y={center.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize={isFocused ? 40 : isHovered ? 34 : 28}
-                fontWeight={isFocused || isHovered ? 700 : 500}
-                fill={isFocused || isHovered ? "var(--accent-strong)" : "var(--text-muted)"}
-                opacity={isFocused || isHovered ? 1 : 0.72}
+                fontSize={isSelected || isFocused ? 40 : isHovered ? 34 : 28}
+                fontWeight={isSelected || isFocused || isHovered ? 700 : 500}
+                fill={isSelected || isFocused || isHovered ? "var(--accent-strong)" : "var(--text-muted)"}
+                opacity={isSelected || isFocused || isHovered ? 1 : 0.72}
                 pointerEvents="none"
               >
                 {room.name}
@@ -197,6 +184,7 @@ function ObjectLayer({
   hoveredObjectId,
   onHoverObject,
   objectAssignmentLabels,
+  assignedObjectIds,
   onSelectObject,
 }: {
   model: FloorPlan;
@@ -205,38 +193,40 @@ function ObjectLayer({
   hoveredObjectId: string | null;
   onHoverObject: (objectId: string | null) => void;
   objectAssignmentLabels?: Record<string, string>;
+  assignedObjectIds?: string[];
   onSelectObject: (objectId: string) => void;
 }) {
   return (
     <g>
       {model.objects.map((obj) => {
+        const assignmentLabel = objectAssignmentLabels?.[obj.id];
+        const isAssigned = Boolean(assignmentLabel) || assignedObjectIds?.includes(obj.id) === true;
+        const isInActiveRoom = Boolean(focusRoomId) && obj.roomId === focusRoomId;
+        const isReferenceOnly = !isInActiveRoom && isAssigned;
+        if (!isInActiveRoom && !isAssigned) return null;
+
         const selected = selection?.type === "object" && selection.id === obj.id;
         const hovered = hoveredObjectId === obj.id;
         const center = geometryCenter(obj.geometry);
-        const isFocused = !focusRoomId || obj.roomId === focusRoomId;
-        const showUnassignedObject = Boolean(focusRoomId && isFocused);
-        const isHighlighted = selected || hovered;
-        const assignmentLabel = objectAssignmentLabels?.[obj.id];
-        const isAssigned = Boolean(assignmentLabel);
+        const isHighlighted = !isReferenceOnly && (selected || hovered);
+        const showUnassignedObject = Boolean(focusRoomId) && isInActiveRoom;
         return (
           <g
             key={obj.id}
             opacity={
-              isHighlighted
-                ? isFocused
+              isReferenceOnly
+                ? 1
+                : isHighlighted
                   ? 0.9
-                  : 0.45
-                : isAssigned
-                  ? isFocused
+                  : isAssigned
                     ? 0.78
-                    : 0.28
-                  : showUnassignedObject
-                    ? 0.32
-                    : 0
+                    : showUnassignedObject
+                      ? 0.32
+                      : 0
             }
-            pointerEvents="all"
+            pointerEvents={isReferenceOnly ? "none" : "all"}
             role="button"
-            tabIndex={0}
+            tabIndex={isReferenceOnly ? -1 : 0}
             aria-pressed={selected}
             aria-label={`${selected ? "Elemento selezionato" : "Seleziona elemento"}: ${obj.name}${assignmentLabel ? `, associato a ${assignmentLabel}` : ""}`}
             onPointerEnter={() => onHoverObject(obj.id)}
@@ -250,21 +240,22 @@ function ObjectLayer({
             }}
           >
             {isAssigned && <title>{`${obj.name} → ${assignmentLabel}`}</title>}
-            {renderGeometryShape(obj.geometry, {
-              // Gli overlay restano hit-testabili ma non sporcano la pianta:
-              // diventano visibili solo al passaggio del mouse o dopo la selezione.
-              fill: selected
-                ? "var(--selection-fill)"
-                : hovered
-                  ? "var(--camera-fill)"
-                  : isAssigned
-                    ? "var(--success-fill)"
-                    : "transparent",
-              stroke: selected || hovered ? "var(--accent-strong)" : isAssigned ? "var(--success)" : "transparent",
-              strokeWidth: selected ? 5 : isAssigned ? 2.5 : 1.5,
-              rx: 4,
-            })}
-            {isAssigned && !isHighlighted && (
+            {!isReferenceOnly &&
+              renderGeometryShape(obj.geometry, {
+                // Gli overlay restano hit-testabili ma non sporcano la pianta:
+                // diventano visibili solo al passaggio del mouse o dopo la selezione.
+                fill: selected
+                  ? "var(--selection-fill)"
+                  : hovered
+                    ? "var(--camera-fill)"
+                    : isAssigned
+                      ? "var(--success-fill)"
+                      : "transparent",
+                stroke: selected || hovered ? "var(--accent-strong)" : isAssigned ? "var(--success)" : "transparent",
+                strokeWidth: selected ? 5 : isAssigned ? 2.5 : 1.5,
+                rx: 4,
+              })}
+            {isAssigned && (
               <g pointerEvents="none">
                 <circle
                   cx={center.x}
@@ -287,20 +278,6 @@ function ObjectLayer({
                 </text>
               </g>
             )}
-            {isHighlighted && (
-              <text
-                x={center.x}
-                y={center.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={selected ? 24 : 20}
-                fontWeight={600}
-                fill="var(--accent-strong)"
-                pointerEvents="none"
-              >
-                {obj.name}{assignmentLabel ? ` · ${assignmentLabel}` : ""}
-              </text>
-            )}
           </g>
         );
       })}
@@ -316,12 +293,15 @@ export default function FloorPlanRenderer({
   camera,
   viewpoints,
   selectedViewpointId,
+  isCameraSet,
   showObjects,
   objectAssignmentLabels,
+  assignedObjectIds,
   viewport,
   onViewportChange,
   onSelect,
   onSelectViewpoint,
+  onRotateCamera,
 }: FloorPlanRendererProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef(viewport);
@@ -363,6 +343,8 @@ export default function FloorPlanRenderer({
   };
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isFloorplanOverlayTarget(e.target)) return;
+
     const svgPoint = toSvgCoords(e.clientX, e.clientY);
     const { x, y } = toPlanCoords(e.clientX, e.clientY);
     setIsPointerDown(true);
@@ -409,7 +391,7 @@ export default function FloorPlanRenderer({
     if (!drag.moved) {
       onSelect(
         hitTest(model, drag.planX, drag.planY, {
-          includeObjects: showObjects,
+          includeObjects: showObjects && Boolean(focusRoomId),
           focusRoomId,
         })
       );
@@ -466,7 +448,7 @@ export default function FloorPlanRenderer({
         {/* Linee vettoriali DXF (sopra, così i muri sono sempre netti) */}
         <VectorLayer geometry={geometry} />
 
-        {/* Tutti gli oggetti restano sempre disponibili per la selezione */}
+        {/* Gli arredi diventano interattivi solo dopo la selezione di una stanza. */}
         {showObjects && (
           <ObjectLayer
             model={model}
@@ -475,6 +457,7 @@ export default function FloorPlanRenderer({
             hoveredObjectId={hoveredObjectId}
             onHoverObject={setHoveredObjectId}
             objectAssignmentLabels={objectAssignmentLabels}
+            assignedObjectIds={assignedObjectIds}
             onSelectObject={(objectId) => onSelect({ type: "object", id: objectId })}
           />
         )}
@@ -485,7 +468,9 @@ export default function FloorPlanRenderer({
           camera={camera}
           viewpoints={viewpoints}
           selectedViewpointId={selectedViewpointId}
+          isCameraSet={isCameraSet}
           onSelectViewpoint={onSelectViewpoint}
+          onRotateCamera={onRotateCamera}
         />
       </g>
     </svg>
@@ -498,14 +483,18 @@ function CameraLayer({
   camera,
   viewpoints,
   selectedViewpointId,
+  isCameraSet,
   onSelectViewpoint,
+  onRotateCamera,
 }: {
   model: FloorPlan;
   focusRoomId: string | null;
   camera: CameraPosition | null;
   viewpoints: Viewpoint[];
   selectedViewpointId: string | null;
-  onSelectViewpoint: (viewpoint: Viewpoint) => void;
+  isCameraSet: boolean;
+  onSelectViewpoint: (viewpoint: Viewpoint | null) => void;
+  onRotateCamera: (delta: number) => void;
 }) {
   if (!camera || !focusRoomId) return null;
 
@@ -513,26 +502,39 @@ function CameraLayer({
   if (!room) return null;
 
   const roomBounds = geometryBounds(room.geometry);
-  const coneLength = Math.min(170, Math.max(70, Math.min(roomBounds.width, roomBounds.height) * 0.45));
+  const coneLength = Math.min(130, Math.max(60, Math.min(roomBounds.width, roomBounds.height) * 0.32));
   const direction = ((camera.rotation - 90) * Math.PI) / 180;
   const halfFov = (camera.fov * Math.PI) / 360;
   const left = pointAtAngle(camera.x, camera.y, direction - halfFov, coneLength);
   const right = pointAtAngle(camera.x, camera.y, direction + halfFov, coneLength);
-  const center = polygonCenter(room.geometry.points);
+  const rotateControlDistance = coneLength * 0.72;
+  const rotateLeft = pointAtAngle(camera.x, camera.y, direction - halfFov, rotateControlDistance);
+  const rotateRight = pointAtAngle(camera.x, camera.y, direction + halfFov, rotateControlDistance);
+  const activeViewpoint = selectedViewpointId
+    ? viewpoints.find((viewpoint) => viewpoint.id === selectedViewpointId) ?? null
+    : null;
+  const isAtOriginalCameraPosition = Boolean(
+    activeViewpoint && sameCameraRotation(camera.rotation, activeViewpoint.rotation)
+  );
+  const cameraActionLabel = isAtOriginalCameraPosition
+    ? "Deseleziona visuale"
+    : "Ripristina angolazione originale";
 
   return (
     <g>
       {viewpoints.map((viewpoint, index) => {
         const selected = selectedViewpointId === viewpoint.id;
+        const isAtOriginalPosition = selected && sameCameraRotation(camera.rotation, viewpoint.rotation);
         return (
           <g
             key={viewpoint.id}
+            data-floorplan-overlay="true"
             role="button"
-            aria-label={`Seleziona ${viewpoint.label}`}
+            aria-label={`${selected ? "Deseleziona" : "Seleziona"} ${viewpoint.label}`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
-              onSelectViewpoint(viewpoint);
+              onSelectViewpoint(selected && isAtOriginalPosition ? null : viewpoint);
             }}
             tabIndex={0}
             aria-pressed={selected}
@@ -540,21 +542,11 @@ function CameraLayer({
               if (event.key !== "Enter" && event.key !== " ") return;
               event.preventDefault();
               event.stopPropagation();
-              onSelectViewpoint(viewpoint);
+              onSelectViewpoint(selected && isAtOriginalPosition ? null : viewpoint);
             }}
-            style={{ cursor: "pointer" }}
+            className="focus:outline-none"
+            style={{ cursor: "pointer", outline: "none" }}
           >
-            <line
-              x1={viewpoint.position.x}
-              y1={viewpoint.position.y}
-              x2={center.x}
-              y2={center.y}
-              stroke="var(--accent-strong)"
-              strokeWidth={selected ? 3 : 1.5}
-              strokeDasharray="8 8"
-              opacity={selected ? 0.9 : 0.45}
-              pointerEvents="none"
-            />
             <circle
               cx={viewpoint.position.x}
               cy={viewpoint.position.y}
@@ -579,40 +571,141 @@ function CameraLayer({
         );
       })}
 
-      <path
-        d={`M ${camera.x} ${camera.y} L ${left.x} ${left.y} A ${coneLength} ${coneLength} 0 0 1 ${right.x} ${right.y} Z`}
-        fill="var(--camera-fill)"
-        fillOpacity="1"
-        stroke="var(--accent)"
-        strokeWidth="2"
-        pointerEvents="none"
-      />
-      <line
-        x1={camera.x}
-        y1={camera.y}
-        x2={camera.x + Math.cos(direction) * coneLength}
-        y2={camera.y + Math.sin(direction) * coneLength}
-        stroke="var(--accent-strong)"
-        strokeWidth="4"
-        strokeLinecap="round"
-        pointerEvents="none"
-      />
-      <circle
-        cx={camera.x}
-        cy={camera.y}
-        r={20}
-        fill="var(--accent-strong)"
-        stroke="var(--surface)"
-        strokeWidth="4"
-        pointerEvents="none"
-      />
-      <path
-        d={`M ${camera.x - 10} ${camera.y + 8} L ${camera.x} ${camera.y - 10} L ${camera.x + 10} ${camera.y + 8} Z`}
-        fill="var(--surface)"
-        pointerEvents="none"
-      />
+      {isCameraSet && (
+        <>
+          <path
+            d={`M ${camera.x} ${camera.y} L ${left.x} ${left.y} A ${coneLength} ${coneLength} 0 0 1 ${right.x} ${right.y} Z`}
+            fill="var(--camera-fill)"
+            fillOpacity="1"
+            stroke="var(--accent)"
+            strokeWidth="2"
+            pointerEvents="none"
+          />
+          <CameraRotateControl
+            x={rotateLeft.x}
+            y={rotateLeft.y}
+            direction="left"
+            onRotate={() => onRotateCamera(-15)}
+          />
+          <CameraRotateControl
+            x={rotateRight.x}
+            y={rotateRight.y}
+            direction="right"
+            onRotate={() => onRotateCamera(15)}
+          />
+          <line
+            x1={camera.x}
+            y1={camera.y}
+            x2={camera.x + Math.cos(direction) * coneLength}
+            y2={camera.y + Math.sin(direction) * coneLength}
+            stroke="var(--accent-strong)"
+            strokeWidth="4"
+            strokeLinecap="round"
+            pointerEvents="none"
+          />
+          {activeViewpoint && (
+            <g
+              data-floorplan-overlay="true"
+              role="button"
+              tabIndex={0}
+              aria-label={cameraActionLabel}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectViewpoint(isAtOriginalCameraPosition ? null : activeViewpoint);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                onSelectViewpoint(isAtOriginalCameraPosition ? null : activeViewpoint);
+              }}
+              className="focus:outline-none"
+              style={{ cursor: "pointer", outline: "none" }}
+            >
+              <circle
+                cx={camera.x}
+                cy={camera.y}
+                r={28}
+                fill="transparent"
+                pointerEvents="all"
+              />
+              <circle
+                cx={camera.x}
+                cy={camera.y}
+                r={20}
+                fill="var(--accent-strong)"
+                stroke="var(--surface)"
+                strokeWidth="4"
+                pointerEvents="none"
+              />
+            </g>
+          )}
+        </>
+      )}
     </g>
   );
+}
+
+function CameraRotateControl({
+  x,
+  y,
+  direction,
+  onRotate,
+}: {
+  x: number;
+  y: number;
+  direction: "left" | "right";
+  onRotate: () => void;
+}) {
+  const label = direction === "left" ? "sinistra" : "destra";
+  return (
+    <g
+      data-floorplan-overlay="true"
+      data-floorplan-camera-control="true"
+      role="button"
+      tabIndex={0}
+      aria-label={`Ruota visuale a ${label} di 15 gradi`}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        onRotate();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onRotate();
+      }}
+      className="focus:outline-none"
+      style={{ cursor: "pointer", outline: "none" }}
+    >
+      <circle
+        cx={x}
+        cy={y}
+        r={15}
+        fill="var(--surface)"
+        stroke="var(--accent)"
+        strokeWidth={2}
+      />
+      <text
+        x={x}
+        y={y}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={18}
+        fontWeight={500}
+        fill="var(--text)"
+        pointerEvents="none"
+      >
+        {direction === "left" ? "↺" : "↻"}
+      </text>
+    </g>
+  );
+}
+
+function isFloorplanOverlayTarget(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("[data-floorplan-overlay]"));
 }
 
 function pointAtAngle(x: number, y: number, angle: number, distance: number) {
@@ -620,4 +713,9 @@ function pointAtAngle(x: number, y: number, angle: number, distance: number) {
     x: x + Math.cos(angle) * distance,
     y: y + Math.sin(angle) * distance,
   };
+}
+
+function sameCameraRotation(first: number, second: number) {
+  const difference = Math.abs((((first - second) % 360) + 540) % 360 - 180);
+  return difference < 0.5;
 }
