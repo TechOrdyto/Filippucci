@@ -26,7 +26,7 @@ export const persistCatalogStep = createStep(
       version: "1.0",
       products: deduped.map((p) => {
         // Costruisci l'array images con TUTTE le immagini ritagliate
-        const regionCount = p.imageRegions?.length ?? 0;
+        const regionCount = p.imageRegions?.filter((region) => region.verified).length ?? 0;
         const images: string[] = [];
         if (regionCount > 0) {
           for (let i = 1; i <= regionCount; i++) {

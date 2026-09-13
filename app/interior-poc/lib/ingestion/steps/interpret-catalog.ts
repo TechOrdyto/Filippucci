@@ -4,7 +4,12 @@
 import type { SagaContext, CatalogInterpretation, OcrPageResult } from "../types";
 import { createStep } from "../saga";
 import { saveInterpretation, deleteFile } from "../store";
-import { findProductImageRegion, findAllContentRegions } from "../../geometry/image-cropper";
+import {
+  findProductImageRegion,
+  findAllContentRegions,
+  findEmbeddedPdfImageRegions,
+  isValidCropRegion,
+} from "../../geometry/image-cropper";
 
 // Pattern per riconoscere elementi del catalogo
 const PRODUCT_NAME_PATTERN = /^([A-Z][A-Z0-9.\s'’-]{2,40})\s*—/;
@@ -41,7 +46,7 @@ export const interpretCatalogStep = createStep(
           imageBuffer = undefined;
         }
       }
-      const product = await interpretPage(page, imageBuffer);
+      const product = await interpretPage(page, imageBuffer, ctx.fileData);
       if (product) {
         rawProducts.push(product);
       }
@@ -98,7 +103,8 @@ export const interpretCatalogStep = createStep(
 
 async function interpretPage(
   page: OcrPageResult,
-  imageBuffer?: Buffer
+  imageBuffer?: Buffer,
+  pdfBuffer?: Buffer
 ): Promise<CatalogInterpretation["products"][number] | null> {
   // L'AI vision restituisce JSON strutturato nel fullText
   const content = page.fullText;
@@ -131,76 +137,83 @@ async function interpretPage(
   const correctedName = name;
   const correctedDesigner = ocrDesigner ?? aiDesigner;
 
-    // Raccogli TUTTE le regioni immagine della pagina.
-    // L'AI vision può fornire più image_bbox (una per foto del prodotto).
+    // Raccogli le regioni immagine della pagina.
+    // La sorgente primaria è la geometria degli oggetti raster incorporati nel
+    // PDF: testo e foto sono oggetti distinti nei cataloghi Molteni&C.
     const imageRegions: NonNullable<CatalogInterpretation["products"][number]["imageRegions"]> = [];
 
-    // 1. Regioni fornite dall'AI vision (può essere un singolo bbox o un array)
-    const aiBboxes = Array.isArray(product?.image_bbox)
-      ? product.image_bbox
-      : product?.image_bbox
-        ? [product.image_bbox]
-        : [];
-    for (const bbox of aiBboxes) {
-      if (bbox && bbox.x !== undefined && bbox.y !== undefined) {
+    // 1. Regioni raster native del PDF. Sono verificabili senza AI e non
+    // includono il testo vettoriale dell'impaginato.
+    if (pdfBuffer) {
+      const embeddedRegions = await findEmbeddedPdfImageRegions(
+        pdfBuffer,
+        page.pageNumber
+      );
+      for (const region of embeddedRegions) {
         imageRegions.push({
-          bbox: {
-            x: bbox.x,
-            y: bbox.y,
-            width: bbox.width ?? 90,
-            height: bbox.height ?? 50,
-          },
+          bbox: region,
           verified: true,
           pageNumber: page.pageNumber,
+          source: "embedded-pdf",
         });
       }
     }
 
-    // 2. Analisi del contenuto visivo: trova TUTTE le regioni con foto
-    //    (foto grande + miniature). Es. pagina 13 di Blevio ha la foto
-    //    grande a destra E una miniatura in basso a sinistra.
-    if (imageBuffer) {
-      const contentRegions = await findAllContentRegions(imageBuffer, page.textBlocks);
-      for (const region of contentRegions) {
-        // Trova se la regione si sovrappone a una esistente
-        const overlapping = imageRegions.find((r) => {
-          const overlapX = Math.min(r.bbox.x + r.bbox.width, region.x + region.width) -
-            Math.max(r.bbox.x, region.x);
-          const overlapY = Math.min(r.bbox.y + r.bbox.height, region.y + region.height) -
-            Math.max(r.bbox.y, region.y);
-          return overlapX > 0 && overlapY > 0;
-        });
-
-        if (!overlapping) {
-          // Nessuna sovrapposizione: aggiungi
+    // 2. Fallback AI: il bbox viene conservato solo come non verificato. Non
+    // deve mai produrre un'immagine pubblicata senza una fonte più affidabile.
+    if (imageRegions.length === 0) {
+      const aiBboxes = Array.isArray(product?.image_bbox)
+        ? product.image_bbox
+        : product?.image_bbox
+          ? [product.image_bbox]
+          : [];
+      for (const bbox of aiBboxes) {
+        const candidate = {
+          x: bbox?.x,
+          y: bbox?.y,
+          width: bbox?.width,
+          height: bbox?.height,
+        };
+        if (isValidCropRegion(candidate)) {
           imageRegions.push({
-            bbox: region,
-            verified: true,
+            bbox: candidate,
+            verified: false,
             pageNumber: page.pageNumber,
+            source: "ai",
           });
-        } else {
-          // Sovrapposizione: se la nuova regione è significativamente
-          // PIÙ GRANDE (almeno 20% in area), sostituisci quella esistente.
-          // (Il bbox dell'AI vision può essere impreciso e più piccolo
-          // della foto reale trovata dall'analisi del contenuto)
-          const existingArea = overlapping.bbox.width * overlapping.bbox.height;
-          const newArea = region.width * region.height;
-          if (newArea > existingArea * 1.2) {
-            overlapping.bbox = region;
-          }
         }
       }
     }
 
-    // 3. Fallback deterministico: se non è stata trovata NESSUNA regione,
-    //    usa i bounding box OCR per trovare la zona senza testo.
+    // 3. Secondo fallback: euristica visiva. Anche questa resta non
+    // verificata perché la varianza può selezionare testo e loghi.
+    if (imageRegions.length === 0 && imageBuffer) {
+      const contentRegions = await findAllContentRegions(imageBuffer, page.textBlocks);
+      for (const region of contentRegions) {
+        imageRegions.push({
+          bbox: region,
+          verified: false,
+          pageNumber: page.pageNumber,
+          source: "content",
+        });
+      }
+    }
+
+    // 4. Ultimo fallback deterministico, utile per documenti senza oggetti
+    // raster. Il crop non viene pubblicato senza verifica esplicita.
     if (imageRegions.length === 0) {
-      const crop = await findProductImageRegion(page.textBlocks, page.imageSize, product?.name, imageBuffer);
-      if (crop.verified) {
+      const crop = await findProductImageRegion(
+        page.textBlocks,
+        page.imageSize,
+        product?.name,
+        imageBuffer
+      );
+      if (crop.verified && isValidCropRegion(crop.region)) {
         imageRegions.push({
           bbox: crop.region,
-          verified: true,
+          verified: false,
           pageNumber: page.pageNumber,
+          source: "deterministic",
         });
       }
     }

@@ -22,7 +22,10 @@ export const cropProductImagesStep = createStep(
     const cropped: Array<{ productId: string; path: string }> = [];
 
     for (const product of interpretation.products) {
-      const regions = product.imageRegions ?? [];
+      // Pubblica solo regioni verificate. I bbox AI/euristici restano
+      // disponibili nell'interpretazione per il debug, ma non devono finire
+      // nel catalogo attivo senza una verifica della sorgente.
+      const regions = (product.imageRegions ?? []).filter((region) => region.verified);
       if (regions.length === 0) continue;
 
       const sharp = (await import("sharp")).default;

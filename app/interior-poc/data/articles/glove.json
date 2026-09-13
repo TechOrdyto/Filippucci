@@ -38,7 +38,7 @@
     "La zip è disponibile in due colori: nero e bianco",
     "A richiesta tutti gli elementi sono producibili utilizzando una pelle speciale antibatterica e antivirale denominata 'L ECO' con sovrapprezzo del 5%"
   ],
-  "images": ["/products/glove/glove-1.png", "/products/glove/glove-2.png"],
+  "images": ["/products/glove/glove-1.png"],
   "source": {
     "catalog": "2025_CT_Dining_IT-EN.pdf",
     "pages": [119, 121],

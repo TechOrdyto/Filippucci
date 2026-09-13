@@ -25,9 +25,18 @@ export const validateCatalogStep = createStep(
       if (!product.name) {
         errors.push(`Prodotto senza nome (pagina ${product.pageNumber})`);
       }
-      const hasVerifiedRegion = (product.imageRegions ?? []).some((r) => r.verified);
-      if (!hasVerifiedRegion) {
+      const verifiedRegions = (product.imageRegions ?? []).filter((r) => r.verified);
+      if (verifiedRegions.length === 0) {
         warnings.push(`Prodotto "${product.name}": nessuna regione immagine verificata`);
+      } else if (ctx.persistedPaths) {
+        const persistedForProduct = ctx.persistedPaths.filter((path) =>
+          path.includes(`${product.id}-`) || path.endsWith(`${product.id}.png`)
+        );
+        if (persistedForProduct.length < verifiedRegions.length) {
+          errors.push(
+            `Prodotto "${product.name}": immagini verificate non persistite (${persistedForProduct.length}/${verifiedRegions.length})`
+          );
+        }
       }
     }
 
