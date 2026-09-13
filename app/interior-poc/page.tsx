@@ -376,6 +376,7 @@ export default function InteriorPocPage() {
       clearSelection();
       closeObjectAssignment();
       setObjectAssignmentTargetId(null);
+      setSelectedRoomId(null);
       return;
     }
     if (sel.type === "room") {
@@ -405,7 +406,13 @@ export default function InteriorPocPage() {
     setIsCameraSet(false);
   };
 
-  const handleSelectViewpoint = (vp: Viewpoint) => {
+  const handleSelectViewpoint = (vp: Viewpoint | null) => {
+    if (!vp) {
+      setIsCameraSet(false);
+      setSelectedViewpointId(null);
+      return;
+    }
+
     selectRoom(vp.roomId);
     setSelectedRoomId(vp.roomId);
     setIsCameraSet(true);
@@ -421,7 +428,6 @@ export default function InteriorPocPage() {
 
   const handleRotateCamera = (delta: number) => {
     setIsCameraSet(true);
-    setSelectedViewpointId(null);
     setCamera((current) => {
       if (!current) return current;
       return {
@@ -432,7 +438,7 @@ export default function InteriorPocPage() {
   };
 
   const focusCameraAction = () => {
-    document.getElementById(sceneRoomId ? "imposta-visuale" : "piantina")?.scrollIntoView({
+    document.getElementById("piantina")?.scrollIntoView({
       behavior: "smooth",
       block: "center",
     });
@@ -580,6 +586,12 @@ export default function InteriorPocPage() {
       windowFinish.trim()
   );
   const hasRenderedImage = Boolean(imageUrl && !isRenderStale);
+  const selectedViewpoint = selectedViewpointId
+    ? viewpoints.find((viewpoint) => viewpoint.id === selectedViewpointId) ?? null
+    : null;
+  const isSelectedViewpointCustom = Boolean(
+    selectedViewpoint && camera && !sameCameraRotation(camera.rotation, selectedViewpoint.rotation)
+  );
   const currentStep =
     !hasSelectedEnvironment
       ? 1
@@ -668,7 +680,7 @@ export default function InteriorPocPage() {
                     <p className="eyebrow mb-2">Piantina</p>
                     <h3 className="display-title text-2xl text-[var(--text)]">Scegli la visuale e gli arredi.</h3>
                     <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      Seleziona un ambiente. Porte e finestre vengono riconosciute dal CAD. Poi scegli la visuale e aggiungi gli articoli o i dettagli che vuoi.
+                      Seleziona una stanza per visualizzare arredi e punti di vista. Poi scegli la visuale e associa gli articoli che vuoi usare nel render.
                     </p>
                   </div>
                 </div>
@@ -856,10 +868,8 @@ export default function InteriorPocPage() {
                 camera={camera}
                 isCameraSet={isCameraSet}
                 viewpointLabel={
-                  selectedViewpointId
-                    ? viewpoints
-                        .find((viewpoint) => viewpoint.id === selectedViewpointId)
-                        ?.label.replace(" → centro", "").replace(" → interno", "") ?? null
+                  selectedViewpointId && !isSelectedViewpointCustom
+                    ? selectedViewpoint?.label.replace(" → centro", "").replace(" → interno", "") ?? null
                     : isCameraSet
                       ? "Visuale personalizzata"
                       : null
@@ -910,4 +920,9 @@ export default function InteriorPocPage() {
       </footer>
     </main>
   );
+}
+
+function sameCameraRotation(first: number, second: number) {
+  const difference = Math.abs((((first - second) % 360) + 540) % 360 - 180);
+  return difference < 0.5;
 }
