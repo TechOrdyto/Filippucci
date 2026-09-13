@@ -187,7 +187,7 @@ export default function ListiniPageClient() {
                             <div className="flex items-center gap-3">
                               {line.image ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={line.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                                <img src={line.image} alt="" className="h-12 w-12 rounded-lg object-contain" />
                               ) : (
                                 <div className="h-12 w-12 rounded-lg bg-[var(--surface-muted)]" />
                               )}
