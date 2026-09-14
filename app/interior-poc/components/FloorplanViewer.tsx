@@ -177,6 +177,7 @@ export default function FloorPlanViewer({
           viewport={viewport}
           onViewportChange={setViewport}
           onSelect={handlePlanSelection}
+          onRemoveObjectProduct={onRemoveObjectProduct}
           onSelectViewpoint={onSelectViewpoint}
           onRotateCamera={onRotateCamera}
           showObjects={Boolean(focusedRoom) || Object.keys(objectAssignments).length > 0}

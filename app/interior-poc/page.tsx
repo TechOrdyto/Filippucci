@@ -400,10 +400,8 @@ export default function InteriorPocPage() {
     closeObjectAssignment();
     setObjectAssignmentTargetId(null);
     setSelectedRoomId(null);
-    setCamera(null);
     setViewpoints([]);
     setSelectedViewpointId(null);
-    setIsCameraSet(false);
   };
 
   const handleSelectViewpoint = (vp: Viewpoint | null) => {
@@ -572,7 +570,7 @@ export default function InteriorPocPage() {
     }
   };
 
-  const hasSelectedEnvironment = Boolean(sceneRoomId);
+  const hasActiveEnvironment = Boolean(selectedRoomId);
   const hasSetView = Boolean(camera && isCameraSet);
   const hasPendingObjectAssignment = Boolean(
     selection?.type === "object" && !objectAssignments[selection.id]
@@ -593,11 +591,11 @@ export default function InteriorPocPage() {
     selectedViewpoint && camera && !sameCameraRotation(camera.rotation, selectedViewpoint.rotation)
   );
   const currentStep =
-    !hasSelectedEnvironment
+    !hasActiveEnvironment
       ? 1
       : hasPendingObjectAssignment
         ? 2
-        : !hasSetView
+      : !hasSetView
           ? 3
           : hasRenderedImage
             ? 5
@@ -632,7 +630,7 @@ export default function InteriorPocPage() {
         <nav aria-label="Percorso di configurazione" className="panel mb-8 overflow-hidden rounded-2xl">
           <ol className="grid grid-cols-2 divide-x divide-y divide-[var(--border)] sm:grid-cols-5 sm:divide-y-0">
             {[
-              { step: 1, title: "Ambiente", description: "Seleziona dalla planimetria", complete: hasSelectedEnvironment },
+              { step: 1, title: "Ambiente", description: "Seleziona dalla planimetria", complete: hasActiveEnvironment },
               { step: 2, title: "Articoli", description: "Facoltativi · associa gli articoli", complete: hasArticleAssignments, optional: true },
               { step: 3, title: "Visuale", description: "Scegli la visuale", complete: hasSetView },
               { step: 4, title: "Finiture e note", description: "Facoltative · aggiungi dettagli", complete: hasFinishDetails, optional: true },

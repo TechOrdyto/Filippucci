@@ -6,7 +6,7 @@ import type { CameraPosition, Viewpoint } from "../lib/camera/types";
 import type { FloorPlan, Geometry, Selection } from "./types";
 import type { Viewport } from "./viewport";
 import { zoomAt } from "./viewport";
-import { geometryBounds, geometryCenter, polygonCenter } from "./geometry";
+import { geometryBounds, polygonCenter } from "./geometry";
 import { hitTest } from "./selection";
 
 interface FloorPlanRendererProps {
@@ -24,6 +24,7 @@ interface FloorPlanRendererProps {
   viewport: Viewport;
   onViewportChange: (v: Viewport) => void;
   onSelect: (s: Selection | null) => void;
+  onRemoveObjectProduct: (objectId: string) => void;
   onSelectViewpoint: (viewpoint: Viewpoint | null) => void;
   onRotateCamera: (delta: number) => void;
 }
@@ -185,6 +186,8 @@ function ObjectLayer({
   onHoverObject,
   objectAssignmentLabels,
   assignedObjectIds,
+  scale,
+  onRemoveObjectProduct,
   onSelectObject,
 }: {
   model: FloorPlan;
@@ -194,6 +197,8 @@ function ObjectLayer({
   onHoverObject: (objectId: string | null) => void;
   objectAssignmentLabels?: Record<string, string>;
   assignedObjectIds?: string[];
+  scale: number;
+  onRemoveObjectProduct: (objectId: string) => void;
   onSelectObject: (objectId: string) => void;
 }) {
   return (
@@ -207,7 +212,7 @@ function ObjectLayer({
 
         const selected = selection?.type === "object" && selection.id === obj.id;
         const hovered = hoveredObjectId === obj.id;
-        const center = geometryCenter(obj.geometry);
+        const bounds = geometryBounds(obj.geometry);
         const isHighlighted = !isReferenceOnly && (selected || hovered);
         const showUnassignedObject = Boolean(focusRoomId) && isInActiveRoom;
         return (
@@ -256,31 +261,150 @@ function ObjectLayer({
                 rx: 4,
               })}
             {isAssigned && (
-              <g pointerEvents="none">
-                <circle
-                  cx={center.x}
-                  cy={center.y}
-                  r={14}
-                  fill="var(--success-soft)"
-                  stroke="var(--success)"
-                  strokeWidth={2}
-                />
-                <text
-                  x={center.x}
-                  y={center.y + 1}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={15}
-                  fontWeight={800}
-                  fill="var(--success)"
-                >
-                  ✓
-                </text>
-              </g>
+              <AssignmentBadge
+                bounds={bounds}
+                label={assignmentLabel}
+                showName={Boolean(assignmentLabel) && scale >= 0.8}
+                showRemove={isInActiveRoom}
+                onRemove={() => onRemoveObjectProduct(obj.id)}
+              />
             )}
           </g>
         );
       })}
+    </g>
+  );
+}
+
+function AssignmentBadge({
+  bounds,
+  label,
+  showName,
+  showRemove,
+  onRemove,
+}: {
+  bounds: ReturnType<typeof geometryBounds>;
+  label?: string;
+  showName: boolean;
+  showRemove: boolean;
+  onRemove: () => void;
+}) {
+  const [isRemoveHovered, setIsRemoveHovered] = useState(false);
+  const displayLabel = label
+    ? label.length > 24
+      ? `${label.slice(0, 23)}…`
+      : label
+    : null;
+  const badgeHeight = 28;
+  const contentWidth = showName && displayLabel ? Math.max(72, displayLabel.length * 6.2 + 34) : 28;
+  const badgeWidth = contentWidth;
+  const x = bounds.x;
+  const y = bounds.y - badgeHeight - 8;
+
+  return (
+    <g
+      transform={`translate(${x} ${y})`}
+      pointerEvents={showRemove ? "all" : "none"}
+      aria-hidden={showRemove ? undefined : true}
+      filter="drop-shadow(0 2px 4px rgba(20, 35, 42, 0.2))"
+    >
+      <rect
+        x={0}
+        y={0}
+        width={badgeWidth}
+        height={badgeHeight}
+        rx={7}
+        fill="var(--success)"
+        stroke="var(--success)"
+        strokeWidth={1.5}
+      />
+      <circle
+        cx={14}
+        cy={14}
+        r={9}
+        fill="#ffffff"
+        stroke="#ffffff"
+        strokeWidth={1.5}
+      />
+      <text
+        x={14}
+        y={14.5}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={11}
+        fontWeight={800}
+        fill="var(--success)"
+      >
+        ✓
+      </text>
+      {showName && displayLabel && (
+        <text
+          x={29}
+          y={14.5}
+          dominantBaseline="middle"
+          fontSize={11}
+          fontWeight={700}
+          fill="#ffffff"
+        >
+          {displayLabel}
+        </text>
+      )}
+      {showRemove && (
+        <g
+          role="button"
+          tabIndex={0}
+          aria-label={`Rimuovi associazione${label ? `: ${label}` : ""}`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={() => setIsRemoveHovered(true)}
+          onPointerLeave={() => setIsRemoveHovered(false)}
+          onFocus={() => setIsRemoveHovered(true)}
+          onBlur={() => setIsRemoveHovered(false)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            onRemove();
+          }}
+          className="focus:outline-none"
+          style={{ cursor: "pointer", outline: "none" }}
+        >
+          <rect
+            x={contentWidth - 8}
+            y={-8}
+            width={16}
+            height={16}
+            fill="transparent"
+          />
+          <circle
+            cx={contentWidth}
+            cy={0}
+            r={7}
+            fill={isRemoveHovered ? "var(--success)" : "#ffffff"}
+            stroke="var(--success)"
+            strokeWidth={1.5}
+            style={{
+              filter: isRemoveHovered
+                ? "drop-shadow(0 1px 2px rgba(20, 35, 42, 0.36))"
+                : "drop-shadow(0 1px 1px rgba(20, 35, 42, 0.28))",
+            }}
+          />
+          <text
+            x={contentWidth}
+            y={1}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={14}
+            fontWeight={800}
+            fill={isRemoveHovered ? "#ffffff" : "var(--success)"}
+          >
+            ×
+          </text>
+        </g>
+      )}
     </g>
   );
 }
@@ -297,6 +421,7 @@ export default function FloorPlanRenderer({
   showObjects,
   objectAssignmentLabels,
   assignedObjectIds,
+  onRemoveObjectProduct,
   viewport,
   onViewportChange,
   onSelect,
@@ -458,6 +583,8 @@ export default function FloorPlanRenderer({
             onHoverObject={setHoveredObjectId}
             objectAssignmentLabels={objectAssignmentLabels}
             assignedObjectIds={assignedObjectIds}
+            scale={viewport.scale}
+            onRemoveObjectProduct={onRemoveObjectProduct}
             onSelectObject={(objectId) => onSelect({ type: "object", id: objectId })}
           />
         )}
