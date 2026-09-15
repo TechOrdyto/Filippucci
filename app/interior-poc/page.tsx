@@ -400,8 +400,10 @@ export default function InteriorPocPage() {
     closeObjectAssignment();
     setObjectAssignmentTargetId(null);
     setSelectedRoomId(null);
+    setCamera(null);
     setViewpoints([]);
     setSelectedViewpointId(null);
+    setIsCameraSet(false);
   };
 
   const handleSelectViewpoint = (vp: Viewpoint | null) => {
