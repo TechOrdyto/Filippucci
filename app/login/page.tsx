@@ -75,7 +75,7 @@ function LoginForm() {
               <div>
                 <p className="eyebrow mb-3">Accesso</p>
                 <h2 className="display-title text-3xl leading-none text-[var(--text)]">
-                  Entra nello studio
+                  STUDIO F
                 </h2>
               </div>
               <span className="soft-badge inline-flex min-h-10 w-[88px] items-center justify-center rounded-full px-3 py-1.5 text-center text-[10px] font-bold uppercase leading-4 tracking-[0.12em]">
